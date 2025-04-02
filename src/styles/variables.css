@@ -1,0 +1,28 @@
+:root {
+  /* 색상 */
+  --primary-bg-color: #1a1a1a;
+  --secondary-bg-color: #2a2a2a;
+  --text-color: #ffffff;
+  --accent-color: #3a8eff;
+  
+  /* 여백 */
+  --card-padding: 1rem;
+  --card-margin: 0.75rem;
+  
+  /* 폰트 크기 */
+  --font-size-small: 0.75rem;
+  --font-size-normal: 0.875rem;
+  --font-size-large: 1rem;
+  
+  /* 라운드 코너 */
+  --border-radius: 0.75rem;
+}
+
+/* 모바일 화면 변수 */
+@media (max-width: 767px) {
+  :root {
+    --card-padding: 0.75rem;
+    --card-margin: 0.5rem;
+    --border-radius: 0.625rem;
+  }
+} 

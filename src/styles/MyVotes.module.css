@@ -1,0 +1,196 @@
+.my-votes-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0px;
+}
+
+/* 투표 카드 리스트 컨테이너 */
+.vote-card-list {
+  position: relative;
+}
+
+/* 로딩 컨테이너 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.85);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+}
+
+/* 로딩 스피너 */
+.loading-spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 4px solid #3a8eff;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 15px 0;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 프로그레스 컨테이너 */
+.progress-container {
+  width: 80%;
+  max-width: 400px;
+  background-color: #333;
+  border-radius: 4px;
+  overflow: hidden;
+  height: 8px;
+  margin: 10px 0;
+}
+
+/* 프로그레스 바 */
+.progress-bar {
+  height: 100%;
+  background-color: #3a8eff;
+  transition: width 0.3s ease;
+}
+
+/* 프로그레스 텍스트 */
+.progress-text {
+  margin-top: 5px;
+  color: #fff;
+  font-size: 14px;
+}
+
+/* 에러 컨테이너 */
+.error-container {
+  text-align: center;
+  padding: 40px;
+  color: #ff4444;
+}
+
+.error-message {
+  margin-bottom: 20px;
+}
+
+.retry-button {
+  background: none;
+  border: 1px solid #ff4444;
+  color: #ff4444;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.retry-button:hover {
+  background: #ff4444;
+  color: #fff;
+}
+
+/* 투표 카드 그리드 */
+.vote-cards {
+  display: grid;
+  gap: 5px;
+  grid-template-columns: 1fr;
+}
+
+/* 투표 없음 메시지 */
+.no-votes-message {
+  text-align: center;
+  padding: 40px;
+  color: #888;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+/* 반응형 디자인 */
+@media (min-width: 768px) {
+  .vote-cards {
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  }
+}
+
+/* 이미지 그리드 옵션의 바 그래프 스타일 */
+.image-grid-option .vote-bar-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 30px;
+  background-color: rgba(58, 142, 255, 0.6);
+  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 이미지 그리드 옵션 선택 시 바 그래프 스타일 */
+.image-grid-option.selected .vote-bar-overlay {
+  background-color: rgba(58, 142, 255, 0.8);
+}
+
+/* 관리 버튼 기본 스타일 */
+.management-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.management-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.publish-btn {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+}
+
+.edit-btn {
+  background-color: #2c3e50;
+  color: white;
+  border: none;
+}
+
+.delete-btn {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+}
+
+/* 모바일 환경에서의 관리 버튼 스타일 */
+@media (max-width: 600px) {
+  .management-buttons {
+    gap: 8px;
+  }
+
+  .management-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+    height: 36px;
+    min-width: 60px;
+  }
+
+  /* 버튼 정렬을 위한 스타일 */
+  .publish-btn,
+  .edit-btn,
+  .delete-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+} 

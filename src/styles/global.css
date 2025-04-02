@@ -1,0 +1,4 @@
+.full-height {
+  height: 100vh; /* 일반 브라우저 */
+  height: calc(var(--vh, 1vh) * 100); /* 모바일 브라우저 */
+} 

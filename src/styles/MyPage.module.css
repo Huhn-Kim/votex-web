@@ -1,0 +1,1398 @@
+/* MyPage.module.css */
+.container {
+  max-width: 700px;
+  margin: 20px auto;
+  padding: 16px;
+  background-color: #333;
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  padding-bottom: 50px;
+}
+
+.pageTitle {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.card {
+  background-color: #1a1a1a;
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  padding: 15px;
+  margin-bottom: 50px;
+}
+
+.cardHeader {
+  padding: 12px 16px;
+  border-bottom: 1px solid #555;
+  margin-bottom: 12px;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.cardContent {
+  padding: 16px;
+}
+
+/* 프로필 탭 스타일 */
+.profileContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background-color: #1a1a1a;
+}
+
+.profileHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.profileAvatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.profileAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profileInfo {
+  flex: 1;
+}
+
+.profileName {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.profileEmail {
+  color: #aaa;
+  margin: 0 0 4px 0;
+  font-size: 14px;
+}
+
+.profileJoinDate {
+  color: #aaa;
+  font-size: 12px;
+  margin: 0;
+}
+
+.profileBio {
+  margin-top: 12px;
+}
+
+.profileBio h3 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.profileBio p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* 기존 통계 스타일 */
+.profileStats {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #555;
+  padding: 12px;
+  border-radius: 8px;
+  flex: 1;
+}
+
+/* 컴팩트한 통계 스타일 */
+.profileStatsCompact {
+  display: flex;
+  gap: 16px;
+  margin: 8px 0;
+  background-color: #444;
+  border-radius: 8px;
+  padding: 12px;
+  flex-wrap: wrap;
+  border: 1px solid #555;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.statItemCompact {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.statItemCompact .statLabel {
+  color: #aaa;
+  font-size: 13px;
+  margin: 0;
+  order: 1;
+}
+
+.statItemCompact .statValue {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  order: 2;
+  color: #3a8eff;
+}
+
+.statValue {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.statLabel {
+  color: #aaa;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.profileActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.editButton, .saveButton, .cancelButton {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.editButton {
+  background-color: #3a8eff;
+  color: white;
+}
+
+.saveButton {
+  background-color: #28a745;
+  color: white;
+}
+
+.cancelButton {
+  background-color: #555;
+  color: white;
+}
+
+.editInput, .editTextarea {
+  background-color: #252525;
+  color: #fff;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 8px;
+  width: 100%;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.editTextarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* 설정 탭 스타일 */
+.settingsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: #1a1a1a;
+}
+
+.settingItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: #333;
+  border-radius: 8px;
+  border: 1px solid #555;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid #333;
+}
+
+.settingInfo {
+  flex: 1;
+}
+
+.settingInfo label {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.settingDescription {
+  color: #aaa;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.settingSwitch {
+  width: 36px;
+  height: 18px;
+  appearance: none;
+  background-color: #777;
+  border-radius: 10px;
+  position: relative;
+  cursor: pointer;
+}
+
+.settingSwitch:checked {
+  background-color: #3a8eff;
+}
+
+.settingSwitch:before {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: white;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s;
+}
+
+.settingSwitch:checked:before {
+  transform: translateX(18px);
+}
+
+.settingActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.saveSettingsButton {
+  background-color: #3a8eff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* 구독 회원 탭 스타일 */
+.subscribersContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: #1a1a1a;
+}
+
+.subscriberItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background-color: #444;
+  border-radius: 8px;
+  gap: 12px;
+  border: 1px solid #555;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.subscriberInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.subscriberAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.subscriberAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.subscriberName {
+  font-size: 15px;
+  font-weight: 500;
+  margin: 0 0 4px 0;
+}
+
+.subscriberBio {
+  color: #aaa;
+  font-size: 13px;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.followButton {
+  background-color: #3a8eff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.following {
+  background-color: #252525;
+  color: #f7f5f5;
+}
+
+.noSubscribers {
+  text-align: center;
+  color: #aaa;
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 12px;
+    max-width: 100%;
+  }
+  
+  .profileNameContainer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    width: 100%;
+    text-align: center;
+  }
+  
+  .titleBadge {
+    align-self: center;
+    margin: 0 auto;
+  }
+  
+  .profileHeader {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+  
+  .profileInfo {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .profileContact {
+    text-align: center;
+    width: 100%;
+  }
+  
+  .profileStatsCompact {
+    flex-direction: row;
+    justify-content: center;
+  }
+  
+  .statItemCompact {
+    justify-content: center;
+  }
+  
+  .subscriberItem {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .subscriberInfo {
+    width: 100%;
+  }
+  
+  .followButton {
+    align-self: flex-end;
+    margin-top: 8px;
+  }
+  
+  .badgeNotification {
+    left: 20px;
+    right: 20px;
+    max-width: calc(100% - 40px);
+  }
+  
+  .testButtons {
+    flex-direction: column;
+  }
+  
+  .badgeItem {
+    padding: 10px;
+  }
+  
+  .badgeIcon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .badgeIcon svg {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .badgeIconLarge {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .badgeIconLarge svg {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .titleCardIcon {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .titleCardIcon svg {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .settingItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .settingInfo {
+    width: 100%;
+  }
+  
+  .settingSwitch {
+    align-self: flex-end;
+    margin-top: 8px;
+  }
+  
+  .settingActions {
+    justify-content: center;
+  }
+  
+  .saveSettingsButton {
+    width: 100%;
+  }
+  
+  .titleHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .titleLevel {
+    align-self: flex-start;
+    margin-top: 4px;
+  }
+  
+  .titleStatus, .badgeStatus {
+    display: flex;
+    justify-content: flex-start;
+  }
+  
+  .badgeCard {
+    padding: 16px 12px;
+  }
+  
+  .badgeIconLarge {
+    margin-bottom: 12px;
+  }
+  
+  .badgeCardDescription {
+    margin-bottom: 12px;
+  }
+  
+  .card {
+    padding: 12px;
+  }
+  
+  .titleCard {
+    padding: 12px;
+  }
+  
+  .titleDescription {
+    font-size: 13px;
+  }
+  
+  .acquiredBadge, .lockedBadge {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+  
+  .activeTab {
+    background-color: #3a8eff !important;
+    color: white !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 8px;
+  }
+  
+  .pageTitle {
+    font-size: 18px;
+  }
+  
+  .profileAvatar {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .profileName {
+    font-size: 18px;
+  }
+  
+  .badgesGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .badgeIconLarge {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .badgeIconLarge svg {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .badgeCardName {
+    font-size: 16px;
+  }
+  
+  .badgeCardDescription {
+    font-size: 12px;
+  }
+  
+  .badgeNotification {
+    flex-direction: column;
+    padding: 15px;
+    gap: 10px;
+    text-align: center;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: calc(100% - 40px);
+  }
+  
+  .badgeNotificationContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .badgeNotificationIcon {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .badgeNotificationIcon svg {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .badgeNotificationContent h4 {
+    font-size: 16px;
+  }
+  
+  .badgeNotificationContent p {
+    font-size: 12px;
+  }
+  
+  .subscriberAvatar {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .subscriberName {
+    font-size: 14px;
+  }
+  
+  .subscriberBio {
+    font-size: 12px;
+  }
+  
+  .followButton {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+}
+
+/* 프로필 이름과 칭호 컨테이너 */
+.profileNameContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+/* 칭호 뱃지 스타일 */
+.titleBadge {
+  display: flex;
+  align-items: center;
+  background-color: rgba(58, 142, 255, 0.15);
+  border: 1px solid rgba(58, 142, 255, 0.3);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: #3a8eff;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.titleIcon {
+  margin-right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.titleIcon svg {
+  width: 16px;
+  height: 16px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+.titleText {
+  font-weight: 500;
+}
+
+/* 레벨 및 XP 정보 스타일 */
+.levelInfo {
+  margin-top: 10px;
+  background-color: #444;
+  border-radius: 8px;
+  padding: 8px 12px;
+  border: 1px solid #555;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.levelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.levelLabel {
+  font-weight: 600;
+  color: #fff;
+  font-size: 14px;
+}
+
+.xpValue {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.xpProgressContainer {
+  height: 6px;
+  background-color: #444;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.xpProgressBar {
+  height: 100%;
+  background-color: #3a8eff;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* 최근 획득한 뱃지 스타일 */
+.recentBadges {
+  margin-top: 16px;
+}
+
+.recentBadges h3 {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.badgesList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.badgeItem {
+  display: flex;
+  align-items: center;
+  background-color: #444;
+  border-radius: 8px;
+  padding: 12px;
+  gap: 16px;
+  transition: background-color 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #555;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+
+.badgeIcon {
+  font-size: 24px;
+  background-color: #333;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+
+.badgeIcon svg {
+  width: 30px;
+  height: 30px;
+}
+
+.badgeInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.badgeName {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.badgeDate {
+  font-size: 13px;
+  color: #ccc;
+}
+
+.viewAllBadgesButton {
+  margin-top: 8px;
+  background-color: transparent;
+  border: 1px solid #3a8eff;
+  color: #3a8eff;
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color 0.3s;
+  width: 100%;
+}
+
+
+/* 뱃지 & 칭호 탭 스타일 */
+.badgesContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background-color: #1a1a1a;
+}
+
+.badgesSectionTitle {
+  font-size: 18px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #555;
+  padding-bottom: 8px;
+}
+
+/* 칭호 리스트 스타일 */
+.titlesList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.titleCard {
+  background-color: #252525;
+  border-left: 4px solid #777;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.titleHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.titleNameWithIcon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.titleCardIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #333;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.titleName {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.titleLevel {
+  font-size: 13px;
+  color: #ccc;
+  background-color: #333;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.titleDescription {
+  font-size: 14px;
+  color: #ccc;
+  margin: 8px 0;
+}
+
+.acquiredBadge, .lockedBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #4CAF50;
+  font-size: 13px;
+  background-color: rgba(76, 175, 80, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-top: 6px;
+}
+
+.checkIcon {
+  font-weight: bold;
+}
+
+.lockedBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #aaa;
+  font-size: 13px;
+  background-color: rgba(170, 170, 170, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-top: 6px;
+}
+
+.lockIcon {
+  font-weight: normal;
+}
+
+/* 뱃지 그리드 스타일 */
+.badgesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.badgeCard {
+  background: linear-gradient(145deg, #3d3d3d, #383838);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.badgeCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 5px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+}
+
+
+.acquiredBadge {
+  border: none;
+  position: relative;
+}
+
+.acquiredBadge::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 5px;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  opacity: 0.9;
+}
+
+.lockedBadgeCard {
+  opacity: 0.7;
+  filter: grayscale(0.7);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.badgeIconLarge {
+  font-size: 40px;
+  margin-bottom: 16px;
+  background: linear-gradient(145deg, #383838, #333);
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5), inset 0 2px 6px rgba(255, 255, 255, 0.05);
+  margin-top: 8px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+}
+
+
+.badgeIconLarge::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+
+.badgeIconLarge svg {
+  width: 60px;
+  height: 60px;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.6));
+  stroke-width: 2.5;
+}
+
+.badgeCardName {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  background: linear-gradient(90deg, #fff, #ccc);
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.badgeCardDescription {
+  color: #ccc;
+  font-size: 13px;
+  margin: 0 0 16px 0;
+  flex-grow: 1;
+}
+
+.badgeAcquiredDate, .badgeLocked {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 20px;
+  width: 100%;
+  margin-top: 8px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.badgeAcquiredDate {
+  background: linear-gradient(145deg, rgba(40, 167, 69, 0.2), rgba(40, 167, 69, 0.3));
+  color: #2ecc71;
+  border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.badgeLocked {
+  background: linear-gradient(145deg, rgba(108, 117, 125, 0.2), rgba(108, 117, 125, 0.3));
+  color: #bbb;
+  border: 1px solid rgba(108, 117, 125, 0.3);
+}
+
+/* 뱃지 획득 알림 스타일 */
+.badgeNotification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: linear-gradient(145deg, #444, #333);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  max-width: 350px;
+  border-left: none;
+  animation: slideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), fadeOut 0.3s ease 2.7s;
+  overflow: hidden;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.badgeNotification::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
+  height: 100%;
+  background: linear-gradient(to bottom, currentColor, transparent);
+}
+
+.badgeNotificationIcon {
+  font-size: 40px;
+  background: linear-gradient(145deg, #333, #222);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5), inset 0 2px 6px rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.badgeNotificationIcon::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 70%);
+}
+
+.badgeNotificationIcon svg {
+  width: 48px;
+  height: 48px;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.6));
+  stroke-width: 2.5;
+}
+
+.badgeNotificationContent h4 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  background: linear-gradient(90deg, currentColor, #fff);
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.badgeNotificationContent p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.badgeNotificationDesc {
+  color: #aaa;
+  font-size: 12px !important;
+  margin-top: 4px !important;
+}
+
+/* 테스트 버튼 스타일 */
+.testButtons {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.testButton {
+  background-color: #555;
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+
+.titleStatus, .badgeStatus {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.badgeStatus {
+  display: flex;
+  justify-content: center;
+}
+
+.profileContact {
+  margin-top: 8px;
+}
+
+/* 일관된 배경색 및 테두리 색상 적용 */
+.badgeItem,
+.titleCard,
+.settingItem,
+.subscriberItem {
+  background-color: #252525;
+  border: 1px solid #333;
+  box-shadow: none;
+}
+
+/* 칭호 카드 스타일 통일 */
+.titleCard {
+  background-color: #252525;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-left: 1px solid #333; /* 모든 테두리 통일 */
+}
+
+/* 배지 아이템 스타일 통일 */
+.badgeItem {
+  display: flex;
+  align-items: center;
+  background-color: #252525;
+  border-radius: 8px;
+  padding: 12px;
+  gap: 16px;
+  border: 1px solid #333;
+  box-shadow: none;
+  transition: none;
+}
+
+/* 구독자 아이템 스타일 통일 */
+.subscriberItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background-color: #252525;
+  border-radius: 8px;
+  gap: 12px;
+  border: 1px solid #333;
+  box-shadow: none;
+}
+
+/* 설정 아이템 스타일 통일 */
+.settingItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: #252525;
+  border-radius: 8px;
+  border: 1px solid #333;
+  box-shadow: none;
+}
+
+/* 레벨 정보 스타일 통일 */
+.levelInfo {
+  margin-top: 10px;
+  background-color: #252525;
+  border-radius: 8px;
+  padding: 8px 12px;
+  border: 1px solid #333;
+  box-shadow: none;
+}
+
+/* 프로필 통계 스타일 통일 */
+.profileStatsCompact {
+  display: flex;
+  gap: 16px;
+  margin: 8px 0;
+  background-color: #252525;
+  border-radius: 8px;
+  padding: 12px;
+  flex-wrap: wrap;
+  border: 1px solid #333;
+  box-shadow: none;
+}
+
+
+/* 버튼 배경색 유지 */
+.editButton {
+  background-color: #3a8eff;
+}
+
+.saveButton {
+  background-color: #4CAF50;
+}
+
+.cancelButton {
+  background-color: #f44336;
+}
+
+.testButton {
+  background-color: #3a8eff;
+}
+
+.followButton {
+  background-color: #3a8eff;
+}
+
+.following {
+  background-color: #807e7e;
+}
+
+.saveSettingsButton {
+  background-color: #3a8eff;
+}
+
+.viewAllBadgesButton {
+  background-color: #3a8eff;
+  color: white;
+}
+
+/* 모든 트랜지션 효과 제거 */
+.card, 
+.badgeItem, 
+.titleCard, 
+.settingItem, 
+.subscriberItem,
+.editButton,
+.saveButton,
+.cancelButton,
+.testButton,
+.followButton,
+.saveSettingsButton,
+.viewAllBadgesButton,
+.badgeIcon,
+.titleBadge,
+.xpProgressBar,
+.settingSwitch:before {
+  transition: none;
+}
+
+/* 획득한 뱃지 색상 통일 */
+.acquiredTitle {
+  background-color: #252525;
+}
+
+/* 잠긴 뱃지 카드 스타일 수정 */
+.lockedBadgeCard {
+  box-shadow: none;
+}
+
+/* 배지 카드, 칭호 카드 배경색 통일 */
+.badgeCard, 
+.lockedBadgeCard {
+  background-color: #252525;
+  background: none;
+  box-shadow: none;
+  border: 1px solid #333;
+}
+
+/* MyPage 컴포넌트의 탭 스타일 - 이 부분 제거 */
+
+/* .vote-tabs, .tab-button, .tab-list 스타일은 제거 */
+
+/* 나머지 코드는 그대로 유지 */
+
+/* 컨테이너 공통 스타일 */
+.profileContainer,
+.settingsContainer,
+.subscribersContainer,
+.badgesContainer {
+  background-color: #1a1a1a;
+}
+
+/* 호버 효과 제거 */
+.card:hover,
+.titleBadge:hover,
+.badgeItem:hover,
+.badgeIcon:hover,
+.viewAllBadgesButton:hover,
+.titleCard:hover,
+.badgeCard:hover,
+.badgeCard:hover .badgeIconLarge,
+.lockedBadgeCard:hover,
+.testButton:hover,
+.editButton:hover,
+.saveButton:hover,
+.cancelButton:hover,
+.followButton:hover,
+.saveSettingsButton:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+/* 버튼 기본 스타일 */
+.saveSettingsButton,
+.followButton,
+.testButton,
+.editButton {
+  background-color: #3a8eff !important;
+}
+
+.followButton.following {
+  background-color: #5a5a5a !important;
+}
+
+.saveButton {
+  background-color: #4CAF50 !important;
+}
+
+.cancelButton {
+  background-color: #f44336 !important;
+}
+
+.viewAllBadgesButton {
+  background-color: #3a8eff !important;
+  color: white;
+}
+
+/* 모든 트랜지션 효과 제거 */
+* {
+  transition: none !important;
+}

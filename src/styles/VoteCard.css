@@ -1,0 +1,1379 @@
+/* 변수 정의 추가 */
+:root {
+  /* 메인 색상 변수 */
+  --option-bg-color: #2a2a2a;        /* 기본 옵션 배경색 */
+  --option-border-color: #333;       /* 기본 옵션 테두리 색상 */
+  --bar-color-normal: rgba(58, 142, 255, 0.2);  /* 투표 바 기본 색상 */
+  --bar-color-selected: rgba(58, 142, 255, 0.3); /* 선택된 투표 바 색상 */
+  --border-color-selected: #3a8eff;  /* 선택된 옵션 테두리 색상 */
+  --text-primary: #fff;              /* 기본 텍스트 색상 */
+  --text-secondary: #aaa;            /* 보조 텍스트 색상 */
+}
+
+/* 모던 카드 스타일 */
+.modern-card {
+  background-color: #1a1a1a;
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  padding: 5px 5px; /* 카드의 좌우 패딩 */
+  margin-bottom: 4px;
+  transition: box-shadow 0.3s ease;
+  max-width: 900px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;  
+}
+
+/* 투표 카드 ID, 헤더 기간 정보 포함된 부분 */
+.vote-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 12px;
+  border: 2px solid #444;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.username-badge {
+  display: flex;
+  align-items: center;
+}
+
+.username {
+  font-weight: 600;
+  margin-right: 8px;
+  color: #fff;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  margin-left: 6px;
+  background-color: #222;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.badge svg {
+  width: 16px;
+  height: 16px;
+  color: white;
+  stroke-width: 2.5;
+}
+
+.time {
+  font-size: 12px;
+  color: #aaa;
+}
+
+/* 상태 배지 스타일 */
+.status-container {
+  display: flex;
+  align-items: center;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.status-badge.expired {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.vote-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* 이미지 그리드가 있는 경우 추가 여백 */
+.vote-card-content:has(.image-grid-options) {
+  padding-bottom: 20px;
+}
+
+/* 이미지 유형일 때 카드 높이 자동 조정 */
+.vote-card.modern-card:has(.image-grid-options) {
+  height: auto;
+  min-height: 400px;
+}
+
+/* 질문 컨테이너 스타일 */
+.question-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 0px;
+  position: relative;
+  width: 100%;
+}
+
+/* 질문 이미지 컨테이너 배경 수정 */
+.question-image-container {
+  width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  background-color: #1a1a1a !important; /* modern-card의 배경색과 강제로 일치 */
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 0;
+  /* 배경색 관련 속성 추가 */
+  background-image: none;
+  background-size: unset;
+}
+
+/* 투명 배경 이미지를 위한 배경 색상 수정 */
+.question-image-container.transparent-bg {
+  background-color: #1a1a1a !important; /* modern-card의 배경색과 강제로 일치 */
+  /*background-color: #2a2a2a;  /* 체크무늬 대신 진한 회색 */
+
+  background-image: none !important;
+  background-size: unset !important;
+}
+
+/* 질문 이미지 자체의 스타일 */
+.question-image {
+  width: auto;           /* 100%에서 auto로 변경 */
+  height: auto;         /* 고정 높이 제거 */
+  max-width: 100%;      /* 컨테이너 너비를 넘지 않도록 제한 */
+  max-height: 500px;    /* 최대 높이만 제한 */
+  object-fit: contain;  /* 이미지 비율 유지 */
+  display: block;
+  margin: 0 auto;
+  border-radius: 6px;
+  /* 이미지 자체에 배경색을 적용하지 않음 */
+  background-color: transparent !important;
+}
+
+/* 스토리지 이미지용 특별 스타일 (storage-image 클래스) */
+.question-image.storage-image {
+  width: 100% !important;
+  height: 300px !important;  /* 크롭 높이와 일치하도록 강제 설정 */
+  max-height: 300px !important;
+  object-fit: cover !important;  /* 비율 유지하며 영역 채우기 */
+  display: block !important;
+  margin: 0 auto !important;
+}
+
+/* 스토리지 이미지 전용 스타일 */
+.question-image.storage-image, 
+.image-grid-option img.storage-image {
+  width: 100% !important;
+  height: auto !important;
+  object-fit: contain !important;
+  /* 이미지를 더 크게 표시하되 짤리지 않도록 함 */
+  max-width: 100% !important;
+  max-height: none !important;
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  display: block !important;
+} 
+
+
+/* 질문 텍스트 컨테이너 */
+.question-text-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding-top: 0px;
+}
+
+.vote-question {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.vote-link {
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 0; /* 마진 제거 */
+  font-style: italic;
+  display: block;
+  opacity: 0.8;
+}
+
+.vote-link a {
+  color: #888;
+  text-decoration: none;
+  word-break: break-all;
+  transition: color 0.2s;
+}
+
+/* 옵션 리스트 간격 조정 */
+.vote-options {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+}
+
+/* 텍스트 스타일 일반 옵션 리스트 스타일 */
+.vote-option {
+  position: relative;
+  background-color: var(--option-bg-color);
+  border-radius: 3px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  border: 1px solid var(--option-border-color);
+}
+
+.vote-option.selected {
+  border-color: #0d458f;
+  background-color: rgba(58, 142, 255, 0.1);
+  box-shadow: 0 0 0 1px #3a8eff;
+}
+
+.expired .vote-option.selected {
+  border-color: var(--border-color-selected);
+  box-shadow: 0 0 0 1px var(--bar-color-normal);
+}
+
+.vote-option.result-mode {
+  cursor: pointer;
+  margin-bottom: 3px;
+}
+
+/* 옵션 이미지 있는 텍스트 리스트의 컨테이너 */
+.option-content {
+  display: flex;
+  align-items: left;
+  min-height: 3rem;
+  width: 100%;
+  z-index: 2;
+}
+
+/* 옵션 이미지 컨테이너 스타일 - 폭 유지, 높이 증가 */
+.option-image-container {
+  width: 120px !important;
+  height: 120px !important;
+  margin-right: 10px !important;
+  border-radius: 3px !important;
+  overflow: hidden !important;
+  background-color: #1a1a1a !important;
+  position: relative !important;
+  z-index: 25 !important; /* 매우 높은 z-index 값 */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  display: block !important;
+}
+
+/* 옵션 이미지 자체의 스타일 수정 */
+.option-image {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  background-color: #1a1a1a !important;
+  display: block !important;
+  z-index: 26 !important; /* 더 높은 z-index */
+  position: relative !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  mix-blend-mode: normal !important; /* 블렌드 모드 초기화 */
+}
+
+/* 이미지가 있는 옵션 - 높이 강제 증가 */
+.vote-option:has(.option-image-container) {
+  display: grid !important;
+  grid-template-columns: 120px 1fr !important;
+  grid-gap: 10px !important;
+  align-items: start !important; /* 텍스트를 좌측 정렬로 변경 */
+  position: relative !important;
+  min-height: 120px !important;
+}
+
+/* 바 그래프도 수직 중앙 기준으로 정렬 */
+.vote-option:has(.option-image-container) .vote-result {
+  left: 120px; /* 이미지 너비에 맞춰 결과 바 시작 위치 조정 */
+  width: calc(100% - 120px); /* 전체 너비에서 이미지 너비 빼기 */
+  height: 100%
+}
+
+/* 결과 바 스타일 조정 */
+.vote-option:has(.option-image-container) .vote-bar {
+  border-radius: 0 8px 8px 0 !important; /* 오른쪽만 라운드 처리 */
+}
+
+
+/* 텍스트 유형 옵션 리스트 내부 오버플로우 방지 */
+.vote-options-container {
+  overflow: visible !important;
+}
+
+/* 투표 결과 컨테이너 수정 */
+.vote-result {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  z-index: 1;
+}
+
+/* 텍스트 유형 리스트 투표 바 스타일 수정 */
+.vote-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%; /* 전체 높이로 확장 */
+  background-color: rgba(58, 142, 255, 0.2);
+  border-radius: 3px;
+  z-index: 1;
+  transition: width 0.5s ease;
+}
+
+/* 텍스트 유형 리스트 투표 퍼센트 스타일 수정 */
+.vote-percentage {
+  position: relative;
+  right: 8px;
+  color: #fff;
+  font-size: 14px;
+  display: flex; /* flexbox 사용 */
+  align-items: center; /* 수직 가운데 정렬 */
+  z-index: 3; /* 높은 z-index로 항상 표시 */
+}
+
+/* 옵션 텍스트 컨테이너 수정 */
+.option-text {
+  font-size: 14px;
+  color: #fff;
+  position: relative;
+  z-index: 2;
+  word-break: break-word;
+  text-align: left;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  min-height: 2rem;
+}
+
+.vote-count {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9em;
+  white-space: nowrap;
+  margin-left: auto;
+  min-width: 45px;
+  text-align: right;
+}
+
+/* 이미지 그리드 스타일 수정 */
+.image-grid-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 1fr 1fr과 동일 */
+  gap: 10px;  /* 모든 방향의 간격 통일 */
+  width: 100%;
+  margin-top: 10px;
+  padding: 5px;  /* 전체 그리드에 패딩 추가 */
+  box-sizing: border-box; /* 패딩을 너비에 포함 */
+}
+
+/* 이미지 그리드 개별 옵션 수정 */
+.image-grid-option {  /* 개별 이미지 그리드 옵션 스타일 */
+  position: relative;  /* 상대 위치 설정 */
+  border-radius: 8px;  /* 모서리 둥글게 */
+  overflow: hidden;  /* 내용이 넘칠 경우 숨김 */
+  background-color: #2a2a2a;  /* 배경색 설정 */
+  aspect-ratio: 1 / 1;  /* 정사각형 비율 유지 */
+  min-height: 200px;  /* 최소 높이 설정 */
+  width: 100%; /* 컨테이너 너비에 맞춤 */
+  display: flex;  /* flexbox 사용 */
+  align-items: center;  /* 수직 가운데 정렬 */
+  justify-content: center;  /* 수평 가운데 정렬 */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;  /* 변형 및 그림자 전환 효과 */
+  box-sizing: border-box; /* 패딩을 너비에 포함 */
+}
+
+/* 이미지와 텍스트를 포함하는 컨테이너 */
+.image-with-text {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 8px;
+  z-index: 1;
+}
+
+.image-grid-option .image-with-text {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: visible; /* hidden에서 변경 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3 ;
+
+}
+
+/* 이미지 자체의 크기 및 표시 방식 조정 */
+.image-grid-option img.option-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.2s ease;
+  z-index: 1;
+}
+
+
+/* 오버레이 텍스트 스타일 개선 */
+.overlay-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.4); /* 배경 더 투명하게 */
+  color: white;
+  font-size: 14px;
+  text-align: left;
+  width: auto;
+  max-width: 80%;
+  border-radius: 0 0 8px 0;
+  z-index: 3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  backdrop-filter: blur(1.5px); /* 약간의 블러 효과 추가 */
+}
+
+/* 투표 퍼센트 오버레이 - 우측 하단에 정확히 배치하고 크기 줄임 */
+.vote-percentage-overlay {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.5); /* 더 투명하게 */
+  color: white;
+  padding: 3px 6px;
+  border-radius: 4px 0 0 0; /* 좌상단만 라운드 처리 */
+  font-size: 14px; /* 글자 크기 줄임 */
+  z-index: 3;
+  backdrop-filter: blur(1.5px); /* 약간의 블러 효과 추가 */
+}
+
+/* 투표 바 - 하단에 고정 */
+.vote-bar-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(33, 150, 243, 0.5); /* 더 투명하게 */
+  z-index: 3;
+  height: 4px !important; /* 높이 줄임 */
+}
+
+.image-grid-option .overlay-text {
+  position: relative;
+  top: 8px;
+  left: 8px;
+  padding: 5px 5px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 12px;
+  border-radius: 8px 0 8px 0;
+  justify-content: bottom;
+  max-width: calc(100% - 16px);
+  word-break: break-word;
+  z-index: 3 ;
+}
+
+/* 이미지 그리드 옵션의 텍스트 표시 스타일 수정 */
+.option-text-overlay {
+  position: absolute;
+  bottom: 90%; /* 중앙에서 시작 */
+  left: 8px;
+  transform: translateY(50%); /* 수직 중앙 정렬 */
+  background-color: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 6px 10px;
+  font-weight: 500;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+/*
+.image-grid-option-text {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #0e0d0d;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  padding: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+  word-break: break-word;
+  background-size: cover;
+  background-position: center;
+}
+*/
+
+/* 이미지 그리드 옵션의 퍼센트 표시 스타일 수정 */
+.image-grid-option .vote-percentage-overlay {
+  position: absolute;
+  bottom: 15%; /* 아래에서 시작 */
+  right: 8px;
+  transform: translateY(50%); /* 수직 중앙 정렬 */
+  background-color: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 4px 6px; /* 패딩을 줄여서 더 컴팩트하게 */
+  font-weight: 500;
+  font-size: 14px;
+  border-radius: 6px;
+  width: auto;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 3;
+}
+
+/* 선택된 옵션의 퍼센트 표시도 동일한 스타일 적용 */
+.image-grid-option.selected .vote-percentage-overlay {
+  background-color: rgba(33, 150, 243, 0.7);
+  font-weight: bold;
+}
+
+/* 바 그래프는 기존 파란색 유지 */
+.image-grid-option .vote-bar-overlay {
+  background-color: rgba(30, 123, 245, 0.7);
+  height: 15px !important;
+}
+
+.image-grid-option.selected .vote-bar-overlay {
+  background-color: rgba(11, 103, 207, 0.9);
+  height: 15px !important;
+}
+
+
+.image-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.overlays-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10; /* 반드시 이미지보다 높게 설정 */
+  pointer-events: none; /* 이미지 클릭을 가능하게 함 */
+}
+
+/* 체크무늬 배경 제거 수정 */
+.image-grid-option.transparent-bg {
+  background-color: #1a1a1a; /* modern-card 배경색과 일치 */
+}
+
+/* 기본 이미지 클래스가 적용된 이미지 그리드 옵션 텍스트 */
+.image-grid-option-text.default-image-blue,
+.image-grid-option-text.default-image-red,
+.image-grid-option-text.default-image-green,
+.image-grid-option-text.default-image-orange,
+.image-grid-option-text.default-image-purple,
+.image-grid-option-text.default-image-cyan,
+.image-grid-option-text.default-image-brown,
+.image-grid-option-text.default-image-food-1,
+.image-grid-option-text.default-image-food-2,
+.image-grid-option-text.default-image-food-3 {
+  color: white;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  font-weight: bold;
+}
+
+.image-grid-option.selected .image-grid-option-text {
+  background-color: var(--bar-color-selected);
+}
+
+/* 사용자 이름과 뱃지 컨테이너 */
+.user-name-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.5) 100%);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* 카드 액션 버튼 컨테이너: 구독/구독취소 */
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 구독/구독취소 버튼 */
+.subscription-btn { 
+  background-color: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  font-weight: 500;
+  min-width: 60px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 3px 10px;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.subscription-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.subscription-btn.subscribed {
+  background-color: #3a8eff;
+  color: white;
+}
+
+/* 삭제 버튼 스타일 */
+.delete-btn {
+  background-color: rgba(255, 0, 0, 0.2);
+  border: none;
+  color: #fff;
+  font-weight: 500;
+  min-width: 60px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 3px 10px;  /* 좌우 패딩 증가 */
+  margin-right: 10px;  /* 우측 마진 추가 */
+  font-size: 12px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-btn:hover {
+  background-color: rgba(255, 0, 0, 0.2);
+}
+
+
+/* 더보기 버튼 스타일 */
+.more-btn-text {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.more-btn-text:hover {
+  color: #fff;
+}
+
+.more-options-container {
+  position: relative;
+}
+
+.more-options-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: #333;
+  border: 1px solid #444;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+  width: 150px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.more-option {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.more-option:hover {
+  background-color: #333;
+}
+
+.option-icon {
+  margin-right: 8px;
+  font-size: 16px;
+  margin-left: 8px;
+}
+
+/* 좋아요 버튼 컨테이너 */
+.vote-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* 좋아요 버튼 */
+.vote-action-btn {
+  background: none;
+  border: none;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  padding: 5px 5px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.vote-action-btn:hover:not(:disabled) {
+  background-color: transparent;
+  color: #888;
+  transform: none;
+}
+
+.vote-action-btn:active:not(:disabled) {
+  transform: none;
+}
+
+.vote-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 좋아요 버튼 활성화 스타일 */
+.vote-action-btn:nth-child(1).active {
+  color: #4a9eff;
+  font-weight: bold;
+  background-color: transparent;
+}
+
+/* 싫어요 버튼 활성화 스타일 */
+.vote-action-btn:nth-child(2).active {
+  color: #ff4a4a;
+  font-weight: bold;
+  background-color: transparent;
+}
+
+/* 로딩 상태 스타일 */
+.vote-action-btn.loading {
+  pointer-events: none;
+}
+
+.vote-action-btn.loading::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  right: -5px;
+  top: 3px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 투표 중 및 오류 메시지 스타일 */
+.voting-indicator {
+  text-align: center;
+  padding: 8px;
+  margin-top: 10px;
+  background-color: rgba(52, 152, 219, 0.2);
+  border-radius: 4px;
+  color: #fff;
+}
+
+.vote-error-message {
+  text-align: center;
+  padding: 8px;
+  margin: 10px 0;
+  background-color: rgba(231, 76, 60, 0.2);
+  border-radius: 4px;
+  color: #e74c3c;
+}
+
+/* 시간 컨테이너 스타일 */
+.time-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 남은 시간 레이블 */
+.remaining-time {
+  font-size: 12px;
+  color: #3a8eff;
+  background-color: rgba(58, 142, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+/* 종료 레이블 */
+.expired-label {
+  font-size: 12px;
+  color: #fff;
+  background-color: rgba(231, 76, 60, 0.7);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+/* 기본 이미지 클래스 */
+.default-image-blue {
+  background-color: #3F51B5;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzNGNTFCNSIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMzUiIHI9IjIwIiBmaWxsPSIjRkZGRkZGIi8+PHJlY3QgeD0iMzAiIHk9IjYwIiB3aWR0aD0iNDAiIGhlaWdodD0iMjUiIGZpbGw9IiNGRkZGRkYiLz48L3N2Zz4=');
+  background-size: cover;
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+}
+
+.default-image-red {
+  background-color: #E91E63;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI0U5MUU2MyIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMzUiIHI9IjIwIiBmaWxsPSIjRkZGRkZGIi8+PHJlY3QgeD0iMzAiIHk9IjYwIiB3aWR0aD0iNDAiIGhlaWdodD0iMjUiIGZpbGw9IiNGRkZGRkYiLz48L3N2Zz4=');
+  background-size: cover;
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+}
+
+.default-image-green {
+  background-color: #4CAF50;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzRDQUY1MCIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMzUiIHI9IjIwIiBmaWxsPSIjRkZGRkZGIi8+PHJlY3QgeD0iMzAiIHk9IjYwIiB3aWR0aD0iNDAiIGhlaWdodD0iMjUiIGZpbGw9IiNGRkZGRkYiLz48L3N2Zz4=');
+  background-size: cover;
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+}
+
+.default-image-orange {
+  background-color: #FF9800;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI0ZGOTgwMCIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMzUiIHI9IjIwIiBmaWxsPSIjRkZGRkZGIi8+PHJlY3QgeD0iMzAiIHk9IjYwIiB3aWR0aD0iNDAiIGhlaWdodD0iMjUiIGZpbGw9IiNGRkZGRkYiLz48L3N2Zz4=');
+  background-size: cover;
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+}
+
+.default-image-purple {
+  background-color: #9C27B0;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzlDMjdCMCIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMzUiIHI9IjIwIiBmaWxsPSIjRkZGRkZGIi8+PHJlY3QgeD0iMzAiIHk9IjYwIiB3aWR0aD0iNDAiIGhlaWdodD0iMjUiIGZpbGw9IiNGRkZGRkYiLz48L3N2Zz4=');
+  background-size: cover;
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+}
+
+.default-image-cyan {
+  background-color: #00BCD4;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzAwQkNENCIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMzUiIHI9IjIwIiBmaWxsPSIjRkZGRkZGIi8+PHJlY3QgeD0iMzAiIHk9IjYwIiB3aWR0aD0iNDAiIGhlaWdodD0iMjUiIGZpbGw9IiNGRkZGRkYiLz48L3N2Zz4=');
+  background-size: cover;
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+}
+
+.default-image-brown {
+  background-color: #795548;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzc5NTU0OCIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMzUiIHI9IjIwIiBmaWxsPSIjRkZGRkZGIi8+PHJlY3QgeD0iMzAiIHk9IjYwIiB3aWR0aD0iNDAiIGhlaWdodD0iMjUiIGZpbGw9IiNGRkZGRkYiLz48L3N2Zz4=');
+  background-size: cover;
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+}
+
+.default-image-food-1 {
+  background-color: #FF5722;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI0ZGNTcyMiIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iNTAiIHI9IjMwIiBmaWxsPSIjRkZGRkZGIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iMjAiIGZpbGw9IiNGRjU3MjIiLz48L3N2Zz4=');
+  background-size: cover;
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+}
+
+.default-image-food-2 {
+  background-color: #4CAF50;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzRDQUY1MCIvPjxjaXJjbGUgY3g9IjMwIiBjeT0iMzAiIHI9IjE1IiBmaWxsPSIjRkZGRkZGIi8+PGNpcmNsZSBjeD0iNzAiIGN5PSIzMCIgcj0iMTUiIGZpbGw9IiNGRkZGRkYiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjcwIiByPSIxNSIgZmlsbD0iI0ZGRkZGRiIvPjwvc3ZnPg==');
+  background-size: cover;
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+}
+
+.default-image-food-3 {
+  background-color: #FFC107;
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI0ZGQzEwNyIvPjxyZWN0IHg9IjIwIiB5PSIzMCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRkZGRkZGIi8+PC9zdmc+');
+  background-size: cover;
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+}
+
+/* 투표 정보 스타일 */
+.vote-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+/* 투표 카운트 컨테이너 */
+.vote-count-container {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  padding-left: 5px; /* 왼쪽 패딩 추가 */
+}
+
+/* 투표 에러 메시지 */
+.vote-error {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background-color: rgba(255, 87, 34, 0.2);
+  border-radius: 4px;
+  color: #FF5722;
+  font-size: 14px;
+  text-align: center;
+  animation: fadeIn 0.3s ease;
+}
+
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 투표 업로드 버튼 */
+.publish-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-right: 8px;
+  transition: background-color 0.3s;
+}
+
+.publish-btn:hover {
+  background-color: #4CAF50;
+}
+
+.edit-btn {
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-right: 8px;
+  transition: background-color 0.3s;
+}
+
+.edit-btn:hover {
+  background-color: #2196F3;
+}
+
+
+
+/* 투표 관리 버튼 스타일 */
+.vote-management {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+  width: 100%;
+}
+
+.vote-management button {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.publish-button {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.publish-button:hover {
+  background-color: #4CAF50;
+}
+
+.edit-button {
+  background-color: #2196F3;
+  color: white;
+}
+
+.edit-button:hover {
+  background-color: #2196F3;
+}
+
+.delete-button {
+  background-color: #f44336;
+  color: white;
+}
+
+.delete-button:hover {
+  background-color: #f44336;
+}
+
+/* 관리 버튼 섹션 */
+.management-section {
+  margin-top: 10px;
+  width: 100%;
+}
+
+.management-section .vote-info {
+  margin-bottom: 15px;
+}
+
+.management-divider {
+  height: 1px;
+  background-color: #444;
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+.management-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.management-btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+/* 투표 업로드 버튼 */
+.management-btn.publish-btn {
+  background-color: rgba(58, 142, 255, 0.2);
+  color: #3a8eff;
+}
+
+.management-btn.publish-btn:hover {
+  background-color: rgba(58, 142, 255, 0.2);
+}
+
+/* 투표 수정 버튼 */
+.management-btn.edit-btn {
+  background-color: rgba(255, 159, 26, 0.2);
+  color: #ff9f1a;
+}
+
+.management-btn.edit-btn:hover {
+  background-color: rgba(255, 159, 26, 0.2);
+}
+
+/* 투표 삭제 버튼 */
+.management-btn.delete-btn {
+  background-color: rgba(255, 69, 58, 0.2);
+  color: #ff453a;
+}
+
+.management-btn.delete-btn:hover {
+  background-color: rgba(255, 69, 58, 0.2);
+}
+
+
+
+/* 모든 이미지에 공통으로 적용할 스타일 */
+img {
+  transition: opacity 0.3s ease;
+}
+
+/* 스토리지 이미지 클래스 추가 */
+.image-grid-option img.storage-image {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  position: relative;
+  display: block;
+  margin: 0 auto;
+}
+
+.remaining-time.not-started {
+  color: #4CAF50;  /* 초록색 */
+  font-weight: 500;
+}
+
+
+/* 이미지 그리드 옵션의 선택 상태 스타일 수정 */
+.image-grid-option.selected {
+  box-shadow: 0 0 0 2px #2196F3, 0 0 10px rgba(33, 150, 243, 0.5);
+  z-index: 2;
+}
+
+/* 초기 로드 시 선택된 옵션에 애니메이션 적용 */
+.vote-option.selected,
+.image-grid-option.selected {
+  animation: selectedFade 0.3s ease-in-out;
+}
+
+
+/* 투표 기간 및 상태 스타일 */
+.vote-period-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+
+.vote-status {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.vote-status.not-started {
+  background-color: #555;
+  color: #fff;
+}
+
+.vote-status.active {
+  background-color: #28a745;
+  color: #fff;
+}
+
+.vote-status.expired {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+
+/* 결과 표시 모드일 때의 옵션 스타일 */
+.vote-option.show-results .vote-bar {
+  background-color: rgba(58, 142, 255, 0.15); /* 약간 더 진한 배경색 */
+}
+
+.vote-option.selected.show-results .vote-bar {
+  background-color: rgba(58, 142, 255, 0.3); /* 선택된 옵션의 더 진한 배경색 */
+}
+
+
+/* 이미지가 있는 경우 텍스트 컨텐츠 수직 정렬 조정 */
+.vote-option:has(.option-image-container) .option-content {
+  padding-left: 10px; /* 이미지 너비 + 약간의 여백 (120px + 10px) */
+  padding-right: 45px; /* 퍼센트 표시 공간 확보 */
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* 세로 중앙 정렬 */
+  align-items: flex-start; /* 텍스트 왼쪽 정렬 */
+  margin: 0;
+}
+
+/* 이미지가 있는 경우 텍스트 스타일 개선 */
+.vote-option:has(.option-image-container) .option-text {
+  font-size: 14px; 
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  min-height: 2.5rem;
+  margin: 0;
+}
+
+/* 퍼센트 표시 정렬 개선 */
+.vote-option:has(.option-image-container) .vote-percentage {
+  right: 12px;
+  position: absolute;
+  margin: 0;
+  top: 50%; /* 상위 요소의 중간에 배치 */
+  transform: translateY(-50%); /* 자신의 높이의 절반만큼 위로 이동 */
+  border-radius: 4px;
+}
+
+/* 텍스트만 있는 옵션 - 더 컴팩트하게 수정 */
+.vote-option:not(:has(.option-image-container)) {
+  min-height: 30px; /* 더 작은 높이로 변경 */
+  padding: 4px 8px; /* 패딩 더 줄임 */
+  margin-bottom: 6px; /* 마진 줄임 */
+}
+
+/* 이미지가 있는 옵션 - 더 넓게 수정 */
+.vote-option:has(.option-image-container) {
+  min-height: 180px; /* 150px에서 180px로 증가 */
+  padding: 0;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center; /* 수직 중앙 정렬 */
+  position: relative;
+}
+
+
+/* 이미지 적용 방식 수정 */
+.storage-image {
+  max-width: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: 500px !important;
+  object-fit: contain !important;
+  display: block !important;
+  margin: 0 auto !important;
+}
+
+
+
+.vote-period {
+  display: inline-block;
+  margin-right: 4px;
+}
+
+.not-started .vote-period {
+  color: inherit;  /* 'not-started' 클래스의 색상을 상속 */
+}
+
+
+/* 초기 로드 시 선택된 상태 애니메이션 */
+@keyframes selectedFade {
+  from {
+    border-color: transparent;
+    box-shadow: none;
+  }
+  to {
+    border-color: #3a8eff;
+    box-shadow: 0 0 0 1px rgba(58, 142, 255, 0.3);
+  }
+}
+
+.vote-period {
+  background-color: #333;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #ccc;
+}
+
+/* 비활성화된 옵션 스타일 */
+.vote-option.disabled,
+.vote-image-option.disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* 투표 시작 전 스타일 */
+.vote-card.not-started .vote-options,
+.vote-card.not-started .vote-image-options {
+  opacity: 0.7;
+}
+
+/* 투표 기간 및 상태 텍스트 스타일 */
+.vote-period-status-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: #aaa;
+}
+
+.vote-period-text {
+  color: #aaa;
+}
+
+.vote-status-separator {
+  color: #555;
+}
+
+.vote-status-text {
+  font-weight: 500;
+}
+
+.vote-status-text.not-started-text {
+  color: #3a8eff; /* 파란색으로 변경 */
+}
+
+.vote-status-text.active-text {
+  color: #28a745;
+}
+
+.vote-status-text.expired-text {
+  color: #dc3545;
+}
+
+
+/* ==========================여기 까지 중복 점검 했음 ==========================  */
+/* 속성 추가할 시에 반드시 동일한 속성이 있는 지 확인하고 새로운 속성 추가할 것 */

@@ -1,0 +1,1235 @@
+.cover-flow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.cover-item-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.cover-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 240px;
+  border: 1px solid #444;
+  border-radius: 8px;
+  background-color: #333;
+  transition: transform 0.2s;
+  overflow: hidden;
+}
+
+/* 투명 배경을 위한 체크무늬 배경 패턴 제거 */
+.cover-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #252525; /* 체크무늬 대신 단색 배경 */
+  z-index: 1;
+}
+
+.cover-thumbnail {
+  max-width: 95%;
+  max-height: 95%;
+  border-radius: 8px;
+  position: relative;
+  z-index: 2;
+  background-color: transparent;
+  display: block;
+}
+
+.cover-item:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.remove-option-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: rgba(220, 53, 69, 0.8);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  z-index: 10; /* 가장 높은 z-index 값으로 설정 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); 
+} 
+
+.remove-option-btn:hover {
+  background-color: rgba(220, 53, 69, 1);
+  transform: scale(1.1);
+}
+
+.cover-thumbnail img {
+  max-width: 95%;
+  max-height: 95%;
+}
+
+.create-vote-container {
+  background-color: #1a1a1a;
+  color: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.form-group {
+  margin-bottom: 20px;
+  background-color: #1a1a1a;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+  color: #ddd;
+}
+
+.vote-input,
+.form-group textarea,
+.form-group input[type="text"],
+.form-group select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background-color: #252525;
+  color: #fff;
+  margin-top: 8px;
+  font-size: 16px;
+}
+
+/* 질문 입력 필드를 textarea로 변경 */
+textarea {
+  width: 100%;
+  padding: 10px;
+  margin-top: 4px;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background-color: #444;
+  color: #fff;
+  font-size: 14px;
+  transition: border-color 0.3s;
+  min-height: 60px;
+  resize: vertical; /* 수직 방향으로만 크기 조절 가능 */
+  line-height: 1.4;
+  font-family: inherit;
+}
+
+input[type="text"]:focus,
+input[type="url"]:focus,
+textarea:focus,
+select:focus {
+  border-color: #3a8eff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(58, 142, 255, 0.2);
+}
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  padding-right: 30px;
+}
+
+.button {
+  padding: 12px 15px;
+  margin-top: 10px;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background-color: #444;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s;
+  width: 100%;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.button:hover {
+  background-color: #555;
+  border-color: #666;
+}
+
+.button.selected {
+  background-color: #3a8eff;
+  color: white;
+  border-color: #3a8eff;
+}
+
+.add-option-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: #252525;
+  color: #fff;
+  border: 1px solid #333;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 10px;
+}
+
+.add-option-btn:hover {
+  background-color: #3a8eff;
+}
+
+.period-buttons {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.period-btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background-color: #252525;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  flex: 1;
+  text-align: center;
+  /* 텍스트 자동 크기 조절을 위한 속성 추가 */
+  font-size: clamp(10px, 3.5vw, 14px); /* 최소 10px, 최대 14px로 제한 */
+  white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+  overflow: hidden; /* 넘치는 텍스트 숨김 */
+  text-overflow: ellipsis; /* 넘치는 텍스트를 ...으로 표시 */
+  min-width: 0; /* flex 아이템 내부 텍스트 줄임을 위해 필요 */
+}
+
+.period-btn:hover {
+  background-color: #3a8eff;
+}
+
+.period-btn.selected {
+  background-color: #3a8eff;
+  border-color: #3a8eff;
+  color: white;
+  width: 100px; /* 고정된 버튼 너비 */
+  height: 40px; /* 고정된 버튼 높이 */
+}
+
+/* 날짜 선택된 경우 더 작은 폰트 크기 */
+.period-btn.date-selected {
+  font-size: clamp(9px, 3vw, 11px); /* 날짜 선택된 경우 더 작은 폰트 크기 */
+  padding: 8px 4px;
+  line-height: 1.2;
+}
+
+/* 모바일 대응 */
+@media (max-width: 480px) {
+  .period-btn {
+    padding: 8px 4px;
+    font-size: clamp(9px, 3vw, 12px);
+  }
+  
+  .period-btn.date-selected {
+    font-size: clamp(8px, 2.5vw, 10px);
+  }
+}
+
+.option-image-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 8px;
+  background-color: #252525;
+  color: #ccc;
+  border: 1px dashed #666 !important; /* 점선 테두리 추가 */
+  cursor: pointer;
+  margin-right: 10px;
+  width: 100px;
+  height: 100px;
+  transition: all 0.2s ease;
+}
+
+.option-image-btn:hover {
+  background-color: #333;
+  border-color: #888 !important;
+  color: #fff;
+}
+
+/* 이모지 스타일 */
+.option-image-btn .emoji {
+  font-size: 24px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+/* 텍스트 스타일 */
+.option-image-btn .text {
+  font-size: 12px;
+  color: #888;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* 모바일 대응 */
+@media (max-width: 768px) {
+  .option-image-btn {
+    width: 80px;
+    height: 80px;
+    min-width: 80px;
+    min-height: 80px;
+    gap: 6px;
+  }
+
+  .option-image-btn .emoji {
+    font-size: 20px;
+  }
+
+  .option-image-btn .text {
+    font-size: 11px;
+  }
+}
+
+/* 이미지/동영상 유형에서의 이미지 버튼 */
+.cover-item .option-image-btn {
+  width: 80%;
+  min-width: 150px;
+  max-width: 250px;
+  height: auto;
+  min-height: 50px; /* 최소 높이 설정 */
+  padding: 12px 20px;
+  font-size: 16px;
+  border-radius: 8px;
+  background-color:  #555;
+  color: white;
+  border: none;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  line-height: 1.4;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.cover-item .option-image-btn:hover {
+  background-color:  #555;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.cover-item .option-image-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.cover-item-container .cover-text-input {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.option-image-btn:hover {
+  background-color: #555;
+  transform: scale(1.05);
+}
+
+.option-image-btn:active {
+  transform: scale(0.95);
+}
+
+.text-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+/* .option-input {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background-color: #252525;
+  position: relative;
+} */
+
+.option-input textarea {
+  flex: 1;
+  margin: 0;
+  min-height: 55px; /* 높이 증가하여 이미지 버튼과 일치시킴 */
+  max-height: 120px; /* 최대 높이 증가 */
+  padding: 10px;
+  resize: vertical;
+  line-height: 1.4;
+  border: 1px solid #555;
+  background-color: #444;
+  font-size: 14px;
+}
+
+/* textarea가 한 줄일 때 수직 가운데 정렬 */
+.option-input textarea:not([rows="1"]) {
+  padding-top: 8px;
+}
+
+h2 {
+  margin-bottom: 15px;
+  color: #fff;
+  font-size: 22px;
+  text-align: center;
+}
+
+.submit-button {
+  background-color: #3a8eff;
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 6px;
+  margin-top: 20px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  width: 100%;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.submit-button:hover {
+  background-color: #2a7ae2;
+}
+
+/* DatePicker 커스텀 스타일 */
+:global(.react-datepicker-wrapper) {
+  width: 100%;
+}
+
+:global(.react-datepicker__input-container) {
+  width: 100%;
+}
+
+:global(.react-datepicker__input-container button) {
+  width: 100%;
+}
+
+.option-input .remove-option-btn {
+  position: static;
+  margin-left: 10px;
+  background-color: rgba(220, 53, 69, 0.8);
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+/* 토스트 팝업 스타일 */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.3s, fadeOut 0.3s 2.7s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; transform: translate(-50%, 0); }
+  to { opacity: 0; transform: translate(-50%, 20px); }
+}
+
+/* 폼 액션 버튼 스타일 */
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #444;
+  width: 100%; /* 전체 너비 사용 */
+}
+
+.submit-btn, .cancel-btn {
+  flex: 1; /* 버튼이 가용 공간을 균등하게 나눠 가짐 */
+  text-align: center;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.submit-btn {
+  background-color: #3a8eff;
+  color: white;
+  border: none;
+}
+
+.cancel-btn {
+  background-color: #252525;
+  color: #fff;
+  border: 1px solid #333;
+  margin-right: 0; /* 오른쪽 마진 제거 */
+}
+
+/* 모바일 대응 버튼 크기 */
+@media (max-width: 768px) {
+  .submit-btn, .cancel-btn {
+    padding: 12px 10px;
+    font-size: 14px;
+  }
+}
+
+.form-hint {
+  display: block;
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+/* 이미지 유형의 선택지 텍스트 입력 필드 스타일 수정 */
+.cover-text-input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  border: 1px dashed #666 !important; /* 점선 테두리 추가 */
+  border-radius: 6px;
+  background-color: #252525;
+  color: #fff;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  min-height: 50px;
+  resize: vertical;
+  line-height: 1.4;
+  font-family: inherit;
+}
+
+.cover-text-input:hover {
+  background-color: #333;
+  border-color: #888 !important;
+}
+
+.cover-text-input:focus {
+  border-color: #3a8eff !important;
+  border-style: solid !important; /* 포커스 시 실선으로 변경 */
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(58, 142, 255, 0.2);
+}
+
+.cover-text-input::placeholder {
+  color: #888;
+}
+
+.loading {
+  padding: 10px;
+  margin-bottom: 15px;
+  text-align: center;
+  color: #3a8eff;
+  font-size: 14px;
+  font-weight: 500;
+  position: relative;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 프로그레스 바 컨테이너 */
+.progress-container {
+  width: 100%;
+  background-color: #444;
+  border-radius: 4px;
+  margin: 10px 0;
+  overflow: hidden;
+  height: 8px;
+}
+
+/* 프로그레스 바 */
+.progress-bar {
+  height: 100%;
+  background-color: #3a8eff;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* 프로그레스 상태 텍스트 */
+.progress-text {
+  text-align: center;
+  margin-top: 5px;
+  font-size: 12px;
+  color: #fff;
+}
+
+.error {
+  padding: 12px;
+  margin-bottom: 16px;
+  background-color: rgba(255, 0, 0, 0.2);
+  border: 1px solid #f44336;
+  border-radius: 4px;
+  color: #f44336;
+}
+
+.success {
+  padding: 12px;
+  margin-bottom: 16px;
+  background-color: rgba(0, 255, 0, 0.1);
+  border: 1px solid #4CAF50;
+  border-radius: 4px;
+  color: #4CAF50;
+}
+
+.date-selected {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+/* X 버튼 호버 효과 강화 */
+.option-input .remove-option-btn:hover {
+  background-color: rgba(220, 53, 69, 1);
+  transform: scale(1.1);
+}
+
+/* 질문 이미지 프리뷰 스타일 통합 - 파일 중간과 하단에 중복된 정의 제거 필요 */
+.question-image-container {
+  margin-bottom: 20px;
+  display: block;
+  width: 100%;
+}
+
+.question-image-preview {
+  width: 600px;
+  max-width: 100%;
+  height: 300px;
+  margin: 0 auto 15px;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background-color: #1a1a1a;
+  display: block;
+}
+
+.question-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  max-height: none;
+  min-height: 0;
+  position: relative;
+  z-index: 2;
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 질문 이미지 프리뷰의 배경색 설정 */
+.question-image-preview::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #252525;
+  z-index: 0;
+}
+
+/* 크롭 컨테이너 높이 증가 */
+.crop-container {
+  width: 100%;
+  height: 500px !important;
+  max-height: 90vh !important;
+  background-color: #121212;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  touch-action: none;
+}
+
+
+/* 이미지 편집기 버튼 스타일 복원 */
+.image-editor-controls {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: flex;
+  gap: 5px;
+  z-index: 10;
+}
+
+/* 이미지 편집기 모달 스타일 복원 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  width: 90%;
+  max-width: 800px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: 90vh;
+  overflow: auto;
+}
+
+.crop-container {
+  width: 100%;
+  height: 50vh;
+  max-height: 500px;
+  background-color: #121212;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  touch-action: none;
+}
+
+.crop-preview {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.crop-preview img {
+  position: relative;
+  max-width: none;
+  max-height: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  touch-action: none;
+}
+
+.crop-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+
+.cropper-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+}
+
+.crop-control-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+}
+
+.crop-control-button {
+  background-color: #252525;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.crop-control-button:hover {
+  background-color: #3a8eff;
+}
+
+.crop-control-button:disabled {
+  background-color: #333;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.zoom-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: #333;
+  outline: none;
+  border-radius: 2px;
+  flex: 1;
+}
+
+.zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.zoom-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+
+.loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-weight: 500;
+  z-index: 10;
+}
+
+/* 질문 이미지 프리뷰 스타일 복원 */
+.question-image-container {
+  margin-bottom: 10px;
+}
+
+/* 필수 입력 항목 스타일 - 살짝 다른 테두리와 배경색으로 구분 */
+.required-field {
+  border: 1px solid #444 !important; /* 일반 필드보다 약간 진한 테두리 */
+  background-color: #272727 !important; /* 약간 더 어두운 배경색 */
+}
+
+/* 필수 입력 항목 라벨 스타일 */
+.required-label::after {
+  content: ' *';
+  color: #3a8eff; /* 필수 표시를 파란색으로 */
+  font-weight: bold;
+}
+
+/* 선택 항목 라벨 스타일 */
+.optional-label::after {
+  content: ' (선택사항)';
+  color: #888;
+  font-weight: normal;
+  font-size: 0.9em;
+}
+
+/* 필수 입력 필드에 포커스 시 강조 효과 */
+.required-field:focus {
+  border-color: #3a8eff !important;
+  box-shadow: 0 0 0 2px rgba(58, 142, 255, 0.15) !important;
+}
+
+/* 이미지 유형에서 필수 항목인 이미지 버튼 스타일 */
+.cover-item.required {
+  border: 1px solid #444;
+  box-shadow: 0 0 0 1px rgba(58, 142, 255, 0.2);
+}
+
+/* 이미지가 없을 때 필수 이미지 버튼 스타일 - 점선에서 실선으로 변경 */
+.option-image-btn.required {
+  background-color: #2a2a2a;
+  border: 1px solid #3a8eff55; /* 연한 파란색 실선 테두리로 변경 */
+  position: relative; /* 위치 상대값 설정 */
+}
+
+
+/* 이미지 유형에서 필수 항목 이미지 버튼에 실선 테두리 적용 */
+.cover-item .option-image-btn.required {
+  border: 1px solid #3a8eff55; /* 연한 파란색 실선 테두리 */
+  background-color: #2a2a2a;
+  position: relative; /* 위치 상대값 설정 */
+  z-index: 5; /* z-index 추가 */
+}
+
+/* 이미지 유형에서 '이미지 선택 (필수)' 텍스트의 색상 더 강조 */
+.cover-item .option-image-btn.required .text {
+  color: #fff; /* 흰색으로 변경 */
+  font-weight: 500; /* 글씨 두껍게 */
+}
+
+/* 필수 입력 항목 콘텐츠 박스 스타일 수정 - 세로선 높이 조정 */
+.content-required {
+  position: relative;
+}
+
+/* 질문 텍스트 영역의 필수 표시 높이 조정 */
+textarea.required-field + .content-required::before {
+  height: calc(100% - 4px);
+  top: 2px;
+}
+
+/* 질문 이미지 버튼 스타일 수정 - 점선 테두리 추가 */
+.question-image-button {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background-color: #252525;
+  color: #ccc;
+  border: 1px dashed #666 !important; /* !important로 우선순위 높임 */
+  cursor: pointer;
+  margin-bottom: 10px;
+  font-size: 14px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.question-image-button:hover {
+  background-color: #333;
+  border-color: #888 !important;
+  color: #fff;
+}
+
+/* 질문 이미지 영역 컨테이너 스타일 */
+.question-image-container {
+  margin-bottom: 10px;
+  display: block;
+}
+
+
+/* 질문 이미지의 편집/삭제 버튼 위치 수정 */
+.question-image-preview .image-editor-controls {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: flex;
+  gap: 5px;
+  z-index: 3;
+}
+
+/* 이미지 편집 버튼 스타일 */
+.image-editor-button {
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  padding: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.image-editor-button:hover {
+  background-color: rgba(0, 0, 0, 0.9);
+  transform: scale(1.1);
+}
+
+/* 로딩 오버레이 - 전체 화면을 덮는 배경 */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* 로딩 컨테이너 스타일 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  width: 90%;
+  max-width: 400px;
+}
+
+/* 로딩 스피너 */
+.loading-spinner {
+  border: 3px solid rgba(58, 142, 255, 0.3);
+  border-radius: 50%;
+  border-top: 3px solid #3a8eff;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 프로그레스 바 컨테이너 */
+.progress-container {
+  width: 100%;
+  background-color: #444;
+  border-radius: 4px;
+  margin: 10px 0;
+  overflow: hidden;
+  height: 8px;
+}
+
+/* 프로그레스 바 */
+.progress-bar {
+  height: 100%;
+  background-color: #3a8eff;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* 프로그레스 상태 텍스트 */
+.progress-text {
+  margin-top: 5px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #fff;
+}
+
+.loading-message {
+  color: #fff;
+  font-size: 16px;
+  margin-top: 10px;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* 텍스트 옵션의 삭제 버튼 스타일 */
+.vote-option .remove-option-btn {
+  background-color: rgba(220, 53, 69, 0.8);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  margin-left: 10px;
+}
+
+.vote-option .remove-option-btn:hover {
+  background-color: rgba(220, 53, 69, 1);
+  transform: scale(1.1);
+}
+
+.vote-option .remove-option-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* 출처 링크 입력 필드 스타일 수정 */
+.form-group input[type="text"] {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: #252525;
+  color: #fff;
+  margin-top: 8px;
+  font-size: 16px;
+  border: 1px dashed #666 !important; /* 점선 테두리 추가 */
+  transition: all 0.2s ease;
+}
+
+.form-group input[type="text"]:hover {
+  background-color: #333;
+  border-color: #888 !important;
+}
+
+.form-group input[type="text"]:focus {
+  border-color: #3a8eff !important;
+  border-style: solid !important; /* 포커스 시 실선으로 변경 */
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(58, 142, 255, 0.2);
+}
+
+/* 텍스트 옵션 이미지 컨테이너 */
+.text-option-image-preview {
+  width: 100px;
+  height: 100px;
+  min-width: 100px;
+  max-width: 100px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  margin-right: 10px;
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  background-color: #1a1a1a;
+}
+
+.text-option-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background-color: #1a1a1a;
+  max-height: 100px;
+  max-width: 100px;
+}
+
+/* 텍스트 옵션 레이아웃 */
+.vote-option {
+  display: flex;
+  align-items: center;
+}
+
+.option-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+/* 크롭 프레임 */
+.crop-frame {
+  border: 2px dashed #3a8eff;
+  box-shadow: 0 0 0 9999em rgba(0, 0, 0, 0.7);
+  box-sizing: border-box;
+}
+
+/* 모달 버튼 */
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+  z-index: 100;
+  position: relative;
+}
+
+.save-button, .cancel-button {
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 101;
+  position: relative;
+  pointer-events: auto;
+}
+
+.save-button {
+  background-color: #3a8eff;
+  color: white;
+}
+
+.save-button:hover:not(:disabled) {
+  background-color: #2c7ae7;
+}
+
+.save-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* 모달 오버레이 */
+.modal-overlay {
+  z-index: 1000;
+}
+
+.modal-content {
+  z-index: 1001;
+}
+
+/* 질문 이미지 스타일 */
+.question-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  position: relative;
+  z-index: 2;
+}
+
+/* 옵션 이미지 스타일 */
+.option-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* 삭제 버튼 위치 스타일 */
+.remove-option-btn-absolute {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  z-index: 2;
+}

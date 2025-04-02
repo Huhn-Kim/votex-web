@@ -1,0 +1,52 @@
+/* 공통 탭 스타일 */
+.vote-tabs {
+  background-color: #1a1a1a;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.tab-list {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid #333;
+  justify-content: space-between; /* 탭들을 균등하게 분배 */
+}
+
+.tab-list::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-button {
+  background-color: #1a1a1a;
+  color: #999;
+  border: none;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: none;
+  font-size: 14px;
+  font-weight: 500;
+  flex: 1; /* 각 탭이 동일한 너비를 가지도록 설정 */
+  min-width: 80px; /* 최소 너비 설정 */
+  text-align: center; /* 텍스트 중앙 정렬 */
+}
+
+.tab-button.active {
+  background-color: #1a1a1a;
+  color: #fff;
+  border-bottom: 2px solid #3a8eff;
+}
+
+.tab-button:hover {
+  background-color: #1a1a1a;
+  color: #fff;
+} 
+
+/* 반응형 스타일 추가 */
+@media (max-width: 480px) {
+  .tab-button {
+    padding: 8px 10px; /* 모바일에서는 패딩 줄임 */
+    font-size: 13px; /* 모바일에서는 폰트 크기 줄임 */
+    min-width: 60px; /* 모바일에서는 최소 너비 줄임 */
+  }
+}
