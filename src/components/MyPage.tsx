@@ -11,6 +11,7 @@ interface Badge {
   acquired: boolean;
   acquiredDate?: string;
   color: string;
+  level: number;
 }
 
 // 칭호 인터페이스
@@ -22,6 +23,7 @@ interface Title {
   acquired: boolean;
   icon: React.ReactNode;
   color: string;
+  type: 'number' | 'medal' | 'special'; // 숫자, 메달, 특별 아이콘 구분
 }
 
 // 사용자 정보 인터페이스
@@ -34,10 +36,10 @@ interface UserInfo {
   joinDate: string;
   votesCreated: number;
   votesParticipated: number;
-  xp: number;
+  points: number; // XP를 points로 변경
   level: number;
   currentTitle: string;
-  nextLevelXp: number;
+  nextLevelPoints: number; // nextLevelXp를 nextLevelPoints로 변경
 }
 
 // 구독 회원 인터페이스
@@ -49,68 +51,164 @@ interface Subscriber {
   isFollowing: boolean;
 }
 
-// 아이콘 컴포넌트
-const CompassIcon = ({ color = "#FFFFFF", size = 24 }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10"></circle>
-    <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+// 등급별 색상 정의 수정 - 메달 색상을 더 밝게 조정
+const getBadgeColor = (level: number) => {
+  if (level <= 3) {
+    return "#FFFFFF"; // 1-3등급: 흰색
+  } else if (level <= 6) {
+    return "#FFE566"; // 4-6등급: 밝은 노란색
+  } else if (level <= 9) {
+    return "#00FF88"; // 7-9등급: 초록색
+  } else if (level === 10) {
+    return "#FFA07A"; // 동메달: 더 밝은 브론즈 색상
+  } else if (level === 11) {
+    return "#F8F8FF"; // 은메달: 더 밝은 실버 색상
+  } else if (level === 12) {
+    return "#FFDF00"; // 금메달: 더 밝은 골드 색상
+  } else if (level === 13) {
+    return "#00FFFF"; // 다이아몬드: 이전 색상
+  } else if (level === 14) {
+    return "#FFD700"; // 황금왕관: 이전 색상
+  }
+  return "#FFFFFF";
+};
+
+// 숫자 아이콘 컴포넌트 수정 - 크기 증가
+const NumberIcon = ({ number, color = "#FFFFFF", size = 32 }: { number: number; color?: string; size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" stroke={color} fill="none"/>
+    <text x="12" y="16" textAnchor="middle" fill={color} fontSize="12" fontWeight="bold">{number}</text>
   </svg>
 );
 
-const MapIcon = ({ color = "#FFD700", size = 24 }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
-    <line x1="8" y1="2" x2="8" y2="18"></line>
-    <line x1="16" y1="6" x2="16" y2="22"></line>
+// 메달 아이콘 컴포넌트 수정 - 더 고급스러운 디자인
+const MedalIcon = ({ type, size = 32 }: { type: 'bronze' | 'silver' | 'gold'; color?: string; size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24">
+    {/* 메달 리본 */}
+    <path d="M8 2 C8 2 10 3 12 3 C14 3 16 2 16 2 L15 7 L12 8 L9 7 L8 2" 
+          fill={type === 'gold' ? '#FFDF00' : type === 'silver' ? '#F8F8FF' : '#FFA07A'} 
+          stroke="#000" 
+          strokeWidth="0.5"/>
+    
+    {/* 메달 본체 */}
+    <circle cx="12" cy="13" r="7" 
+            fill={type === 'gold' ? '#FFDF00' : type === 'silver' ? '#F8F8FF' : '#FFA07A'} 
+            stroke="#000" 
+            strokeWidth="0.5"/>
+    
+    {/* 메달 테두리 장식 */}
+    <circle cx="12" cy="13" r="6" 
+            fill="none" 
+            stroke="#000" 
+            strokeWidth="0.3"
+            strokeDasharray="2,0.5"/>
+    
+    {/* 메달 내부 장식 */}
+    <circle cx="12" cy="13" r="4.5" 
+            fill="none" 
+            stroke="#000" 
+            strokeWidth="0.3"/>
+    
+    {/* 메달 중앙 별 모양 */}
+    <path d="M12 9.5 L13 12 L15.5 12 L13.5 13.5 L14.5 16 L12 14.5 L9.5 16 L10.5 13.5 L8.5 12 L11 12 Z"
+          fill="#000"
+          opacity="0.1"/>
+    
+    {/* 메달 표면 광택 효과 */}
+    <ellipse cx="12" cy="11" rx="3" ry="1.5" 
+             fill="#FFFFFF" 
+             opacity="0.4"/>
   </svg>
 );
 
-const TelescopeIcon = ({ color = "#FF8C00", size = 24 }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+// 다이아몬드 아이콘 컴포넌트 수정 - 더 다이아몬드다운 디자인
+const DiamondIcon = ({ color = "#00FFFF", size = 32 }: { color?: string; size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24">
+    {/* 다이아몬드 상단 */}
+    <path d="M12 2 L17 8 L12 14 L7 8 Z" 
+          fill={color}
+          stroke="#000"
+          strokeWidth="0.3"/>
+    
+    {/* 다이아몬드 하단 */}
+    <path d="M7 8 L12 14 L12 20 L4 10 Z" 
+          fill={color}
+          stroke="#000"
+          strokeWidth="0.3"
+          opacity="0.9"/>
+    
+    <path d="M17 8 L12 14 L12 20 L20 10 Z" 
+          fill={color}
+          stroke="#000"
+          strokeWidth="0.3"
+          opacity="0.7"/>
+    
+    {/* 다이아몬드 광택 효과 - 상단 */}
+    <path d="M12 2 L14 5 L12 8 L10 5 Z" 
+          fill="#FFFFFF"
+          opacity="0.4"/>
+    
+    {/* 다이아몬드 광택 효과 - 우측 */}
+    <path d="M14 5 L16 8 L14 11 L12 8 Z" 
+          fill="#FFFFFF"
+          opacity="0.2"/>
+    
+    {/* 다이아몬드 광택 효과 - 좌측 */}
+    <path d="M10 5 L12 8 L10 11 L8 8 Z" 
+          fill="#FFFFFF"
+          opacity="0.3"/>
+    
+    {/* 다이아몬드 하이라이트 */}
+    <path d="M11 4 L12 6 L13 4" 
+          stroke="#FFFFFF"
+          strokeWidth="0.5"
+          fill="none"
+          opacity="0.6"/>
   </svg>
 );
 
-const CrownIcon = ({ color = "#FF4500", size = 24 }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+// 황금왕관 아이콘 컴포넌트 - 이전 디자인으로 복원
+const CrownIcon = ({ color = "#FFD700", size = 32 }: { color?: string; size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"></path>
   </svg>
 );
 
-// 뱃지 등급에 따른 정보 매핑
-const getBadgeInfo = (badgeLevel: number) => {
-  switch(badgeLevel) {
-    case 1:
-      return { name: "초심자", color: "#FFFFFF" };
-    case 2:
-      return { name: "탐험가", color: "#FFD700" };
-    case 3:
-      return { name: "분석가", color: "#FF8C00" };
-    case 4:
-      return { name: "전문가", color: "#FF4500" };
-    default:
-      return null;
+// 뱃지 정보를 가져오는 함수 수정
+const getBadgeInfo = (level: number) => {
+  const color = getBadgeColor(level);
+  if (level <= 9) {
+    return { name: `${level}등급`, color, type: 'number' as const };
+  } else if (level === 10) {
+    return { name: "동메달", color, type: 'medal' as const, medalType: 'bronze' as const };
+  } else if (level === 11) {
+    return { name: "은메달", color, type: 'medal' as const, medalType: 'silver' as const };
+  } else if (level === 12) {
+    return { name: "금메달", color, type: 'medal' as const, medalType: 'gold' as const };
+  } else if (level === 13) {
+    return { name: "다이아몬드", color, type: 'special' as const };
+  } else if (level === 14) {
+    return { name: "황금왕관", color, type: 'special' as const };
   }
+  return { name: "초심자", color: "#FFFFFF", type: 'number' as const };
 };
 
-// 뱃지 아이콘 매핑 함수
-const getBadgeIcon = (badgeLevel: number, size = 24) => {
-  const badgeInfo = getBadgeInfo(badgeLevel);
+// 뱃지 아이콘 매핑 함수 수정
+const getBadgeIcon = (level: number, size = 32) => {
+  const badgeInfo = getBadgeInfo(level);
   if (!badgeInfo) return null;
   
   const color = badgeInfo.color;
   
-  switch(badgeLevel) {
-    case 1:
-      return <CompassIcon color={color} size={size} />;
-    case 2:
-      return <MapIcon color={color} size={size} />;
-    case 3:
-      return <TelescopeIcon color={color} size={size} />;
-    case 4:
-      return <CrownIcon color={color} size={size} />;
+  switch (badgeInfo.type) {
+    case 'number':
+      return <NumberIcon number={level} color={color} size={size} />;
+    case 'medal':
+      return <MedalIcon type={badgeInfo.medalType} color={color} size={size} />;
+    case 'special':
+      return level === 13 ? 
+        <DiamondIcon color={color} size={size} /> : 
+        <CrownIcon color={color} size={size} />;
     default:
       return null;
   }
@@ -127,88 +225,105 @@ export default function MyPage() {
     joinDate: "2023년 5월 15일",
     votesCreated: 12,
     votesParticipated: 48,
-    xp: 1250,
+    points: 0,
     level: 2,
-    currentTitle: "탐험가",
-    nextLevelXp: 2000,
+    currentTitle: "2등급",
+    nextLevelPoints: 2000,
   });
 
   // 뱃지 상태
   const [badges, setBadges] = useState<Badge[]>([
+    // 1-9등급 (숫자 아이콘)
+    ...Array.from({ length: 9 }, (_, i) => ({
+      id: `level${i + 1}`,
+      name: `${i + 1}등급`,
+      icon: getBadgeIcon(i + 1),
+      description: i === 0 ? "첫 활동" : 
+                  i === 1 ? "초보자" :
+                  i === 2 ? "성장중" :
+                  i === 3 ? "열정가" :
+                  i === 4 ? "전문가" :
+                  i === 5 ? "마스터" :
+                  i === 6 ? "엘리트" :
+                  i === 7 ? "레전드" :
+                  "챔피언",
+      acquired: i < 3,
+      acquiredDate: i < 3 ? "2023년 8월 3일" : undefined,
+      color: "#FFFFFF",
+      level: i + 1
+    })),
+    // 10-12등급 (메달)
     {
-      id: "beginner",
-      name: "초심자",
-      icon: getBadgeIcon(1),
-      description: "첫 번째 투표나 카드를 올리면 획득. 투표의 세계를 탐색하기 시작한 초보자입니다. (흰색 등급)",
-      acquired: true,
-      acquiredDate: "2023년 5월 16일",
-      color: "#FFFFFF" // 흰색
-    },
-    {
-      id: "intermediate",
-      name: "탐험가",
-      icon: getBadgeIcon(2),
-      description: "일정 횟수의 활동(예: 50번의 투표나 카드 제출) 달성 시 획득. 투표 데이터를 탐색하는 능력을 갖추었습니다. (노란색 등급)",
-      acquired: true,
-      acquiredDate: "2023년 8월 3일",
-      color: "#FFD700" // 노란색
-    },
-    {
-      id: "advanced",
-      name: "분석가",
-      icon: getBadgeIcon(3),
-      description: "상당히 높은 활동점수 달성 시 획득. 투표 데이터를 심층적으로 분석할 수 있는 전문성을 갖추었습니다. (주황색 등급)",
+      id: "level10",
+      name: "동메달",
+      icon: getBadgeIcon(10),
+      description: "10등급 달성",
       acquired: false,
-      color: "#FF8C00" // 주황색
+      color: "#FFA07A",
+      level: 10
     },
     {
-      id: "expert",
-      name: "전문가",
-      icon: getBadgeIcon(4),
-      description: "최고 레벨에 도달했을 때 획득. 투표 커뮤니티 내에서 인정받는 최고 권위자입니다. (빨간색 등급)",
+      id: "level11",
+      name: "은메달",
+      icon: getBadgeIcon(11),
+      description: "11등급 달성",
       acquired: false,
-      color: "#FF4500" // 빨간색
+      color: "#F8F8FF",
+      level: 11
+    },
+    {
+      id: "level12",
+      name: "금메달",
+      icon: getBadgeIcon(12),
+      description: "12등급 달성",
+      acquired: false,
+      color: "#FFDF00",
+      level: 12
+    },
+    // 13-14등급 (특별)
+    {
+      id: "level13",
+      name: "다이아몬드",
+      icon: getBadgeIcon(13),
+      description: "13등급 달성",
+      acquired: false,
+      color: "#00FFFF",
+      level: 13
+    },
+    {
+      id: "level14",
+      name: "황금왕관",
+      icon: getBadgeIcon(14),
+      description: "14등급 달성",
+      acquired: false,
+      color: "#FFD700",
+      level: 14
     }
   ]);
 
   // 칭호 상태
   const [titles, setTitles] = useState<Title[]>([
     {
-      id: "beginner",
-      name: "초심자",
-      description: "투표의 세계를 탐색하기 시작한 초보자 (흰색 등급)",
+      id: "level1",
+      name: "1등급",
+      description: "첫 번째 투표나 카드를 올리면 획득",
       requiredLevel: 1,
       acquired: true,
       icon: getBadgeIcon(1),
-      color: "#FFFFFF" // 흰색
+      color: "#FFFFFF",
+      type: 'number'
     },
     {
-      id: "intermediate",
-      name: "탐험가",
-      description: "투표 데이터를 탐색하는 능력을 갖춘 중급자 (노란색 등급)",
+      id: "level2",
+      name: "2등급",
+      description: "일정 횟수의 활동 달성 시 획득",
       requiredLevel: 2,
       acquired: true,
       icon: getBadgeIcon(2),
-      color: "#FFD700" // 노란색
+      color: "#FFFFFF",
+      type: 'number'
     },
-    {
-      id: "advanced",
-      name: "분석가",
-      description: "투표 데이터를 심층적으로 분석할 수 있는 고급 사용자 (주황색 등급)",
-      requiredLevel: 3,
-      acquired: false,
-      icon: getBadgeIcon(3),
-      color: "#FF8C00" // 주황색
-    },
-    {
-      id: "expert",
-      name: "전문가",
-      description: "투표 커뮤니티에서 인정받는 최고 권위자 (빨간색 등급)",
-      requiredLevel: 4,
-      acquired: false,
-      icon: getBadgeIcon(4),
-      color: "#FF4500" // 빨간색
-    }
+    // ... 나머지 등급들도 같은 방식으로 추가
   ]);
 
   // 구독 회원 상태
@@ -252,22 +367,22 @@ export default function MyPage() {
     setSubscribers(sampleSubscribers);
   }, []);
 
-  // XP 획득 함수
-  const earnXP = (amount: number) => {
-    // 현재 XP와 레벨 가져오기
-    const currentXP = userInfo.xp;
+  // 포인트 획득 함수 (earnXP를 earnPoints로 변경)
+  const earnPoints = (amount: number) => {
+    // 현재 포인트와 레벨 가져오기
+    const currentPoints = userInfo.points;
     const currentLevel = userInfo.level;
-    const newXP = currentXP + amount;
+    const newPoints = currentPoints + amount;
     
     // 레벨업 체크
-    const { newLevel, nextLevelXp } = checkLevelUp(newXP, currentLevel);
+    const { newLevel, nextLevelPoints } = checkLevelUp(newPoints, currentLevel);
     
     // 사용자 정보 업데이트
     setUserInfo(prev => ({
       ...prev,
-      xp: newXP,
+      points: newPoints,
       level: newLevel,
-      nextLevelXp: nextLevelXp
+      nextLevelPoints: nextLevelPoints
     }));
     
     // 레벨업 시 칭호 업데이트
@@ -276,12 +391,12 @@ export default function MyPage() {
     }
     
     // 뱃지 획득 체크
-    checkBadgeAchievements(newXP, userInfo.votesCreated, userInfo.votesParticipated);
+    checkBadgeAchievements(newPoints, userInfo.votesCreated, userInfo.votesParticipated);
   };
   
   // 레벨업 체크 함수
-  const checkLevelUp = (xp: number, currentLevel: number) => {
-    // 레벨별 필요 XP (간단한 예시)
+  const checkLevelUp = (points: number, currentLevel: number) => {
+    // 레벨별 필요 포인트 (간단한 예시)
     const levelThresholds = [
       0,      // 레벨 0 (사용하지 않음)
       500,    // 레벨 1
@@ -292,17 +407,17 @@ export default function MyPage() {
     
     let newLevel = currentLevel;
     
-    // 현재 XP가 다음 레벨 임계값을 넘었는지 확인
-    while (newLevel < levelThresholds.length - 1 && xp >= levelThresholds[newLevel + 1]) {
+    // 현재 포인트가 다음 레벨 임계값을 넘었는지 확인
+    while (newLevel < levelThresholds.length - 1 && points >= levelThresholds[newLevel + 1]) {
       newLevel++;
     }
     
-    // 다음 레벨 XP 계산
-    const nextLevelXp = newLevel < levelThresholds.length - 1 
+    // 다음 레벨 포인트 계산
+    const nextLevelPoints = newLevel < levelThresholds.length - 1 
       ? levelThresholds[newLevel + 1] 
       : levelThresholds[newLevel] + 5000; // 최대 레벨 이후 5000씩 증가
     
-    return { newLevel, nextLevelXp };
+    return { newLevel, nextLevelPoints };
   };
   
   // 칭호 업데이트 함수
@@ -334,7 +449,7 @@ export default function MyPage() {
   };
   
   // 뱃지 획득 체크 함수
-  const checkBadgeAchievements = (_xp: number, _votesCreated: number, _votesParticipated: number) => {
+  const checkBadgeAchievements = (_points: number, _votesCreated: number, _votesParticipated: number) => {
     // 현재 updateTitle 함수에서 뱃지 업데이트를 처리하므로 이 함수에서는 실제 로직을 수행하지 않음
     // 변수명 앞에 언더스코어를 추가하여 의도적으로 사용하지 않는 매개변수임을 표시
     const unlockedBadges: Badge[] = [];
@@ -348,20 +463,16 @@ export default function MyPage() {
       
       // 뱃지별 획득 조건 (레벨 기반 뱃지는 updateTitle에서 처리하므로 여기서는 제외)
       switch (badge.id) {
-        case "beginner":
+        case "level1":
           // 첫 활동 시 획득 (레벨 1에 해당)
           // updateTitle에서 처리하므로 여기서는 처리하지 않음
           break;
-        case "intermediate":
+        case "level2":
           // 50번 이상 활동 시 획득 (레벨 2에 해당)
           // updateTitle에서 처리하므로 여기서는 처리하지 않음
           break;
-        case "advanced":
+        case "level3":
           // 5000 XP 이상 획득 시 (레벨 3에 해당)
-          // updateTitle에서 처리하므로 여기서는 처리하지 않음
-          break;
-        case "expert":
-          // 10000 XP 이상 획득 시 (레벨 4에 해당)
           // updateTitle에서 처리하므로 여기서는 처리하지 않음
           break;
         // 여기에 레벨과 관계없는 다른 뱃지 조건을 추가할 수 있음
@@ -404,34 +515,6 @@ export default function MyPage() {
     }
   };
 
-  // 투표 생성 시 XP 획득 (예시 함수)
-  const handleCreateVote = () => {
-    // 투표 생성 로직...
-    
-    // 투표 생성 카운트 증가
-    setUserInfo(prev => ({
-      ...prev,
-      votesCreated: prev.votesCreated + 1
-    }));
-    
-    // XP 획득 (투표 생성 시 100 XP)
-    earnXP(100);
-  };
-  
-  // 투표 참여 시 XP 획득 (예시 함수)
-  const handleParticipateVote = () => {
-    // 투표 참여 로직...
-    
-    // 투표 참여 카운트 증가
-    setUserInfo(prev => ({
-      ...prev,
-      votesParticipated: prev.votesParticipated + 1
-    }));
-    
-    // XP 획득 (투표 참여 시 20 XP)
-    earnXP(20);
-  };
-
   // 설정 변경 핸들러
   const handleSettingChange = (setting: keyof typeof settings) => {
     setSettings({
@@ -471,13 +554,13 @@ export default function MyPage() {
     setActiveTab(tab);
   };
 
-  // XP 진행률 계산
-  const calculateXpProgress = () => {
-    const currentXp = userInfo.xp;
-    const nextLevelXp = userInfo.nextLevelXp;
-    const prevLevelXp = nextLevelXp - 1000; // 간단한 예시, 실제로는 레벨별 필요 XP 계산 로직 필요
+  // 포인트 진행률 계산 (calculateXpProgress를 calculatePointsProgress로 변경)
+  const calculatePointsProgress = () => {
+    const currentPoints = userInfo.points;
+    const nextLevelPoints = userInfo.nextLevelPoints;
+    const prevLevelPoints = nextLevelPoints - 1000; // 간단한 예시, 실제로는 레벨별 필요 포인트 계산 로직 필요
     
-    return Math.floor(((currentXp - prevLevelXp) / (nextLevelXp - prevLevelXp)) * 100);
+    return Math.floor(((currentPoints - prevLevelPoints) / (nextLevelPoints - prevLevelPoints)) * 100);
   };
 
   // HEX 색상을 RGB로 변환하는 유틸리티 함수
@@ -497,6 +580,54 @@ export default function MyPage() {
     
     return `${r}, ${g}, ${b}`;
   };
+
+  // 테스트 버튼 섹션 수정
+  const renderTestButtons = () => (
+    <div className={styles.testButtons}>
+      <button 
+        className={styles.testButton}
+        onClick={() => earnPoints(50)} // 투표 생성 시 포인트 획득
+      >
+        투표 생성 (+50P)
+      </button>
+      <button 
+        className={styles.testButton}
+        onClick={() => earnPoints(30)} // 투표 참여 시 포인트 획득
+      >
+        투표 참여 (+30P)
+      </button>
+      <button 
+        className={styles.testButton}
+        onClick={() => earnPoints(20)} // 획득 투표 시 포인트 획득
+      >
+        획득 투표 (+20P)
+      </button>
+      <button 
+        className={styles.testButton}
+        onClick={() => earnPoints(100)} // 친구 추천 시 포인트 획득
+      >
+        친구 추천 (+100P)
+      </button>
+      <button 
+        className={styles.testButton}
+        onClick={() => earnPoints(200)} // AI 분석 시 포인트 획득
+      >
+        AI 분석 (+200P)
+      </button>
+      <button 
+        className={styles.testButton}
+        onClick={() => earnPoints(150)} // AI 투표 추천 시 포인트 획득
+      >
+        AI 투표 추천 (+150P)
+      </button>
+      <button 
+        className={styles.testButton}
+        onClick={() => earnPoints(100)} // 끌어올리기 시 포인트 획득
+      >
+        끌어올리기 (+100P)
+      </button>
+    </div>
+  );
 
   return (
     <div className="my-votes-container">
@@ -539,7 +670,7 @@ export default function MyPage() {
             className={`tab-button ${activeTab === "badges" ? 'active' : ''}`}
             onClick={() => handleTabChange("badges")}
           >
-            칭호
+            나의 등급
           </button>
         </div>
       </div>
@@ -586,16 +717,16 @@ export default function MyPage() {
                       <p className={styles.profileJoinDate}>가입일: {userInfo.joinDate}</p>
                     </div>
                     
-                    {/* 레벨 및 XP 정보 */}
+                    {/* 레벨 및 포인트 정보 */}
                     <div className={styles.levelInfo}>
                       <div className={styles.levelHeader}>
                         <span className={styles.levelLabel}>레벨 {userInfo.level}</span>
-                        <span className={styles.xpValue}>{userInfo.xp} / {userInfo.nextLevelXp} XP</span>
+                        <span className={styles.pointsValue}>{userInfo.points} / {userInfo.nextLevelPoints} P</span>
                       </div>
-                      <div className={styles.xpProgressContainer}>
+                      <div className={styles.pointsProgressContainer}>
                         <div 
-                          className={styles.xpProgressBar} 
-                          style={{ width: `${calculateXpProgress()}%` }}
+                          className={styles.pointsProgressBar} 
+                          style={{ width: `${calculatePointsProgress()}%` }}
                         ></div>
                       </div>
                     </div>
@@ -626,9 +757,9 @@ export default function MyPage() {
                   </div>
                 </div>
                 
-                {/* 최근 획득한 뱃지 */}
+                {/* 최근 획득한 등급 */}
                 <div className={styles.recentBadges}>
-                  <h3>최근 획득한 뱃지</h3>
+                  <h3>최근 획득한 등급</h3>
                   <div className={styles.badgesList}>
                     {badges.filter(badge => badge.acquired).slice(0, 3).map(badge => (
                       <div key={badge.id} className={styles.badgeItem}>
@@ -645,28 +776,27 @@ export default function MyPage() {
                       className={styles.viewAllBadgesButton}
                       onClick={() => handleTabChange("badges")}
                     >
-                      모든 뱃지 보기
+                      모든 등급 보기
                     </button>
                     <button onClick={handleEditStart} className={styles.editButton}>프로필 편집</button>
                   </div>
                 </div>
                 
-                                
-                {/* 테스트 버튼 (개발 중에만 표시) */}
-                <div className={styles.testButtons}>
-                  <button 
-                    className={styles.testButton}
-                    onClick={handleCreateVote}
-                  >
-                    투표 생성 테스트 (+100 XP)
-                  </button>
-                  <button 
-                    className={styles.testButton}
-                    onClick={handleParticipateVote}
-                  >
-                    투표 참여 테스트 (+20 XP)
-                  </button>
+                {/* 적립금 정보 추가 */}
+                <div className={styles.pointsInfo}>
+                  <h3>적립금</h3>
+                  <div className={styles.pointsValue}>
+                    {userInfo.points} P
+                  </div>
+                  {userInfo.level >= 10 && (
+                    <div className={styles.pointsRate}>
+                      예상 배당율: {Math.min(userInfo.level - 9, 5)}%
+                    </div>
+                  )}
                 </div>
+                
+                {/* 테스트 버튼 섹션 */}
+                {renderTestButtons()}
               </div>
             </div>
           </div>
@@ -774,41 +904,38 @@ export default function MyPage() {
           </div>
         )}
         
-        {/* 뱃지 & 칭호 탭 */}
+        {/* 등급 탭 */}
         {activeTab === "badges" && (
           <div className={styles.tabContent}>
             <div className={styles.card}>
               <div className={styles.badgesContainer}>
-                <div className={styles.titlesList}>
-                  {titles.map(title => {
-                    // 해당 ID를 가진 뱃지 찾기
-                    const matchingBadge = badges.find(badge => badge.id === title.id);
-                    return (
-                    <div key={title.id} className={`${styles.titleCard} ${title.acquired ? styles.acquiredTitle : ''}`} 
-                      style={{ borderLeftColor: title.acquired ? title.color : '#777' }}>
-                      <div className={styles.titleHeader}>
-                        <div className={styles.titleNameWithIcon}>
-                          <span className={styles.titleCardIcon} style={{ color: title.color }}>
-                            {title.icon}
-                          </span>
-                          <h4 className={styles.titleName}>{title.name}</h4>
-                        </div>
-                        <span className={styles.titleLevel}>레벨 {title.requiredLevel}</span>
+                <div className={styles.badgesList}>
+                  {badges.map(badge => (
+                    <div 
+                      key={badge.id} 
+                      className={`${styles.badgeItem} ${badge.acquired ? styles.acquiredBadge : styles.lockedBadge}`}
+                    >
+                      <div className={styles.badgeIcon} style={{ color: badge.color }}>
+                        {badge.icon}
                       </div>
-                      <p className={styles.titleDescription}>{matchingBadge?.description || title.description}</p>
-                      <div className={styles.titleStatus}>
-                        {title.acquired ? (
-                          <div className={styles.acquiredBadge}>
-                            <span className={styles.checkIcon}>✓</span> {matchingBadge?.acquiredDate ? `${matchingBadge.acquiredDate}에 획득` : '획득'}
-                          </div>
+                      <div className={styles.badgeInfo}>
+                        <span className={styles.badgeName}>{badge.name}</span>
+                        <span className={styles.badgeDescription}>{badge.description}</span>
+                        {badge.level >= 10 && (
+                          <span className={styles.badgeReward}>
+                            {Math.min(badge.level - 9, 5)}% 배당
+                          </span>
+                        )}
+                      </div>
+                      <div className={styles.badgeStatus}>
+                        {badge.acquired ? (
+                          <span className={styles.acquiredStatus}>획득</span>
                         ) : (
-                          <div className={styles.lockedBadge}>
-                            <span className={styles.lockIcon}>🔒</span> 잠김
-                          </div>
+                          <span className={styles.lockedStatus}>잠김</span>
                         )}
                       </div>
                     </div>
-                  )})}
+                  ))}
                 </div>
               </div>
             </div>
@@ -818,3 +945,4 @@ export default function MyPage() {
     </div>
   );
 }
+

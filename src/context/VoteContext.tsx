@@ -558,7 +558,6 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // 로컬 상태 업데이트
       setVotes(prevVotes => prevVotes.filter(vote => vote.id !== topicId));
       setMyVotes(prevMyVotes => prevMyVotes.filter(vote => vote.id !== topicId));
-      console.log('votes와 myVotes 상태 업데이트됨');
       
       // 관련된 이미지 스토리지에서 삭제
       // setProgress(80);
@@ -755,7 +754,7 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 username: item.users?.username || '',
                 email: item.users?.email || '',
                 profile_image: item.users?.profile_image || '',
-                user_badge: item.users?.user_badge || 0,
+                user_grade: item.users?.user_grade || 0,
                 created_at: item.users?.created_at || '',
                 updated_at: item.users?.updated_at || ''
               },

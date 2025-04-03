@@ -17,7 +17,7 @@
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   padding: 5px 5px; /* 카드의 좌우 패딩 */
-  margin-bottom: 4px;
+  margin-bottom: 0px;
   transition: box-shadow 0.3s ease;
   max-width: 900px;
   width: 100%;
@@ -113,7 +113,7 @@
 .vote-card-content {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px;
 }
 
 /* 이미지 그리드가 있는 경우 추가 여백 */
@@ -356,11 +356,11 @@
   position: absolute;
   top: 0;
   left: 0;
-  height: 100%; /* 전체 높이로 확장 */
+  height: 100%;
   background-color: rgba(58, 142, 255, 0.2);
   border-radius: 3px;
   z-index: 1;
-  transition: width 0.5s ease;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); /* 이징 함수 사용 */
 }
 
 /* 텍스트 유형 리스트 투표 퍼센트 스타일 수정 */
@@ -372,6 +372,7 @@
   display: flex; /* flexbox 사용 */
   align-items: center; /* 수직 가운데 정렬 */
   z-index: 3; /* 높은 z-index로 항상 표시 */
+  transition: all 1s cubic-bezier(0.4, 0, 0.2, 1); /* 이징 함수 사용 */
 }
 
 /* 옵션 텍스트 컨테이너 수정 */
@@ -420,7 +421,7 @@
   display: flex;  /* flexbox 사용 */
   align-items: center;  /* 수직 가운데 정렬 */
   justify-content: center;  /* 수평 가운데 정렬 */
-  transition: transform 0.2s ease, box-shadow 0.2s ease;  /* 변형 및 그림자 전환 효과 */
+  transition: transform 0.5s ease, box-shadow 0.5s ease;  /* 변형 및 그림자 전환 효과 */
   box-sizing: border-box; /* 패딩을 너비에 포함 */
 }
 
@@ -492,6 +493,7 @@
   font-size: 14px; /* 글자 크기 줄임 */
   z-index: 3;
   backdrop-filter: blur(1.5px); /* 약간의 블러 효과 추가 */
+  transition: all 1s cubic-bezier(0.4, 0, 0.2, 1); /* 이징 함수 사용 */
 }
 
 /* 투표 바 - 하단에 고정 */
@@ -499,9 +501,10 @@
   position: absolute;
   bottom: 0;
   left: 0;
-  background-color: rgba(33, 150, 243, 0.5); /* 더 투명하게 */
+  background-color: rgba(33, 150, 243, 0.5);
   z-index: 3;
-  height: 4px !important; /* 높이 줄임 */
+  height: 15px !important;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); /* 이징 함수 사용 */
 }
 
 .image-grid-option .overlay-text {
@@ -581,6 +584,7 @@
 .image-grid-option .vote-bar-overlay {
   background-color: rgba(30, 123, 245, 0.7);
   height: 15px !important;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); /* 이징 함수 사용 */
 }
 
 .image-grid-option.selected .vote-bar-overlay {
@@ -637,7 +641,7 @@
 .user-name-container {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .user-badge {
@@ -646,12 +650,37 @@
   justify-content: center;
   width: 24px;
   height: 24px;
+  margin-left: 4px;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.5) 100%);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  transition: all 0.2s ease;
   padding: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+}
+
+.user-badge svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.4));
+}
+
+/* 메달 아이콘 광택 효과 */
+.user-badge svg circle {
+  transition: all 0.3s ease;
+}
+
+/* 다이아몬드 아이콘 광택 효과 */
+.user-badge svg path {
+  transition: all 0.3s ease;
+}
+
+/* 모바일 대응 */
+@media (max-width: 768px) {
+  .user-badge {
+    width: 28px;
+    height: 28px;
+    margin-left: 3px;
+    padding: 6px;
+  }
 }
 
 /* 카드 액션 버튼 컨테이너: 구독/구독취소 */
@@ -687,30 +716,6 @@
   background-color: #3a8eff;
   color: white;
 }
-
-/* 삭제 버튼 스타일 */
-.delete-btn {
-  background-color: rgba(255, 0, 0, 0.2);
-  border: none;
-  color: #fff;
-  font-weight: 500;
-  min-width: 60px;
-  height: 28px;
-  border-radius: 4px;
-  cursor: pointer;
-  padding: 3px 10px;  /* 좌우 패딩 증가 */
-  margin-right: 10px;  /* 우측 마진 추가 */
-  font-size: 12px;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.delete-btn:hover {
-  background-color: rgba(255, 0, 0, 0.2);
-}
-
 
 /* 더보기 버튼 스타일 */
 .more-btn-text {
@@ -1010,86 +1015,7 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 투표 업로드 버튼 */
-.publish-btn {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  margin-right: 8px;
-  transition: background-color 0.3s;
-}
-
-.publish-btn:hover {
-  background-color: #4CAF50;
-}
-
-.edit-btn {
-  background-color: #2196F3;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  margin-right: 8px;
-  transition: background-color 0.3s;
-}
-
-.edit-btn:hover {
-  background-color: #2196F3;
-}
-
-
-
 /* 투표 관리 버튼 스타일 */
-.vote-management {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 12px;
-  width: 100%;
-}
-
-.vote-management button {
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
-}
-
-.publish-button {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.publish-button:hover {
-  background-color: #4CAF50;
-}
-
-.edit-button {
-  background-color: #2196F3;
-  color: white;
-}
-
-.edit-button:hover {
-  background-color: #2196F3;
-}
-
-.delete-button {
-  background-color: #f44336;
-  color: white;
-}
-
-.delete-button:hover {
-  background-color: #f44336;
-}
 
 /* 관리 버튼 섹션 */
 .management-section {
@@ -1122,6 +1048,10 @@
   cursor: pointer;
   border: none;
   transition: all 0.2s ease;
+  height: 36px; /* 높이 통일 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* 투표 업로드 버튼 */
@@ -1148,13 +1078,22 @@
 .management-btn.delete-btn {
   background-color: rgba(255, 69, 58, 0.2);
   color: #ff453a;
+  min-width: 60px;
+  height: 36px; /* 다른 버튼들과 동일한 높이 */
 }
 
 .management-btn.delete-btn:hover {
   background-color: rgba(255, 69, 58, 0.2);
 }
 
-
+/* 모바일 환경 대응 */
+@media (max-width: 768px) {
+  .management-btn.edit-btn
+  .management-btn.publish-btn
+  .management-btn.delete-btn {
+    height: 36px; /* 모바일에서도 동일한 높이 유지 */
+  }
+}
 
 /* 모든 이미지에 공통으로 적용할 스타일 */
 img {
@@ -1188,7 +1127,7 @@ img {
 /* 초기 로드 시 선택된 옵션에 애니메이션 적용 */
 .vote-option.selected,
 .image-grid-option.selected {
-  animation: selectedFade 0.3s ease-in-out;
+  animation: selectedFade 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 
@@ -1374,6 +1313,27 @@ img {
   color: #dc3545;
 }
 
+/* 퍼센트 텍스트 애니메이션 */
+.vote-percentage,
+.vote-percentage-overlay {
+  transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-/* ==========================여기 까지 중복 점검 했음 ==========================  */
-/* 속성 추가할 시에 반드시 동일한 속성이 있는 지 확인하고 새로운 속성 추가할 것 */
+/* 선택된 옵션 강조 효과 */
+.vote-option.selected,
+.image-grid-option.selected {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 투표 옵션 호버 효과 */
+.vote-option:not(.disabled):hover,
+.image-grid-option:not(.disabled):hover {
+  transform: translateY(-1px);
+  transition: transform 0.2s ease;
+}
+
+/* 투표 결과 표시 애니메이션 */
+.vote-option.show-results,
+.image-grid-option.show-results {
+  transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+}

@@ -447,17 +447,17 @@
   }
   
   .badgeItem {
-    padding: 10px;
+    padding: 12px;
   }
   
   .badgeIcon {
-    width: 40px;
-    height: 40px;
+    width: 28px;
+    height: 28px;
   }
   
   .badgeIcon svg {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
   }
   
   .badgeIconLarge {
@@ -760,23 +760,60 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-
 .badgeIcon {
-  font-size: 24px;
-  background-color: #333;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.3s ease;
 }
 
-
 .badgeIcon svg {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
+}
+
+.badgeIcon text {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+/* 등급별 배경색 */
+.badgeIcon[data-level="1"],
+.badgeIcon[data-level="2"],
+.badgeIcon[data-level="3"] {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.badgeIcon[data-level="4"],
+.badgeIcon[data-level="5"],
+.badgeIcon[data-level="6"] {
+  background: rgba(255, 215, 0, 0.15);
+}
+
+.badgeIcon[data-level="7"],
+.badgeIcon[data-level="8"],
+.badgeIcon[data-level="9"] {
+  background: rgba(0, 255, 136, 0.15);
+}
+
+.badgeIcon[data-level="10"] {
+  background: rgba(205, 127, 50, 0.15);
+}
+
+.badgeIcon[data-level="11"] {
+  background: rgba(192, 192, 192, 0.15);
+}
+
+.badgeIcon[data-level="12"] {
+  background: rgba(255, 215, 0, 0.15);
+}
+
+.badgeIcon[data-level="13"] {
+  background: rgba(0, 255, 255, 0.15);
+}
+
+.badgeIcon[data-level="14"] {
+  background: rgba(255, 215, 0, 0.15);
 }
 
 .badgeInfo {
@@ -809,382 +846,183 @@
   width: 100%;
 }
 
-
 /* 뱃지 & 칭호 탭 스타일 */
 .badgesContainer {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  background-color: #1a1a1a;
+  padding: 20px;
 }
 
-.badgesSectionTitle {
-  font-size: 18px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid #555;
-  padding-bottom: 8px;
-}
-
-/* 칭호 리스트 스타일 */
-.titlesList {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.titleCard {
-  background-color: #252525;
-  border-left: 4px solid #777;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 10px;
-}
-
-.titleHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.titleNameWithIcon {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.titleCardIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #333;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-}
-
-.titleName {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.titleLevel {
-  font-size: 13px;
-  color: #ccc;
-  background-color: #333;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-.titleDescription {
-  font-size: 14px;
-  color: #ccc;
-  margin: 8px 0;
-}
-
-.acquiredBadge, .lockedBadge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #4CAF50;
-  font-size: 13px;
-  background-color: rgba(76, 175, 80, 0.1);
-  padding: 4px 8px;
-  border-radius: 4px;
-  margin-top: 6px;
-}
-
-.checkIcon {
-  font-weight: bold;
-}
-
-.lockedBadge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #aaa;
-  font-size: 13px;
-  background-color: rgba(170, 170, 170, 0.1);
-  padding: 4px 8px;
-  border-radius: 4px;
-  margin-top: 6px;
-}
-
-.lockIcon {
-  font-weight: normal;
-}
-
-/* 뱃지 그리드 스타일 */
-.badgesGrid {
+.badgesList {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
 }
 
-.badgeCard {
-  background: linear-gradient(145deg, #3d3d3d, #383838);
+.badgeItem {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
-  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 12px;
+}
+
+.badgeIcon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badgeIcon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.badgeIcon text {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+/* 등급별 배경색 */
+.badgeIcon[data-level="1"],
+.badgeIcon[data-level="2"],
+.badgeIcon[data-level="3"] {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.badgeIcon[data-level="4"],
+.badgeIcon[data-level="5"],
+.badgeIcon[data-level="6"] {
+  background: rgba(255, 215, 0, 0.15);
+}
+
+.badgeIcon[data-level="7"],
+.badgeIcon[data-level="8"],
+.badgeIcon[data-level="9"] {
+  background: rgba(0, 255, 136, 0.15);
+}
+
+.badgeIcon[data-level="10"] {
+  background: rgba(205, 127, 50, 0.15);
+}
+
+.badgeIcon[data-level="11"] {
+  background: rgba(192, 192, 192, 0.15);
+}
+
+.badgeIcon[data-level="12"] {
+  background: rgba(255, 215, 0, 0.15);
+}
+
+.badgeIcon[data-level="13"] {
+  background: rgba(0, 255, 255, 0.15);
+}
+
+.badgeIcon[data-level="14"] {
+  background: rgba(255, 215, 0, 0.15);
+}
+
+.badgeInfo {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  gap: 2px;
+  min-width: 0;
 }
 
-.badgeCard::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 5px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-}
-
-
-.acquiredBadge {
-  border: none;
-  position: relative;
-}
-
-.acquiredBadge::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 5px;
-  background: linear-gradient(90deg, transparent, currentColor, transparent);
-  opacity: 0.9;
-}
-
-.lockedBadgeCard {
-  opacity: 0.7;
-  filter: grayscale(0.7);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.badgeIconLarge {
-  font-size: 40px;
-  margin-bottom: 16px;
-  background: linear-gradient(145deg, #383838, #333);
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5), inset 0 2px 6px rgba(255, 255, 255, 0.05);
-  margin-top: 8px;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  position: relative;
-  overflow: hidden;
-}
-
-
-.badgeIconLarge::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-
-.badgeIconLarge svg {
-  width: 60px;
-  height: 60px;
-  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.6));
-  stroke-width: 2.5;
-}
-
-.badgeCardName {
-  font-size: 18px;
+.badgeName {
+  font-size: 15px;
   font-weight: 600;
-  margin: 0 0 10px 0;
-  background: linear-gradient(90deg, #fff, #ccc);
-  -webkit-text-fill-color: transparent;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.badgeCardDescription {
-  color: #ccc;
+.badgeDescription {
   font-size: 13px;
-  margin: 0 0 16px 0;
-  flex-grow: 1;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.badgeAcquiredDate, .badgeLocked {
+.badgeReward {
   font-size: 12px;
-  padding: 6px 10px;
-  border-radius: 20px;
-  width: 100%;
-  margin-top: 8px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.badgeAcquiredDate {
-  background: linear-gradient(145deg, rgba(40, 167, 69, 0.2), rgba(40, 167, 69, 0.3));
-  color: #2ecc71;
-  border: 1px solid rgba(46, 204, 113, 0.3);
-}
-
-.badgeLocked {
-  background: linear-gradient(145deg, rgba(108, 117, 125, 0.2), rgba(108, 117, 125, 0.3));
-  color: #bbb;
-  border: 1px solid rgba(108, 117, 125, 0.3);
-}
-
-/* 뱃지 획득 알림 스타일 */
-.badgeNotification {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: linear-gradient(145deg, #444, #333);
-  border-radius: 12px;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  max-width: 350px;
-  border-left: none;
-  animation: slideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), fadeOut 0.3s ease 2.7s;
-  overflow: hidden;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateY(-100px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-.badgeNotification::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 5px;
-  height: 100%;
-  background: linear-gradient(to bottom, currentColor, transparent);
-}
-
-.badgeNotificationIcon {
-  font-size: 40px;
-  background: linear-gradient(145deg, #333, #222);
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5), inset 0 2px 6px rgba(255, 255, 255, 0.05);
-  position: relative;
-  overflow: hidden;
-}
-
-.badgeNotificationIcon::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 70%);
-}
-
-.badgeNotificationIcon svg {
-  width: 48px;
-  height: 48px;
-  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.6));
-  stroke-width: 2.5;
-}
-
-.badgeNotificationContent h4 {
-  margin: 0 0 10px 0;
-  font-size: 18px;
-  background: linear-gradient(90deg, currentColor, #fff);
-  -webkit-text-fill-color: transparent;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.badgeNotificationContent p {
-  margin: 0;
-  font-size: 14px;
-}
-
-.badgeNotificationDesc {
-  color: #aaa;
-  font-size: 12px !important;
-  margin-top: 4px !important;
-}
-
-/* 테스트 버튼 스타일 */
-.testButtons {
-  display: flex;
-  gap: 8px;
-  margin-top: 16px;
-}
-
-.testButton {
-  background-color: #555;
-  border: none;
-  color: white;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-}
-
-
-.titleStatus, .badgeStatus {
-  margin-top: 8px;
-  width: 100%;
+  color: #00ff88;
+  background: rgba(0, 255, 136, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  width: fit-content;
 }
 
 .badgeStatus {
-  display: flex;
-  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-.profileContact {
-  margin-top: 8px;
+.acquiredBadge {
+  background: rgba(58, 142, 255, 0.1);
+  border-color: rgba(58, 142, 255, 0.2);
 }
 
-/* 일관된 배경색 및 테두리 색상 적용 */
-.badgeItem,
-.titleCard,
-.settingItem,
-.subscriberItem {
-  background-color: #252525;
-  border: 1px solid #333;
-  box-shadow: none;
+.acquiredStatus {
+  color: #3a8eff;
+  background: rgba(58, 142, 255, 0.1);
+}
+
+.lockedBadge {
+  opacity: 0.7;
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.lockedStatus {
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 768px) {
+  .badgesList {
+    grid-template-columns: 1fr;
+  }
+  
+  .badgeItem {
+    padding: 12px;
+  }
+  
+  .badgeIcon {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .badgeIcon svg {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .badgeName {
+    font-size: 14px;
+  }
+  
+  .badgeDescription {
+    font-size: 12px;
+  }
+  
+  .badgeReward {
+    font-size: 11px;
+    padding: 1px 5px;
+  }
+  
+  .badgeStatus {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
 }
 
 /* 칭호 카드 스타일 통일 */
@@ -1257,7 +1095,6 @@
   border: 1px solid #333;
   box-shadow: none;
 }
-
 
 /* 버튼 배경색 유지 */
 .editButton {
@@ -1346,27 +1183,6 @@
   background-color: #1a1a1a;
 }
 
-/* 호버 효과 제거 */
-.card:hover,
-.titleBadge:hover,
-.badgeItem:hover,
-.badgeIcon:hover,
-.viewAllBadgesButton:hover,
-.titleCard:hover,
-.badgeCard:hover,
-.badgeCard:hover .badgeIconLarge,
-.lockedBadgeCard:hover,
-.testButton:hover,
-.editButton:hover,
-.saveButton:hover,
-.cancelButton:hover,
-.followButton:hover,
-.saveSettingsButton:hover {
-  transform: none !important;
-  box-shadow: none !important;
-  opacity: 1 !important;
-}
-
 /* 버튼 기본 스타일 */
 .saveSettingsButton,
 .followButton,
@@ -1395,4 +1211,384 @@
 /* 모든 트랜지션 효과 제거 */
 * {
   transition: none !important;
+}
+
+.pointsInfo {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.pointsInfo h3 {
+  color: #888;
+  font-size: 1rem;
+  margin-bottom: 10px;
+}
+
+.pointsValue {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #00ff88;
+  margin: 10px 10px;
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+}
+
+.pointsRate {
+  color: #00ff88;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.testButtons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.testButton {
+  background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.testButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, #3a3a3a 0%, #4a4a4a 100%);
+}
+
+.testButton:active {
+  transform: translateY(0);
+}
+
+/* 뱃지 스타일 수정 */
+.badge {
+  background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
+  border-radius: 12px;
+  padding: 15px;
+  margin: 10px 0;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.badgeIcon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badgeIcon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.badgeInfo {
+  flex: 1;
+}
+
+.badgeName {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.badgeDescription {
+  font-size: 0.9rem;
+  color: #888;
+}
+
+.badgeAcquired {
+  opacity: 1;
+}
+
+.badgeNotAcquired {
+  opacity: 0.5;
+}
+
+/* 칭호 스타일 수정 */
+.title {
+  background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
+  border-radius: 12px;
+  padding: 15px;
+  margin: 10px 0;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.title:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.titleIcon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.titleIcon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.titleInfo {
+  flex: 1;
+}
+
+.titleName {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.titleDescription {
+  font-size: 0.9rem;
+  color: #888;
+}
+
+.titleAcquired {
+  opacity: 1;
+}
+
+.titleNotAcquired {
+  opacity: 0.5;
+}
+
+/* 레벨 프로그레스 바 스타일 수정 */
+.levelProgress {
+  background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.progressBar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 10px 0;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #00ff88 0%, #00ccff 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progressInfo {
+  display: flex;
+  justify-content: space-between;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+/* 등급 탭 스타일 */
+.badgesContainer {
+  padding: 5px;
+}
+
+.badgesList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.badgeItem {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 12px;
+}
+
+.badgeIcon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badgeIcon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.badgeIcon text {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+/* 등급별 배경색 */
+.badgeIcon[data-level="1"],
+.badgeIcon[data-level="2"],
+.badgeIcon[data-level="3"] {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.badgeIcon[data-level="4"],
+.badgeIcon[data-level="5"],
+.badgeIcon[data-level="6"] {
+  background: rgba(255, 215, 0, 0.15);
+}
+
+.badgeIcon[data-level="7"],
+.badgeIcon[data-level="8"],
+.badgeIcon[data-level="9"] {
+  background: rgba(0, 255, 136, 0.15);
+}
+
+.badgeIcon[data-level="10"] {
+  background: rgba(205, 127, 50, 0.15);
+}
+
+.badgeIcon[data-level="11"] {
+  background: rgba(192, 192, 192, 0.15);
+}
+
+.badgeIcon[data-level="12"] {
+  background: rgba(255, 215, 0, 0.15);
+}
+
+.badgeIcon[data-level="13"] {
+  background: rgba(0, 255, 255, 0.15);
+}
+
+.badgeIcon[data-level="14"] {
+  background: rgba(255, 215, 0, 0.15);
+}
+
+.badgeInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.badgeName {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badgeDescription {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badgeReward {
+  font-size: 12px;
+  color: #00ff88;
+  background: rgba(0, 255, 136, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.badgeStatus {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.acquiredBadge {
+  background: rgba(58, 142, 255, 0.1);
+  border-color: rgba(58, 142, 255, 0.2);
+}
+
+.acquiredStatus {
+  color: #3a8eff;
+  background: rgba(58, 142, 255, 0.1);
+}
+
+.lockedBadge {
+  opacity: 0.7;
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.lockedStatus {
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 768px) {
+  .badgesList {
+    grid-template-columns: 1fr;
+  }
+  
+  .badgeItem {
+    padding: 12px;
+  }
+  
+  .badgeIcon {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .badgeIcon svg {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .badgeName {
+    font-size: 14px;
+  }
+  
+  .badgeDescription {
+    font-size: 12px;
+  }
+  
+  .badgeReward {
+    font-size: 11px;
+    padding: 1px 5px;
+  }
+  
+  .badgeStatus {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
 }

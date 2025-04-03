@@ -11,7 +11,7 @@ export const mapToVoteTopic = (topic: any, selectedOption?: number | null): Vote
     // 사용자 정보 추출
     let username = '알 수 없음';
     let profile_image = '';
-    let user_badge = 0;
+    let user_grade = 0;
     let email = '';
     let created_at = topic.created_at || new Date().toISOString();
     let updated_at = topic.updated_at || created_at;
@@ -19,7 +19,7 @@ export const mapToVoteTopic = (topic: any, selectedOption?: number | null): Vote
     if (topic.users) {
       username = topic.users.username || '알 수 없음';
       profile_image = topic.users.profile_image || '';
-      user_badge = topic.users.user_badge || 0;
+      user_grade = topic.users.user_grade || 0;
       email = topic.users.email || '';
       created_at = topic.users.created_at || created_at;
       updated_at = topic.users.updated_at || updated_at;
@@ -64,7 +64,7 @@ export const mapToVoteTopic = (topic: any, selectedOption?: number | null): Vote
         username,
         email,
         profile_image,
-        user_badge,
+        user_grade,
         created_at,
         updated_at
       },
@@ -135,7 +135,7 @@ export const getVoteTopicById = async (topicId: number, userId?: string) => {
       .from('vote_topics')
       .select(`
         *,
-        users:user_id (username, profile_image, user_badge),
+        users:user_id (username, profile_image, user_grade),
         options:vote_options (id, text, votes, image_class, image_url)
       `)
       .eq('id', topicId)
@@ -270,7 +270,7 @@ export const updateVoteTopic = async (topicData: VoteTopicUpdateData): Promise<V
       .from('vote_topics')
       .select(`
         *,
-        users:user_id (username, profile_image, user_badge),
+        users:user_id (username, profile_image, user_grade),
         options:vote_options (id, text, votes, image_class, image_url)
       `)
       .eq('id', topicData.id)

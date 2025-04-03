@@ -23,67 +23,190 @@ interface VoteCardProps {
 
 // 뱃지 정보를 가져오는 함수
 export const getBadgeInfo = (badgeLevel: number) => {
-  switch (badgeLevel) {
-    case 1:
-      return { name: '초심자', color: '#FFFFFF' };
-    case 2:
-      return { name: '탐험가', color: '#FFD700' };
-    case 3:
-      return { name: '분석가', color: '#FF8C00' };
-    case 4:
-      return { name: '전문가', color: '#FF4500' };
-    default:
-      return null;
+  const getBadgeColor = (level: number) => {
+    if (level <= 3) {
+      return "#FFFFFF"; // 1-3등급: 흰색
+    } else if (level <= 6) {
+      return "#FFE566"; // 4-6등급: 더 밝은 노란색
+    } else if (level <= 9) {
+      return "#00FF88"; // 7-9등급: 초록색
+    } else if (level === 10) {
+      return "#FFA07A"; // 동메달: 더 밝은 브론즈
+    } else if (level === 11) {
+      return "#F8F8FF"; // 은메달: 더 밝은 실버
+    } else if (level === 12) {
+      return "#FFDF00"; // 금메달: 더 밝은 골드
+    } else if (level === 13) {
+      return "#B9F2FF"; // 다이아몬드: 하늘색 계열
+    } else if (level === 14) {
+      return "#FFD700"; // 황금왕관
+    }
+    return "#FFFFFF";
+  };
+
+  const color = getBadgeColor(badgeLevel);
+  
+  if (badgeLevel <= 9) {
+    return { name: `${badgeLevel}등급`, color, type: 'number' as const };
+  } else if (badgeLevel === 10) {
+    return { name: "동메달", color, type: 'medal' as const, medalType: 'bronze' as const };
+  } else if (badgeLevel === 11) {
+    return { name: "은메달", color, type: 'medal' as const, medalType: 'silver' as const };
+  } else if (badgeLevel === 12) {
+    return { name: "금메달", color, type: 'medal' as const, medalType: 'gold' as const };
+  } else if (badgeLevel === 13) {
+    return { name: "다이아몬드", color, type: 'special' as const };
+  } else if (badgeLevel === 14) {
+    return { name: "황금왕관", color, type: 'special' as const };
   }
+  return { name: "초심자", color: "#FFFFFF", type: 'number' as const };
 };
 
-// 뱃지 아이콘 컴포넌트
-const CompassIcon = ({ className, color = "#FFFFFF", size = 24 }: { className?: string; color?: string; size?: number }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10"></circle>
-    <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+// 숫자 아이콘 컴포넌트
+const NumberIcon = ({ number, color = "#FFFFFF", size = 24 }: { number: number; color?: string; size?: number }) => {
+  const isMobile = window.innerWidth <= 768;
+  const fontSize = isMobile ? "20" : "16";
+  
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* 배경 원 */}
+      <circle cx="12" cy="12" r="10" fill={color} opacity="0.1" />
+      {/* 숫자 텍스트 */}
+      <text 
+        x="12" 
+        y="18" 
+        textAnchor="middle" 
+        fill={color}
+        fontSize={fontSize}
+        fontWeight="bold"
+        filter="drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3))"
+      >
+        {number}
+      </text>
+    </svg>
+  );
+};
+
+// 메달 아이콘 컴포넌트
+const MedalIcon = ({ type, size = 32 }: { type: 'bronze' | 'silver' | 'gold'; color?: string; size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24">
+    {/* 배경 원 */}
+    <circle cx="12" cy="12" r="10" fill={type === 'gold' ? '#FFDF00' : type === 'silver' ? '#F8F8FF' : '#FFA07A'} opacity="0.1"/>
+    
+    {/* 메달 리본 - 크기와 위치 조정 */}
+    <g transform="scale(1.4) translate(-4.8, -4.8)">
+      <path d="M6 2 C6 2 10 4 12 4 C14 4 18 2 18 2 L16 8 L12 9 L8 8 L6 2" 
+            fill={type === 'gold' ? '#FFDF00' : type === 'silver' ? '#F8F8FF' : '#FFA07A'} 
+            stroke="#000" 
+            strokeWidth="0.7"/>
+      
+      {/* 메달 본체 */}
+      <circle cx="12" cy="14" r="8" 
+              fill={type === 'gold' ? '#FFDF00' : type === 'silver' ? '#F8F8FF' : '#FFA07A'} 
+              stroke="#000" 
+              strokeWidth="0.7"/>
+      
+      {/* 메달 테두리 장식 */}
+      <circle cx="12" cy="14" r="7" 
+              fill="none" 
+              stroke="#000" 
+              strokeWidth="0.5"
+              strokeDasharray="2,0.7"/>
+      
+      {/* 메달 내부 장식 */}
+      <circle cx="12" cy="14" r="5.5" 
+              fill="none" 
+              stroke="#000" 
+              strokeWidth="0.5"/>
+      
+      {/* 메달 중앙 별 모양 */}
+      <path d="M12 10 L13.5 13 L17 13 L14.5 15 L15.5 18 L12 16 L8.5 18 L9.5 15 L7 13 L10.5 13 Z"
+            fill="#000"
+            opacity="0.15"/>
+    </g>
+    
+    {/* 메달 표면 광택 효과 */}
+    <ellipse cx="12" cy="12" rx="4" ry="2" 
+             fill="#FFFFFF" 
+             opacity="0.5"/>
   </svg>
 );
 
-const MapIcon = ({ className, color = "#FFD700", size = 24 }: { className?: string; color?: string; size?: number }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
-    <line x1="8" y1="2" x2="8" y2="18"></line>
-    <line x1="16" y1="6" x2="16" y2="22"></line>
+
+// 다이아몬드 아이콘 컴포넌트 수정
+const DiamondIcon = ({ color = "#00FFFF", size = 32 }: { color?: string; size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24">
+    {/* 배경 원 */}
+    <circle cx="12" cy="12" r="10" fill={color} opacity="0.1"/>
+    
+    {/* 다이아몬드 - 크기와 위치 조정 */}
+    <g transform="scale(1.4) translate(-4.8, -4.8)">
+      {/* 다이아몬드 상단 */}
+      <path d="M12 2 L17 8 L12 14 L7 8 Z" 
+            fill={color}
+            stroke="#000"
+            strokeWidth="0.5"/>
+      
+      {/* 다이아몬드 하단 */}
+      <path d="M7 8 L12 14 L12 20 L4 10 Z" 
+            fill={color}
+            stroke="#000"
+            strokeWidth="0.5"
+            opacity="0.9"/>
+      
+      <path d="M17 8 L12 14 L12 20 L20 10 Z" 
+            fill={color}
+            stroke="#000"
+            strokeWidth="0.5"
+            opacity="0.7"/>
+      
+      {/* 다이아몬드 광택 효과 */}
+      <path d="M12 2 L14 5 L12 8 L10 5 Z" 
+            fill="#FFFFFF"
+            opacity="0.5"/>
+      
+      <path d="M14 5 L16 8 L14 11 L12 8 Z" 
+            fill="#FFFFFF"
+            opacity="0.3"/>
+      
+      <path d="M10 5 L12 8 L10 11 L8 8 Z" 
+            fill="#FFFFFF"
+            opacity="0.4"/>
+    </g>
+    
+    {/* 다이아몬드 하이라이트 */}
+    <path d="M11 4 L12 6 L13 4" 
+          stroke="#FFFFFF"
+          strokeWidth="0.7"
+          fill="none"
+          opacity="0.7"/>
   </svg>
 );
 
-const TelescopeIcon = ({ className, color = "#FF8C00", size = 24 }: { className?: string; color?: string; size?: number }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-  </svg>
-);
-
-const CrownIcon = ({ className, color = "#FF4500", size = 24 }: { className?: string; color?: string; size?: number }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+const CrownIcon = ({ color = "#FFD700", size = 24 }: { color?: string; size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"></path>
   </svg>
 );
 
 // 뱃지 레벨에 따른 아이콘 컴포넌트를 반환하는 함수
-export const getBadgeIcon = (badgeLevel: number, size = 24) => {
+export const getBadgeIcon = (badgeLevel: number, size = 32) => {
   const badgeInfo = getBadgeInfo(badgeLevel);
   if (!badgeInfo) return null;
   
   const color = badgeInfo.color;
-  const iconSize = Math.floor(size * 0.8); // 배지 크기의 80%로 아이콘 크기 설정
+  const isMobile = window.innerWidth <= 768;
+  const iconSize = isMobile ? 36 : size; // 모바일에서는 더 크게
   
-  switch (badgeLevel) {
-    case 1:
-      return <CompassIcon color={color} size={iconSize} />;
-    case 2:
-      return <MapIcon color={color} size={iconSize} />;
-    case 3:
-      return <TelescopeIcon color={color} size={iconSize} />;
-    case 4:
-      return <CrownIcon color={color} size={iconSize} />;
+  switch (badgeInfo.type) {
+    case 'number':
+      return <NumberIcon number={badgeLevel} color={color} size={iconSize} />;
+    case 'medal':
+      return <MedalIcon type={badgeInfo.medalType} color={color} size={iconSize} />;
+    case 'special':
+      return badgeLevel === 13 ? 
+        <DiamondIcon color={color} size={iconSize} /> : 
+        <CrownIcon color={color} size={iconSize} />;
     default:
       return null;
   }
@@ -93,32 +216,62 @@ export const getBadgeIcon = (badgeLevel: number, size = 24) => {
 const calculateRemainingTime = (expiresAt: string): string => {
   const now = new Date();
   const expireDate = new Date(expiresAt);
+  
+  // 날짜를 yyyy-mm-dd 형식으로 변환하는 함수
+  const formatDate = (date: Date) => {
+    return date.toISOString().split('T')[0];
+  };
+
+  // 디버깅을 위한 로그
+  console.log('남은 기간 계산:', {
+    현재시간: formatDate(now),
+    만료시간: formatDate(expireDate),
+    원본만료시간: expiresAt,
+    시차: expireDate.getTimezoneOffset()
+  });
+
+  // 현재 날짜와 만료 날짜를 UTC 기준으로 비교
+  const today = new Date(formatDate(now));
+  const expireDay = new Date(formatDate(expireDate));
+  
+  // 시간대 보정
+  today.setHours(0, 0, 0, 0);
+  expireDay.setHours(0, 0, 0, 0);
+
+  // 날짜 차이 계산 (일 단위)
+  const diffDays = Math.ceil((expireDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // 디버깅을 위한 로그
+  console.log('계산된 차이:', {
+    날짜차이_일: diffDays,
+    today: today.toISOString(),
+    expireDay: expireDay.toISOString()
+  });
+
+  // 현재 시간과의 차이로 남은 시간/분 계산
   const diffTime = expireDate.getTime() - now.getTime();
   
   if (diffTime <= 0) {
     return '종료';
   }
 
-  // 밀리초를 각 단위로 변환
-  const minutes = Math.floor(diffTime / (1000 * 60));
-  const hours = minutes / 60;  // 소수점 유지
-  const days = hours / 24;     // 소수점 유지
-  const months = days / 30;    // 소수점 유지
+  const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+  const diffMinutes = Math.floor(diffTime / (1000 * 60));
 
   // 1시간 이내: 분 단위
-  if (hours < 1) {
-    return `${Math.floor(minutes)}분`;
+  if (diffHours < 1) {
+    return `${diffMinutes}분`;
   }
   // 24시간 이내: 시간 단위
-  if (hours < 24) {
-    return `${Math.floor(hours)}시간`;
+  if (diffHours < 24) {
+    return `${diffHours}시간`;
   }
-  // 30일 이내: 일 단위 (정확히 24시간 = 1일이 되도록)
-  if (days < 30) {
-    return `${Math.floor(days)}일`;
+  // 일 단위 표시 (diffDays 사용)
+  if (diffDays < 30) {
+    return `${diffDays}일`;
   }
-  // 그 이상: 월 단위
-  return `${Math.floor(months)}개월`;
+  // 월 단위
+  return `${Math.floor(diffDays / 30)}개월`;
 };
 
 // 더보기 아이콘 컴포넌트
@@ -138,10 +291,6 @@ const isPngWithTransparency = (src: string): boolean => {
          src.toLowerCase().includes('image/png');
 };
 
-// 이미지가 Base64인지 확인하는 함수
-const isBase64Image = (src: string): boolean => {
-  return src.startsWith('data:image');
-};
 
 // 이미지가 Supabase Storage에서 오는지 확인하는 함수
 const isStorageImage = (src: string): boolean => {
@@ -269,10 +418,7 @@ const VoteCard: React.FC<VoteCardProps> = ({
 
   // 옵션 클릭 핸들러 수정
   const handleOptionClick = async (optionId: number) => {
-    // 비활성화된 경우 또는 이미 진행 중이면 클릭 무시
     if (disableOptions || isVoting || topicState.is_expired) return;
-
-    // 같은 옵션을 다시 선택한 경우 무시
     if (selectedOption === optionId) return;
     
     setIsVoting(true);
@@ -281,81 +427,87 @@ const VoteCard: React.FC<VoteCardProps> = ({
     const previousOptionId = selectedOption;
     
     try {
-      // 즉시 UI 업데이트
       setSelectedOption(optionId);
       setShowResults(true);
       
-      // 로컬 UI 즉시 업데이트 (투표율 계산용)
-      // 모든 옵션의 투표수와 퍼센트를 정확하게 업데이트
-      setTopic(prevTopic => {
-        // 각 옵션의 투표수 업데이트
-        const updatedOptions = prevTopic.options.map(opt => {
-          if (opt.id === previousOptionId) {
-            return { ...opt, votes: Math.max(0, opt.votes - 1) };
-          }
-          if (opt.id === optionId) {
-            return { ...opt, votes: opt.votes + 1 };
-          }
-          return opt;
-        });
-        
-        // total_votes 계산
-        const newTotalVotes = previousOptionId === null 
-          ? prevTopic.total_votes + 1 
-          : prevTopic.total_votes;
-        
-        return {
-          ...prevTopic,
-          selected_option: optionId,
-          options: updatedOptions,
-          total_votes: newTotalVotes
-        };
+      const oldOptions = [...topicState.options];
+      const updatedOptions = topicState.options.map(opt => {
+        if (opt.id === previousOptionId) {
+          return { ...opt, votes: Math.max(0, opt.votes - 1) };
+        }
+        if (opt.id === optionId) {
+          return { ...opt, votes: opt.votes + 1 };
+        }
+        return opt;
       });
+
+      // 애니메이션을 더 부드럽게 만들기 위한 설정
+      const ANIMATION_DURATION = 200; // 인터벌 시간
+      const FRAME_RATE = 120; // 프레임 수
+      const TOTAL_FRAMES = (ANIMATION_DURATION / 1000) * FRAME_RATE;
       
-      // 백그라운드에서 API 호출하고 즉시 상태 해제
-      // Promise로 처리하지 않고 try-catch로 감싸기
-      try {
-        await onVote(topicState.id, optionId);
-      } catch (err) {
-        console.error('백그라운드 투표 오류:', err);
-      }
+      const updateVotesProgressively = () => {
+        oldOptions.forEach((oldOpt, index) => {
+          const newOpt = updatedOptions[index];
+          const diff = newOpt.votes - oldOpt.votes;
+          
+          if (diff !== 0) {
+            let frame = 0;
+            
+            const animate = () => {
+              if (frame <= TOTAL_FRAMES) {
+                // easeInOutCubic 이징 함수 사용
+                const progress = frame / TOTAL_FRAMES;
+                const easeProgress = progress < 0.5
+                  ? 4 * progress * progress * progress
+                  : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+                
+                const currentVotes = oldOpt.votes + (diff * easeProgress);
+                
+                setTopic(prev => ({
+                  ...prev,
+                  options: prev.options.map(opt => 
+                    opt.id === oldOpt.id 
+                      ? { 
+                          ...opt, 
+                          votes: Math.round(currentVotes * 10) / 10 // 소수점 한자리까지 표현
+                        }
+                      : opt
+                  )
+                }));
+                
+                frame++;
+                requestAnimationFrame(animate);
+              }
+            };
+            
+            requestAnimationFrame(animate);
+          }
+        });
+      };
+
+      updateVotesProgressively();
+      
+      // 백그라운드에서 API 호출
+      await onVote(topicState.id, optionId);
+
     } catch (error) {
       console.error('투표 오류:', error);
-      
-      // 에러 발생 시 이전 상태로 롤백
       setSelectedOption(previousOptionId);
       setVoteError('투표 처리 중 오류가 발생했습니다. 다시 시도해 주세요.');
     } finally {
-      // 즉시 투표 처리 중 상태 해제
       setIsVoting(false);
     }
   };
 
   // 투표 비율 계산 함수 수정
   const calculatePercentage = (votes: number) => {
-    // 모든 옵션의 투표 수 합계 계산
     const sumOfVotes = topicState.options.reduce((sum, opt) => sum + opt.votes, 0);
-    
-    // 옵션들의 투표 수 합계와 total_votes 비교 로깅
-    console.log('투표율 계산 데이터:', {
-      optionVotes: votes,
-      sumOfAllVotes: sumOfVotes,
-      totalVotes: topicState.total_votes,
-      usingSum: sumOfVotes > 0
-    });
-    
-    // 투표 수 합계가 0보다 크면 이를 사용, 아니면 topic.total_votes 사용
     const denominator = sumOfVotes > 0 ? sumOfVotes : topicState.total_votes;
     
-    // 유효한 투표 수 확인
     if (!denominator || denominator <= 0) return 0;
     
-    // 안전하게 퍼센트 계산
     const percentage = (votes / denominator) * 100;
-    
-    // 결과 로깅
-    console.log(`옵션 투표율: ${votes}/${denominator} = ${percentage}%`);
-    
     return Math.min(Math.round(percentage * 10) / 10, 100);
   };
 
@@ -474,15 +626,6 @@ const VoteCard: React.FC<VoteCardProps> = ({
 
   // 질문 관련 부분을 렌더링
   const renderQuestion = () => {
-    // 이미지 관련 정보 출력
-    if (topicState.related_image) {
-      console.log('질문 이미지 정보:', {
-        isBase64: isBase64Image(topicState.related_image),
-        isStorage: isStorageImage(topicState.related_image),
-        isPng: isPngWithTransparency(topicState.related_image),
-        url: topicState.related_image.substring(0, 30) + '...'
-      });
-    }
 
     return (
       <div className="question-container">
@@ -549,30 +692,6 @@ const VoteCard: React.FC<VoteCardProps> = ({
                     src={option.image_url} 
                     alt={option.text}
                     className="option-image"
-                    onLoad={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                      // 이미지 로드 완료 후 로그
-                      const img = e.target as HTMLImageElement;
-                      console.log(`옵션 이미지 ${option.id} 로드 완료:`, {
-                        ratio: img.naturalWidth / img.naturalHeight,
-                        size: `${img.naturalWidth}x${img.naturalHeight}`,
-                        complete: img.complete,
-                        currentSrc: img.currentSrc.substring(0, 30) + '...'
-                      });
-                      
-                      // 이미지 컨테이너 크기 확인을 위한 로깅
-                      const container = img.parentElement;
-                      if (container) {
-                        console.log(`이미지 컨테이너 크기:`, {
-                          width: container.clientWidth,
-                          height: container.clientHeight
-                        });
-                      }
-                    }}
-                    onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                      console.error(`옵션 이미지 로드 오류 (${option.id}):`, option.image_url);
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                    }}
                   />
                 </div>
               )}
@@ -625,16 +744,7 @@ const VoteCard: React.FC<VoteCardProps> = ({
                       alt={option.text}
                       loading="lazy"
                       className={`option-image ${isStorageImage(imageSource) ? 'storage-image' : ''}`}
-                      onLoad={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                        // 이미지 로드 완료 후 로그
-                        const img = e.target as HTMLImageElement;
-                        console.log(`옵션 이미지 ${option.id} 로드 완료:`, {
-                          ratio: img.naturalWidth / img.naturalHeight,
-                          size: `${img.naturalWidth}x${img.naturalHeight}`,
-                          complete: img.complete,
-                          currentSrc: img.currentSrc.substring(0, 30) + '...'
-                        });
-                      }}
+
                       onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                         console.error(`이미지 로드 오류 (옵션 ${option.id}):`, {
                           url: imageSource
@@ -675,16 +785,6 @@ const VoteCard: React.FC<VoteCardProps> = ({
     );
   };
 
-  useEffect(() => {
-    // 질문 관련 이미지 로깅
-    console.log(`VoteCard ${topic.id} - 질문 이미지:`, topic.related_image || '없음');
-    // 옵션 이미지 로깅
-    console.log(`VoteCard ${topic.id} - 옵션 이미지:`, topic.options.map(opt => ({ 
-      id: opt.id, 
-      image: opt.image_url || '없음' 
-    })));
-  }, [topic]);
-
   return (
     <div className={`vote-card modern-card ${topicState.is_expired ? 'expired' : ''}`} id={id}>
       <div className="vote-card-header">
@@ -702,7 +802,7 @@ const VoteCard: React.FC<VoteCardProps> = ({
           <div className="user-details">
             <div className="user-name-container">
               <span className="username">{topicState.users.username || "익명 사용자"}</span>
-              <span className="user-badge">{getBadgeIcon(topicState.users.user_badge)}</span>
+              <span className="user-badge">{getBadgeIcon(topicState.users.user_grade)}</span>
             </div>
             {renderTimeInfo()}
           </div>
@@ -713,7 +813,6 @@ const VoteCard: React.FC<VoteCardProps> = ({
               className={`subscription-btn ${isSubscribed ? 'subscribed' : ''}`} 
               onClick={() => {
                 setIsSubscribed(!isSubscribed);
-                console.log(`${isSubscribed ? '구독 취소' : '구독'}: ${topicState.id}`);
               }}
             >
               {isSubscribed ? '구독중' : '구독'}

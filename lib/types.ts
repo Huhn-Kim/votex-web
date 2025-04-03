@@ -31,7 +31,7 @@ export interface VoteTopic {
     username: string;
     email: string;
     profile_image: string;
-    user_badge: number;
+    user_grade: number;
     created_at: string;
     updated_at: string;
   };

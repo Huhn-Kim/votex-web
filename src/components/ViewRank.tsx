@@ -48,6 +48,50 @@ const calculateRemainingTime = (expiresAt: string): string => {
   return `${Math.floor(months)}개월`;
 };
 
+// 스켈레톤 UI 컴포넌트
+const SkeletonCard = () => (
+  <div className={styles.cardContainer}>
+    <div className={`${styles.card} ${styles.skeleton}`}>
+      <div className={styles.cardRank}>
+        <div className={styles.skeletonRank}></div>
+      </div>
+      <div className={styles.cardThumbnail}>
+        <div className={styles.skeletonImage}></div>
+      </div>
+      <div className={styles.cardContent}>
+        <div className={styles.skeletonTitle}></div>
+        <div className={styles.skeletonStats}></div>
+      </div>
+    </div>
+  </div>
+);
+
+// 이미지 우선순위 결정 함수
+const getImageByPriority = (topic: VoteTopic): string => {
+  if (topic.related_image) {
+    return topic.related_image;
+  }
+  
+  const firstOptionImage = topic.options?.[0]?.image_url;
+  if (firstOptionImage) {
+    return firstOptionImage;
+  }
+  
+  return DEFAULT_VOTE_IMAGE;
+};
+
+// 이미지 프리로딩 함수
+const preloadImages = (votes: RankedVoteData[]) => {
+  const firstBatchSize = 10; // 처음 10개만 즉시 로드
+  
+  votes.slice(0, firstBatchSize).forEach(({ topic }) => {
+    if (!topic) return;
+    const imageUrl = getImageByPriority(topic);
+    const img = new Image();
+    img.src = imageUrl;
+  });
+};
+
 export default function ViewRank() {
   const { 
     getRankedVotes, 
@@ -88,18 +132,18 @@ export default function ViewRank() {
 
     const fetchAndUpdateRanks = async () => {
       try {
+        setInitialLoading(true);
         await updateRankings();
         const data = await getRankedVotes(sortCriteria);
         
-        if (isMounted) {
-          if (Array.isArray(data) && data.length > 0) {
-            setRankedVotes(data);
-          }
-          // 데이터 로딩 완료
-          setInitialLoading(false);
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          setRankedVotes(data);
+          // 데이터를 받은 후 이미지 프리로딩 시작
+          preloadImages(data);
         }
       } catch (error) {
         console.error('순위 업데이트 중 오류:', error);
+      } finally {
         if (isMounted) {
           setInitialLoading(false);
         }
@@ -141,23 +185,6 @@ export default function ViewRank() {
     displayVotes.forEach(({ topic }) => {
       if (!topic) return;
       
-      // 이미지 우선순위 결정 함수
-      const getImageByPriority = (topic: VoteTopic): string => {
-        // 1순위: 주제 이미지
-        if (topic.related_image) {
-          return topic.related_image;
-        }
-        
-        // 2순위: 첫 번째 옵션 이미지
-        const firstOptionImage = topic.options?.[0]?.image_url;
-        if (firstOptionImage) {
-          return firstOptionImage;
-        }
-        
-        // 3순위: 디폴트 이미지
-        return DEFAULT_VOTE_IMAGE;
-      };
-
       const newImageUrl = getImageByPriority(topic);
       
       // 이미지가 이미 로드된 경우 스킵
@@ -220,7 +247,7 @@ export default function ViewRank() {
       username: '사용자',
       email: '',
       profile_image: '',
-      user_badge: 0,
+      user_grade: 0,
       created_at: '',
       updated_at: ''
     };
@@ -295,7 +322,7 @@ export default function ViewRank() {
               username,
               email,
               profile_image,
-              user_badge,
+              user_grade,
               created_at,
               updated_at
             )
@@ -456,10 +483,14 @@ export default function ViewRank() {
       {/* 카드 목록 */}
       <div className={styles.cardList}>
         {initialLoading ? (
-          <div className={styles.loadingContainer}>
-            <div className={styles.loadingSpinner}></div>
-          </div>
+          // 스켈레톤 UI 표시
+          <>
+            {[...Array(10)].map((_, index) => (
+              <SkeletonCard key={index} />
+            ))}
+          </>
         ) : displayVotes.length > 0 ? (
+          // 실제 데이터 표시
           displayVotes.map(({ topic, rank }, index) => {
             if (index >= 100) return null;
             

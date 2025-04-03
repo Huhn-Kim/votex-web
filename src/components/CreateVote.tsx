@@ -136,37 +136,37 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
       }));
       setOptions(voteOptions);
       
-      // 만료 시간 설정
-      if (voteData.vote_period) {
-        // 저장된 투표 기간 설정
-        setSelectedPeriod(voteData.vote_period);
+      // // 만료 시간 설정
+      // if (voteData.vote_period) {
+      //   // 저장된 투표 기간 설정
+      //   setSelectedPeriod(voteData.vote_period);
         
-        // 기간에 따른 일수 설정
-        switch (voteData.vote_period) {
-          case '1일':
-            setExpiryDays(1);
-            break;
-          case '3일':
-            setExpiryDays(3);
-            break;
-          case '1주일':
-            setExpiryDays(7);
-            break;
-          case '1개월':
-            setExpiryDays(30);
-            break;
-          case '특정일':
-            if (voteData.expires_at) {
-              setSelectedDate(new Date(voteData.expires_at));
-              const diffDays = Math.ceil(
-                (new Date(voteData.expires_at).getTime() - new Date().getTime()) / 
-                (1000 * 60 * 60 * 24)
-              );
-              setExpiryDays(diffDays);
-            }
-            break;
-        }
-      }
+      //   // 기간에 따른 일수 설정
+      //   switch (voteData.vote_period) {
+      //     case '1일':
+      //       setExpiryDays(1);
+      //       break;
+      //     case '3일':
+      //       setExpiryDays(3);
+      //       break;
+      //     case '1주일':
+      //       setExpiryDays(7);
+      //       break;
+      //     case '1개월':
+      //       setExpiryDays(30);
+      //       break;
+      //     case '특정일':
+      //       if (voteData.expires_at) {
+      //         setSelectedDate(new Date(voteData.expires_at));
+      //         const diffDays = Math.ceil(
+      //           (new Date(voteData.expires_at).getTime() - new Date().getTime()) / 
+      //           (1000 * 60 * 60 * 24)
+      //         );
+      //         setExpiryDays(diffDays);
+      //       }
+      //       break;
+      //   }
+      // }
     } catch (err: any) {
       console.error('투표 데이터를 불러오는 중 오류 발생:', err);
       setError(err.message || '투표 데이터를 불러오는 중 오류가 발생했습니다.');

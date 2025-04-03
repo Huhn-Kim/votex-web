@@ -4,7 +4,7 @@ CREATE TABLE users (
   username VARCHAR(255) NOT NULL UNIQUE,
   email VARCHAR(255) UNIQUE,
   profile_image VARCHAR(255),
-  user_badge INTEGER DEFAULT 1,
+  user_grade INTEGER DEFAULT 1,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -195,7 +195,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 샘플 데이터 삽입
-INSERT INTO users (username, email, profile_image, user_badge) VALUES
+INSERT INTO users (username, email, profile_image, user_grade) VALUES
 ('헌왕', 'user1@example.com', 'https://randomuser.me/api/portraits/men/45.jpg', 2),
 ('푸드블로거', 'user2@example.com', 'https://randomuser.me/api/portraits/women/28.jpg', 1),
 ('테크인사이더', 'user3@example.com', 'https://randomuser.me/api/portraits/men/36.jpg', 3),

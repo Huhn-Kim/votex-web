@@ -63,48 +63,86 @@ const MyVotes: React.FC = () => {
       try {
         const voteTopic = myVotes.find(vote => vote.id === topicId);
         if (!voteTopic) return;
-  
+
         const now = new Date();
-        const expiryDate = new Date(now);
-        let votePeriod = voteTopic.vote_period;
-  
+        let expiryDate: Date;
+
+        // 투표 기간에 따른 종료일 계산
         switch (voteTopic.vote_period) {
           case '1일':
-            // 정확히 24시간 후로 설정하고 마지막 시간 설정을 건너뜀
-            expiryDate.setHours(now.getHours() + 24);
+            expiryDate = new Date(now);
+            expiryDate.setDate(now.getDate() + 1);
+            // 정확히 24시간 후로 설정
+            expiryDate.setHours(now.getHours());
             expiryDate.setMinutes(now.getMinutes());
             expiryDate.setSeconds(now.getSeconds());
             break;
+
           case '3일':
+            expiryDate = new Date(now);
             expiryDate.setDate(now.getDate() + 3);
-            expiryDate.setHours(23, 59, 59, 999); // 23:59:59 설정은 다른 기간에만 적용
+            expiryDate.setHours(23, 59, 59, 999);
             break;
+
           case '1주일':
+            expiryDate = new Date(now);
             expiryDate.setDate(now.getDate() + 7);
             expiryDate.setHours(23, 59, 59, 999);
             break;
+
           case '1개월':
+            expiryDate = new Date(now);
             expiryDate.setMonth(now.getMonth() + 1);
             expiryDate.setHours(23, 59, 59, 999);
             break;
-          case '특정일':
-            const selectedDate = new Date(voteTopic.expires_at);
-            votePeriod = `~${selectedDate.getFullYear()}/${selectedDate.getMonth() + 1}/${selectedDate.getDate()}`;
-            expiryDate.setTime(selectedDate.getTime());
-            expiryDate.setHours(23, 59, 59, 999);
-            break;
+
+          default:
+            // 특정일(~YYYY/MM/DD) 형식 처리
+            if (voteTopic.vote_period.startsWith('~')) {
+              const dateStr = voteTopic.vote_period.substring(1); // ~ 제거
+              const [year, month, day] = dateStr.split('/').map(num => parseInt(num));
+              expiryDate = new Date(year, month - 1, day, 23, 59, 59, 999);
+              
+              // 현재 시간과 비교하여 유효성 검사
+              if (expiryDate <= now) {
+                alert('만료일이 현재 시간보다 이전입니다. 다시 설정해주세요.');
+                return;
+              }
+            } else {
+              // 기본값: 1주일
+              expiryDate = new Date(now);
+              expiryDate.setDate(now.getDate() + 7);
+              expiryDate.setHours(23, 59, 59, 999);
+            }
         }
-  
-        await updateVoteTopic({
+
+        // 디버깅을 위한 로그
+        console.log('투표 업로드 정보:', {
+          투표ID: topicId,
+          현재시간: now.toISOString(),
+          종료시간: expiryDate.toISOString(),
+          투표기간: voteTopic.vote_period
+        });
+
+        // 업데이트할 데이터 준비
+        const updateData = {
           id: topicId,
           visible: true,
           expires_at: expiryDate.toISOString(),
-          vote_period: votePeriod
-        });
+          vote_period: voteTopic.vote_period,
+          is_expired: false
+        };
+
+        // 투표 업데이트 실행
+        await updateVoteTopic(updateData);
+        
+        // 투표 목록 새로고침
+        await refreshVotes();
         
         console.log('투표가 성공적으로 업로드되었습니다.');
       } catch (err) {
         console.error('투표 업로드 중 오류 발생:', err);
+        alert('투표 업로드 중 오류가 발생했습니다.');
       }
     }
   };
