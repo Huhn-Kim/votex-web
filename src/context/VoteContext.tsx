@@ -86,10 +86,10 @@ export const VoteContext = createContext<VoteContextType>({
 
 // Context Provider 컴포넌트
 export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // 상태 정의
+  // 초기 로딩 상태를 true로 설정
+  const [loading, setLoading] = useState(true);
   const [votes, setVotes] = useState<VoteTopic[]>([]);
   const [myVotes, setMyVotes] = useState<VoteTopic[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [progressStatus, setProgressStatus] = useState('');
@@ -536,66 +536,69 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   
   // 데이터 새로고침 함수
   const refreshVotes = async () => {
+    setLoading(true); // 로딩 시작
     await fetchVotes();
     await fetchMyVotes();
+    setLoading(false); // 로딩 종료
   };
   
-  // 투표 삭제 함수
+  // 투표 삭제 함수 수정
   const deleteTopic = async (topicId: number) => {
     try {
       setLoading(true);
       setError(null);
+      setProgress(0);
+      setProgressStatus('삭제 준비 중...');
 
-      // API를 통해 투표 삭제
-      // setProgress(20);
-      // setProgressStatus('투표 카드 삭제 중...');
+      // 삭제 시작
+      setProgress(20);
+      setProgressStatus('투표 카드 삭제 중...');
       
       await apiDeleteVoteTopic(topicId);
-      
-      // setProgress(50);
-      // setProgressStatus('데이터 갱신 중...');
-      
+            
       // 로컬 상태 업데이트
       setVotes(prevVotes => prevVotes.filter(vote => vote.id !== topicId));
       setMyVotes(prevMyVotes => prevMyVotes.filter(vote => vote.id !== topicId));
       
-      // 관련된 이미지 스토리지에서 삭제
-      // setProgress(80);
-      // setProgressStatus('투표 관련 이미지 삭제 중...');
-  
+      // 관련된 이미지 삭제
+      setProgress(80);
+      setProgressStatus('투표 관련 이미지 삭제 중...');
+
       // 삭제할 투표 주제 찾기
       const targetVote = votes.find(v => v.id === topicId) || myVotes.find(v => v.id === topicId);
       if (!targetVote) {
         throw new Error('삭제할 투표를 찾을 수 없습니다.');
       }
-  
-      // 관련 이미지들 삭제
+
+      // 이미지 삭제 처리
       const imageDeletionPromises = [];
-  
-      // 메인 이미지가 있다면 삭제 대상에 추가
       if (targetVote.related_image) {
         imageDeletionPromises.push(deleteImageFromStorage(targetVote.related_image));
       }
-  
-      // 각 옵션의 이미지가 있다면 삭제 대상에 추가
       targetVote.options.forEach(option => {
         if (option.image_url) {
           imageDeletionPromises.push(deleteImageFromStorage(option.image_url));
         }
       });
-  
-      // 모든 이미지 삭제 작업 실행
       if (imageDeletionPromises.length > 0) {
         await Promise.all(imageDeletionPromises);
       }
 
-      // setProgress(100);
-      // setProgressStatus('삭제 완료');
+      setProgress(100);
+      setProgressStatus('삭제 완료');
+      
     } catch (err) {
       console.error('투표를 삭제하는 중 오류 발생:', err);
       setError('투표를 삭제하는 중 오류가 발생했습니다.');
+      setProgress(0);
+      setProgressStatus('');
     } finally {
-      setLoading(false);
+      // 약간의 지연 후 로딩 상태 해제
+      setTimeout(() => {
+        setLoading(false);
+        setProgress(0);
+        setProgressStatus('');
+      }, 500);
     }
   };
   
@@ -691,29 +694,38 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await incrementDislikes(topicId, tempUserId);
   };
   
-  // 투표 공개(업로드) 함수
+  // 투표 공개(업로드) 함수 수정
   const publishVote = async (topicId: number) => {
     try {
-      // setLoading(true);
-      // setError(null);
-      // setProgress(0);
-      // setProgressStatus('업로드 중...');
+      setLoading(true);
+      setError(null);
+      setProgress(0);
+      setProgressStatus('업로드 준비 중...');
+
+      setProgress(30);
+      setProgressStatus('투표 공개로 변경 중...');
       
-      // setProgress(30);
-      // setProgressStatus('투표 공개로 변경 중...');
-      
-      // API를 통해 투표 공개 상태로 변경
       await updateVoteVisibility(topicId, true);
             
       // 데이터 새로고침
       await fetchVotes();
       await fetchMyVotes();
       
-      // setProgress(100);
-      // setProgressStatus('업로드 완료');
+      setProgress(100);
+      setProgressStatus('업로드 완료');      
+
     } catch (err) {
       console.error('투표를 공개하는 중 오류 발생:', err);
       setError('투표를 공개하는 중 오류가 발생했습니다.');
+      setProgress(0);
+      setProgressStatus('');
+    } finally {
+      // 약간의 지연 후 로딩 상태 해제
+      setTimeout(() => {
+        setLoading(false);
+        setProgress(0);
+        setProgressStatus('');
+      }, 500);
     }
   };
   

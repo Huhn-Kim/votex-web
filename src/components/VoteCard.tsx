@@ -5,6 +5,7 @@ import { FaThumbsUp, FaThumbsDown, FaComment } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useVoteContext } from '../context/VoteContext';
 import { formatNumber } from '../utils/numberFormat';
+import VoteSkeletonCard from './VoteSkeletonCard';
 
 interface VoteCardProps {
   topic: VoteTopic;
@@ -19,6 +20,7 @@ interface VoteCardProps {
   disableOptions?: boolean;
   showPeriodInsteadOfDate?: boolean;
   id?: string;
+  isLoading?: boolean;
 }
 
 // 뱃지 정보를 가져오는 함수
@@ -222,14 +224,6 @@ const calculateRemainingTime = (expiresAt: string): string => {
     return date.toISOString().split('T')[0];
   };
 
-  // 디버깅을 위한 로그
-  console.log('남은 기간 계산:', {
-    현재시간: formatDate(now),
-    만료시간: formatDate(expireDate),
-    원본만료시간: expiresAt,
-    시차: expireDate.getTimezoneOffset()
-  });
-
   // 현재 날짜와 만료 날짜를 UTC 기준으로 비교
   const today = new Date(formatDate(now));
   const expireDay = new Date(formatDate(expireDate));
@@ -310,8 +304,9 @@ const VoteCard: React.FC<VoteCardProps> = ({
   disableOptions = false,
   showPeriodInsteadOfDate = false,
   id,
+  isLoading = false
 }) => {
-  const { handleLike, handleDislike, userReactions, loadUserReaction } = useVoteContext();
+  const { handleLike, handleDislike, userReactions, loadUserReaction, updateVoteTopic } = useVoteContext();
   
   // 현재 투표의 반응 상태 가져오기
   const currentReaction = userReactions.get(topic.id) || { liked: false, disliked: false };
@@ -354,16 +349,37 @@ const VoteCard: React.FC<VoteCardProps> = ({
 
   // 실시간 업데이트를 위한 useEffect 수정
   useEffect(() => {
-    const updateRemainingTime = () => {
+    const updateRemainingTime = async () => {
       const time = calculateRemainingTime(topic.expires_at);
       setRemainingTime(time);
+      
+      // 투표가 종료되었고 아직 visible이 true인 경우
+      if (time === '종료' && topic.visible) {
+        try {
+          // visible을 false로 업데이트
+          await updateVoteTopic({
+            id: topic.id,
+            visible: false,
+            is_expired: true
+          });
+          
+          // 로컬 상태 업데이트
+          setTopic(prev => ({
+            ...prev,
+            visible: false,
+            is_expired: true
+          }));
+        } catch (err) {
+          console.error('투표 종료 처리 중 오류:', err);
+        }
+      }
     };
 
     updateRemainingTime();
     const timer = setInterval(updateRemainingTime, 600000); // 10분마다 업데이트
 
     return () => clearInterval(timer);
-  }, [topic.expires_at]);
+  }, [topic.expires_at, topic.visible, topic.id]);
 
   // 좋아요 처리 함수
   const onLike = async () => {
@@ -440,6 +456,13 @@ const VoteCard: React.FC<VoteCardProps> = ({
         }
         return opt;
       });
+
+      // total_votes 업데이트 추가
+      setTopic(prev => ({
+        ...prev,
+        options: updatedOptions,
+        total_votes: previousOptionId === null ? prev.total_votes + 1 : prev.total_votes
+      }));
 
       // 애니메이션을 더 부드럽게 만들기 위한 설정
       const ANIMATION_DURATION = 200; // 인터벌 시간
@@ -566,21 +589,15 @@ const VoteCard: React.FC<VoteCardProps> = ({
     setShowMoreOptions(!showMoreOptions);
   };
 
-  // 남은 시간 상태 추가
-  // const [remainingTime, setRemainingTime] = useState<string>(
-  //   calculateRemainingTime(topic.expires_at)
-  // );
+  // 디버깅을 위한 로그
+  useEffect(() => {
+    console.log('VoteCard 로딩 상태:', isLoading);
+  }, [isLoading]);
 
-  // // 실시간 업데이트를 위한 useEffect 추가
-  // useEffect(() => {
-  //   // 1분마다 남은 시간 업데이트
-  //   const timer = setInterval(() => {
-  //     setRemainingTime(calculateRemainingTime(topic.expires_at));
-  //   }, 60000); // 1분마다 업데이트
-
-  //   // 컴포넌트 언마운트 시 타이머 정리
-  //   return () => clearInterval(timer);
-  // }, [topic.expires_at]);
+  // 로딩 상태 체크를 더 엄격하게
+  if (isLoading || !topic || Object.keys(topic).length === 0) {
+    return <VoteSkeletonCard />;
+  }
 
   // renderTimeInfo 함수 수정
   const renderTimeInfo = () => {

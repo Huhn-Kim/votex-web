@@ -1,0 +1,169 @@
+.cardContainer {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.skeleton {
+  animation: pulse 0.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+/* 스켈레톤 요소들의 스타일 */
+.skeletonAvatar,
+.skeletonUsername,
+.skeletonPeriod,
+.skeletonQuestionImage,
+.skeletonQuestion,
+.skeletonOption,
+.skeletonAction {
+  background: #e0e0e0;
+  border-radius: 4px;
+  transform: translateZ(0);
+  will-change: opacity;
+  transition: opacity 0.2s ease;
+}
+
+/* 각 요소의 크기 조정 */
+.skeletonAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.skeletonUsername {
+  width: 100px;
+  height: 16px;
+  margin-bottom: 4px;
+}
+
+.skeletonPeriod {
+  width: 80px;
+  height: 14px;
+}
+
+.skeletonQuestionImage {
+  width: 100%;
+  height: 200px;
+  margin-bottom: 16px;
+}
+
+.skeletonQuestion {
+  width: 100%;
+  height: 24px;
+  margin-bottom: 24px;
+}
+
+.skeletonOption {
+  width: 100%;
+  height: 48px;
+  margin-bottom: 12px;
+}
+
+.skeletonOption:last-child {
+  margin-bottom: 0;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.userInfo {
+  display: flex;
+  gap: 12px;
+}
+
+.skeletonAvatar {
+  width: 40px;
+  height: 40px;
+  background: #252525;
+  border-radius: 50%;
+}
+
+.userDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeletonUsername {
+  width: 120px;
+  height: 16px;
+  background: #252525;
+  border-radius: 4px;
+}
+
+.skeletonPeriod {
+  width: 80px;
+  height: 14px;
+  background: #252525;
+  border-radius: 4px;
+}
+
+.questionArea {
+  margin-bottom: 24px;
+}
+
+.optionsArea {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.skeletonVoteCount {
+  width: 100px;
+  height: 16px;
+  background: #252525;
+  border-radius: 4px;
+}
+
+.skeletonActions {
+  display: flex;
+  gap: 16px;
+}
+
+.skeletonAction {
+  width: 60px;
+  height: 24px;
+  background: #252525;
+  border-radius: 4px;
+}
+
+/* 모바일 대응 */
+@media (max-width: 768px) {
+  .card {
+    padding: 12px;
+  }
+  
+  .skeletonQuestionImage {
+    height: 160px;
+  }
+  
+  .skeletonUsername {
+    width: 100px;
+  }
+  
+  .skeletonAction {
+    width: 50px;
+  }
+} 

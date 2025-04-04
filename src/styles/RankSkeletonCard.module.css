@@ -1,0 +1,74 @@
+.cardContainer {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  background: #1a1a1a;
+  border-radius: 8px;
+  padding: 12px;
+  gap: 16px;
+}
+
+.skeleton {
+  animation: shimmer 0.5s infinite linear;
+  background: linear-gradient(
+    90deg,
+    #1a1a1a 0%,
+    #252525 50%,
+    #1a1a1a 100%
+  );
+  background-size: 200% 100%;
+}
+
+.cardRank {
+  width: 40px;
+}
+
+.skeletonRank {
+  width: 30px;
+  height: 30px;
+  background: #252525;
+  border-radius: 50%;
+}
+
+.cardThumbnail {
+  flex-shrink: 0;
+}
+
+.skeletonImage {
+  width: 80px;
+  height: 80px;
+  background: #252525;
+  border-radius: 8px;
+}
+
+.cardContent {
+  flex: 1;
+}
+
+.skeletonTitle {
+  width: 80%;
+  height: 20px;
+  background: #252525;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.skeletonStats {
+  width: 60%;
+  height: 16px;
+  background: #252525;
+  border-radius: 4px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+} 

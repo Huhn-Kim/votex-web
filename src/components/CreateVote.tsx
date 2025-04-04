@@ -1190,12 +1190,6 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
               placeholder={`선택지 ${index + 1}`}
               className={styles['option-input']}
               required
-              style={{ 
-                flex: 1,
-                paddingRight: options.length > 2 ? '40px' : '12px', // 삭제 버튼 공간 확보
-                resize: 'vertical', // 세로 방향으로 크기 조절 가능
-                minHeight: '50px' // 최소 높이 설정
-              }}
             />
             {/* 옵션 삭제 버튼 수정 */}
             {options.length > 2 && (
@@ -1290,57 +1284,74 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
           <label htmlFor="question" className={styles['required-label']}>질문</label>
           
           {/* 질문 이미지 버튼을 텍스트 필드 위로 이동 - 선택사항으로 표시 */}
-          <div className={styles['question-image-container']}>
-            <input
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              id="question-image-input"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  // 로딩 상태 설정
-                  setLoading(true);
-                  setError(null);
-                  
-                  // 파일을 Base64로 변환
-                  const reader = new FileReader();
-                  reader.onloadend = () => {
-                    try {
-                      if (typeof reader.result === 'string') {
-                        // 이미지 데이터 저장
-                        setQuestionImage(reader.result);
-                        // 이미지 에디터 열기
-                        setEditingImageIndex(-1);
-                        setOriginalImageSrc(reader.result);
-                        setImageSrc(reader.result);
-                        setShowImageEditor(true);
+          <div className={styles['question-image-container']} style={{ display: 'flex', gap: '10px' }}>
+            {/* 질문 이미지 입력 부분 */}
+            <div style={{ flex: 1 }}>
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                id="question-image-input"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    // 로딩 상태 설정
+                    setLoading(true);
+                    setError(null);
+                    
+                    // 파일을 Base64로 변환
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      try {
+                        if (typeof reader.result === 'string') {
+                          // 이미지 데이터 저장
+                          setQuestionImage(reader.result);
+                          // 이미지 에디터 열기
+                          setEditingImageIndex(-1);
+                          setOriginalImageSrc(reader.result);
+                          setImageSrc(reader.result);
+                          setShowImageEditor(true);
+                        }
+                        setLoading(false);
+                      } catch (err) {
+                        console.error('이미지 로드 중 오류:', err);
+                        setError('이미지를 로드하는 중 오류가 발생했습니다.');
+                        setLoading(false);
                       }
+                    };
+                    
+                    reader.onerror = () => {
+                      setError('파일을 읽는 중 오류가 발생했습니다.');
                       setLoading(false);
-                    } catch (err) {
-                      console.error('이미지 로드 중 오류:', err);
-                      setError('이미지를 로드하는 중 오류가 발생했습니다.');
-                      setLoading(false);
-                    }
-                  };
-                  
-                  reader.onerror = () => {
-                    setError('파일을 읽는 중 오류가 발생했습니다.');
-                    setLoading(false);
-                  };
-                  
-                  reader.readAsDataURL(file);
-                }
-              }}
-            />
-            
-            {!questionImage ? (
-              <label htmlFor="question-image-input" className={styles['question-image-button']}>
-                🖼️ 질문 이미지 (선택사항)
-              </label>
-            ) : (
-              renderQuestionImagePreview()
-            )}
+                    };
+                    
+                    reader.readAsDataURL(file);
+                  }
+                }}
+              />
+              
+              {!questionImage ? (
+                <label htmlFor="question-image-input" className={styles['question-image-button']}>
+                  🖼️ 질문 이미지 (선택사항)
+                </label>
+              ) : (
+                renderQuestionImagePreview()
+              )}
+            </div>
+
+            {/* 이미지 탐색 버튼 추가 */}
+            <div style={{ flex: 1 }}>
+              <button
+                type="button"
+                className={styles['question-image-button']}
+                onClick={() => {
+                  // 이미지 탐색 기능은 추후 구현
+                  alert('이미지 탐색 기능은 준비 중입니다.');
+                }}
+              >
+                🔍 이미지 탐색 (선택사항)
+              </button>
+            </div>
           </div>
           
           <div className={styles['content-required']}>
@@ -1373,15 +1384,25 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
         
         <div className={styles['form-group']}>
           <label className={styles['required-label']}>선택지 유형</label>
-          <select
-            value={optionType}
-            onChange={(e) => setOptionType(e.target.value as 'text' | 'image' | 'video')}
-            className={styles['required-field']}
-          >
-            <option value="text">텍스트</option>
-            <option value="image">이미지</option>
-            <option value="video">동영상</option>
-          </select>
+          <div className={`${styles['period-buttons']} ${styles['option-type']}`}>
+            {[
+              { value: 'text', label: '텍스트' },
+              { value: 'image', label: '이미지' },
+              { value: 'video', label: '동영상' }
+            ].map((type) => (
+              <button
+                key={type.value}
+                type="button"
+                className={`${styles['period-btn']} ${optionType === type.value ? styles.selected : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOptionType(type.value as 'text' | 'image' | 'video');
+                }}
+              >
+                {type.label}
+              </button>
+            ))}
+          </div>
         </div>
         
         <div className={styles['form-group']}>

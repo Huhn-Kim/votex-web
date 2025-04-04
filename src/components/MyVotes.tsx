@@ -2,8 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import '../styles/MyVotes.module.css';
 import '../styles/TabStyles.css';
 import VoteCard from './VoteCard';
+import VoteSkeletonCard from './VoteSkeletonCard';
 import { useVoteContext } from '../context/VoteContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { VoteTopic } from '../../lib/types';
 import { formatNumber } from '../utils/numberFormat';
 
@@ -13,6 +14,8 @@ const MyVotes: React.FC = () => {
   
   // 현재 선택된 탭 상태
   const [activeTab, setActiveTab] = useState<'created' | 'participated'>('created');
+  const [initialLoading, setInitialLoading] = useState(true); // 초기 로딩 상태 추가
+
   
   // Context에서 내 투표 데이터와 업데이트 함수 가져오기
   const { 
@@ -22,16 +25,30 @@ const MyVotes: React.FC = () => {
     error, 
     refreshVotes, 
     deleteTopic, 
-    progress, 
-    progressStatus, 
     updateVoteTopic,
     handleLike,
-    handleDislike
+    handleDislike,
+    progress,
+    progressStatus
   } = useVoteContext();
   
   const navigate = useNavigate();
+  const location = useLocation();
   
   console.log('MyVotes 상태:', { myVotes: myVotes.length, loading, error });
+
+  // 초기 로딩 처리
+  useEffect(() => {
+    const initializeData = async () => {
+      if (myVotes.length === 0) {
+        await refreshVotes();
+      }
+      // 데이터 로딩이 완료되면 초기 로딩 상태를 false로 설정
+      setInitialLoading(false);
+    };
+
+    initializeData();
+  }, []);
 
   // useMemo를 사용하여 필터링 결과 메모이제이션
   const filteredVotes = useMemo(() => {
@@ -44,16 +61,39 @@ const MyVotes: React.FC = () => {
     };
   }, [myVotes]);
 
-  // 투표 삭제 핸들러
-  const handleDeleteVote = (topicId: number) => {
-    if (window.confirm('정말로 이 투표를 삭제하시겠습니까?')) {
-      deleteTopic(topicId)
-        .then(() => {
-          console.log('투표가 성공적으로 삭제되었습니다.');
-        })
-        .catch((err) => {
-          console.error('투표 삭제 중 오류 발생:', err);
+  // 스크롤 위치 저장
+  useEffect(() => {
+    const handleScroll = () => {
+      sessionStorage.setItem('myVotesScrollPosition', window.scrollY.toString());
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // 스크롤 위치 복원
+  useEffect(() => {
+    const savedScrollPosition = sessionStorage.getItem('myVotesScrollPosition');
+    if (savedScrollPosition) {
+      // 약간의 지연을 두어 컨텐츠가 렌더링된 후 스크롤 위치를 복원
+      setTimeout(() => {
+        window.scrollTo({
+          top: parseInt(savedScrollPosition),
+          behavior: 'instant'
         });
+      }, 100);
+    }
+  }, [location.pathname]);
+
+  // 투표 삭제 핸들러
+  const handleDeleteVote = async (topicId: number) => {
+    if (window.confirm('정말로 이 투표를 삭제하시겠습니까?')) {
+      try {
+        sessionStorage.setItem('myVotesScrollPosition', window.scrollY.toString());
+        await deleteTopic(topicId);
+      } catch (err) {
+        console.error('투표 삭제 중 오류 발생:', err);
+      }
     }
   };
 
@@ -61,6 +101,7 @@ const MyVotes: React.FC = () => {
   const handlePublishVote = async (topicId: number) => {
     if (window.confirm('이 투표를 업로드하시겠습니까? 모든 사용자에게 공개됩니다.')) {
       try {
+        sessionStorage.setItem('myVotesScrollPosition', window.scrollY.toString());
         const voteTopic = myVotes.find(vote => vote.id === topicId);
         if (!voteTopic) return;
 
@@ -138,8 +179,7 @@ const MyVotes: React.FC = () => {
         
         // 투표 목록 새로고침
         await refreshVotes();
-        
-        console.log('투표가 성공적으로 업로드되었습니다.');
+
       } catch (err) {
         console.error('투표 업로드 중 오류 발생:', err);
         alert('투표 업로드 중 오류가 발생했습니다.');
@@ -149,17 +189,22 @@ const MyVotes: React.FC = () => {
 
   // 투표 수정 핸들러
   const handleEditVote = (topicId: number) => {
-    // 수정 페이지로 이동
+    sessionStorage.setItem('myVotesScrollPosition', window.scrollY.toString());
     navigate(`/edit-vote/${topicId}`);
   };
 
-  // 필요한 경우에만 데이터를 새로고침하도록 수정
+  // 로딩 상태 디버깅을 위한 로그 추가
   useEffect(() => {
-    if (myVotes.length === 0) {  // 데이터가 없을 때만 새로고침
-      refreshVotes();
-    }
-  }, [myVotes.length]);
-  
+    console.log('로딩 상태:', loading);
+  }, [loading]);
+
+  // 스켈레톤 카드 메모이제이션
+  const skeletonCards = useMemo(() => (
+    [...Array(5)].map((_, index) => (
+      <VoteSkeletonCard key={`skeleton-${index}`} />
+    ))
+  ), []);
+
   // 투표 목록 렌더링 함수
   const renderVoteList = (votes: VoteTopic[]) => {
     if (votes.length === 0) {
@@ -208,43 +253,41 @@ const MyVotes: React.FC = () => {
         </div>
       </div>
 
-      <div className="vote-card-list">
-        {/* 로딩 상태 표시 - 로컬 상태 사용 */}
-        {(loading) && (
-          <div className="loading-container">
-            {(progress > 0) && (
-              <div className="progress-container">
-                <div 
-                  className="progress-bar" 
-                  style={{ width: `${progress}%` }}
-                ></div>
-                <div className="progress-text">
-                  {progressStatus} ({progress}%)
-                </div>
+      {/* 로딩 상태와 진행률 표시 */}
+      {loading && (
+        <div className="loading-container">
+          {progress > 0 && (
+            <div className="progress-container">
+              <div 
+                className="progress-bar" 
+                style={{ width: `${progress}%` }}
+              ></div>
+              <div className="progress-text">
+                {progressStatus} ({progress}%)
               </div>
-            )}
-            <div className="loading-spinner"></div>
-            <p>
-              {progress > 0 ? progressStatus : "내 투표 데이터를 불러오는 중..."}
-            </p>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
+      )}
 
-        {/* 오류 메시지 표시 */}
-        {error && (
-          <div className="error-container">
-            <p className="error-message">{error}</p>
-            <button 
-              className="retry-button"
-              onClick={refreshVotes}
-            >
-              다시 시도
-            </button>
-          </div>
-        )}
+      {/* 에러 메시지 */}
+      {error && (
+        <div className="error-container">
+          <p className="error-message">{error}</p>
+          <button className="retry-button" onClick={refreshVotes}>
+            다시 시도
+          </button>
+        </div>
+      )}
 
-        {/* 투표 목록 */}
-        {!loading && !error && (
+      <div className="vote-card-list">
+        {initialLoading ? (
+          // 초기 로딩 시에만 스켈레톤 UI 표시
+          <div className="vote-cards">
+            {skeletonCards}
+          </div>
+        ) : (
+          // 실제 데이터
           <div className="vote-cards">
             {renderVoteList(activeTab === 'created' ? filteredVotes.created : filteredVotes.participated)}
           </div>

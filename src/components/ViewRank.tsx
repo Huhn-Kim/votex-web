@@ -7,6 +7,7 @@ import { updateRankings } from "../../lib/api";
 import VoteCard from './VoteCard';
 import supabase from '../../lib/supabase';
 import { formatNumber } from '../utils/numberFormat';
+import RankSkeletonCard from './RankSkeletonCard';
 
 interface RankedVoteData {
   topic: VoteTopic;
@@ -48,23 +49,6 @@ const calculateRemainingTime = (expiresAt: string): string => {
   return `${Math.floor(months)}개월`;
 };
 
-// 스켈레톤 UI 컴포넌트
-const SkeletonCard = () => (
-  <div className={styles.cardContainer}>
-    <div className={`${styles.card} ${styles.skeleton}`}>
-      <div className={styles.cardRank}>
-        <div className={styles.skeletonRank}></div>
-      </div>
-      <div className={styles.cardThumbnail}>
-        <div className={styles.skeletonImage}></div>
-      </div>
-      <div className={styles.cardContent}>
-        <div className={styles.skeletonTitle}></div>
-        <div className={styles.skeletonStats}></div>
-      </div>
-    </div>
-  </div>
-);
 
 // 이미지 우선순위 결정 함수
 const getImageByPriority = (topic: VoteTopic): string => {
@@ -486,7 +470,7 @@ export default function ViewRank() {
           // 스켈레톤 UI 표시
           <>
             {[...Array(10)].map((_, index) => (
-              <SkeletonCard key={index} />
+              <RankSkeletonCard key={index} />
             ))}
           </>
         ) : displayVotes.length > 0 ? (
