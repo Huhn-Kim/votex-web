@@ -1,7 +1,67 @@
 import supabase from './supabase';
-import { VoteTopic, VoteTopicCreateData, VoteTopicUpdateData, ReactionStatus } from './types';
+import { VoteTopic, VoteTopicCreateData, VoteTopicUpdateData, ReactionStatus, UserInfo } from './types';
 //import { formatDistanceToNow } from 'date-fns';
 //import { ko } from 'date-fns/locale';
+
+// 기본 사용자 정보 반환 함수
+const getDefaultUserInfo = (): UserInfo => {
+  return {
+    id: '',
+    email: '',
+    password: '',
+    username: '게스트',
+    phone_number: '',
+    profile_Image: '',
+    gender: '',
+    region: '',
+    interests: '',
+    birthyear: 0,
+    votesCreated: 0,
+    votesParticipated: 0,
+    total_points: 0,
+    monthly_points: 0,
+    user_grade: 1,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+};
+
+// 사용자 정보를 가져오는 API 호출 함수
+export const fetchUserInfo = async (userId: string): Promise<UserInfo> => {
+  try {
+    console.log('api: fetchUserInfo 호출됨, userId:', userId);
+    
+    if (!userId) {
+      console.error('api: userId가 없음');
+      return getDefaultUserInfo();
+    }
+    
+    // users 테이블에서 사용자 정보 조회
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    console.log('api: 사용자 정보 조회 결과', { data, error });
+    
+    if (error) {
+      console.error('api: 사용자 정보 조회 에러', error);
+      return getDefaultUserInfo();
+    }
+    
+    if (!data) {
+      console.error('api: 사용자 정보 없음');
+      return getDefaultUserInfo();
+    }
+    
+    console.log('api: 사용자 정보 조회 성공', data);
+    return data as UserInfo;
+  } catch (error) {
+    console.error('api: fetchUserInfo 예외 발생', error);
+    return getDefaultUserInfo();
+  }
+};
 
 // 투표 주제를 VoteTopic 타입으로 변환하는 유틸리티 함수
 export const mapToVoteTopic = (topic: any, selectedOption?: number | null): VoteTopic => {
@@ -10,7 +70,7 @@ export const mapToVoteTopic = (topic: any, selectedOption?: number | null): Vote
     
     // 사용자 정보 추출
     let username = '알 수 없음';
-    let profile_image = '';
+    let profile_Image = '';
     let user_grade = 0;
     let email = '';
     let created_at = topic.created_at || new Date().toISOString();
@@ -18,7 +78,7 @@ export const mapToVoteTopic = (topic: any, selectedOption?: number | null): Vote
     
     if (topic.users) {
       username = topic.users.username || '알 수 없음';
-      profile_image = topic.users.profile_image || '';
+      profile_Image = topic.users.profile_Image || '';
       user_grade = topic.users.user_grade || 0;
       email = topic.users.email || '';
       created_at = topic.users.created_at || created_at;
@@ -52,7 +112,6 @@ export const mapToVoteTopic = (topic: any, selectedOption?: number | null): Vote
       hourly_votes: topic.hourly_votes || 0,
       comments: topic.comments || 0,
       likes: topic.likes || 0,
-      dislikes: topic.dislikes || 0,
       type: topic.type || 'poll',
       display_type: topic.display_type || 'text',
       created_at: created_at,
@@ -63,7 +122,7 @@ export const mapToVoteTopic = (topic: any, selectedOption?: number | null): Vote
         id: topic.user_id,
         username,
         email,
-        profile_image,
+        profile_Image,
         user_grade,
         created_at,
         updated_at
@@ -83,18 +142,32 @@ export const getVoteTopics = async (userId?: string) => {
   try {
     console.log('getVoteTopics 호출됨, userId:', userId);
     
-    // 사용자가 참여한 투표 정보 가져오기
-    const { data: userVotes, error: votesError } = await supabase
-      .from('vote_results')
-      .select('topic_id, option_id')
-      .eq('user_id', userId);
+    // userVotes에 타입을 명시적으로 지정
+    let userVotes: { topic_id: number; option_id: number }[] = [];
     
-    if (votesError) {
-      console.error('사용자 투표 정보 조회 오류:', votesError);
-      throw votesError;
+    // userId가 유효한 경우에만 사용자 투표 정보 조회
+    if (userId && userId.trim() !== '') {
+      try {
+        // 사용자가 참여한 투표 정보 가져오기
+        const { data, error } = await supabase
+          .from('vote_results')
+          .select('topic_id, option_id')
+          .eq('user_id', userId);
+        
+        if (error) {
+          console.error('사용자 투표 정보 조회 오류:', error);
+          // 오류가 발생해도 계속 진행 (기본 투표 데이터는 조회)
+        } else {
+          userVotes = data || [];
+          console.log('사용자 투표 정보:', userVotes.length, '개 조회됨');
+        }
+      } catch (err) {
+        console.error('사용자 투표 정보 조회 중 예외 발생:', err);
+        // 예외가 발생해도 계속 진행
+      }
+    } else {
+      console.log('유효한 userId가 없어 사용자 투표 정보 조회를 건너뜁니다.');
     }
-    
-    console.log('사용자 투표 정보:', userVotes?.length || 0, '개 조회됨');
     
     // 투표 주제와 관련 데이터를 가져옵니다
     const { data, error } = await supabase
@@ -115,7 +188,7 @@ export const getVoteTopics = async (userId?: string) => {
     
     // 데이터를 VoteTopic 형식으로 변환하고 사용자 선택 정보 추가
     const mappedTopics = data.map((topic: any) => {
-      const userVote = userVotes?.find(vote => vote.topic_id === topic.id);
+      const userVote = userVotes.find((vote: any) => vote.topic_id === topic.id);
       const selectedOption = userVote ? userVote.option_id : null;
       return mapToVoteTopic(topic, selectedOption);
     });
@@ -135,7 +208,7 @@ export const getVoteTopicById = async (topicId: number, userId?: string) => {
       .from('vote_topics')
       .select(`
         *,
-        users:user_id (username, profile_image, user_grade),
+        users:user_id (username, profile_Image, user_grade),
         options:vote_options (id, text, votes, image_class, image_url)
       `)
       .eq('id', topicId)
@@ -146,19 +219,28 @@ export const getVoteTopicById = async (topicId: number, userId?: string) => {
       throw topicError;
     }
     
-    if (userId) {
-    // 사용자 투표 데이터 가져오기
-    const { data: userVote, error: voteError } = await supabase
-      .from('votes')
-      .select('option_id')
-      .eq('topic_id', topicId)
-        .eq('user_id', userId)
-      .maybeSingle();
-    
-      if (voteError && voteError.code !== 'PGRST116') throw voteError;
-    
-    const selectedOption = userVote ? userVote.option_id : null;
-    return topic ? mapToVoteTopic(topic, selectedOption) : null;
+    // userId가 제공되었고 유효한 경우에만 사용자 투표 데이터 가져오기
+    if (userId && userId.trim() !== '') {
+      try {
+        // 사용자 투표 데이터 가져오기 - votes 대신 vote_results 테이블 사용
+        const { data: userVote, error: voteError } = await supabase
+          .from('vote_results')
+          .select('option_id')
+          .eq('topic_id', topicId)
+          .eq('user_id', userId)
+          .maybeSingle();
+        
+        if (voteError && voteError.code !== 'PGRST116') {
+          console.error('사용자 투표 조회 오류:', voteError);
+          // 오류가 발생해도 기본 주제 데이터는 반환
+        } else {
+          const selectedOption = userVote ? userVote.option_id : null;
+          return topic ? mapToVoteTopic(topic, selectedOption) : null;
+        }
+      } catch (err) {
+        console.error('사용자 투표 조회 중 예외 발생:', err);
+        // 예외가 발생해도 기본 주제 데이터는 반환
+      }
     }
     
     return topic ? mapToVoteTopic(topic) : null;
@@ -270,7 +352,7 @@ export const updateVoteTopic = async (topicData: VoteTopicUpdateData): Promise<V
       .from('vote_topics')
       .select(`
         *,
-        users:user_id (username, profile_image, user_grade),
+        users:user_id (username, profile_Image, user_grade),
         options:vote_options (id, text, votes, image_class, image_url)
       `)
       .eq('id', topicData.id)
@@ -296,63 +378,87 @@ export const uploadImageToStorage = async (imageBase64: string, folderName: stri
   }
 
   try {
+    // 현재 로그인 상태 확인
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session) {
+      console.error('세션 확인 중 오류 발생 또는 세션 없음:', sessionError || '세션 없음');
+      throw new Error('로그인이 필요합니다. 이미지를 업로드할 수 없습니다.');
+    }
+
+    // Base64 데이터에서 필요한 부분 추출
     const matches = imageBase64.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
     if (!matches || matches.length !== 3) {
       throw new Error('이미지 데이터 형식이 올바르지 않습니다.');
     }
 
-    const mimeType = matches[1];
+    const mime = matches[1];
     const base64Data = matches[2];
-    const fileExt = mimeType.split('/')[1];
+    const fileExt = mime.split('/')[1];
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
     
+    // Base64를 바이너리 데이터로 변환
     const byteCharacters = atob(base64Data);
     const byteArrays = [];
+    const sliceSize = 1024;
     
-    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-      const slice = byteCharacters.slice(offset, offset + 512);
+    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+      const slice = byteCharacters.slice(offset, offset + sliceSize);
       const byteNumbers = new Array(slice.length);
+      
       for (let i = 0; i < slice.length; i++) {
         byteNumbers[i] = slice.charCodeAt(i);
       }
-      const byteArray = new Uint8Array(byteNumbers);
-      byteArrays.push(byteArray);
-    }
-    
-    const blob = new Blob(byteArrays, { type: mimeType });
-
-    if (blob.size > 1024 * 1024) {
-      console.log('이미지 크기가 너무 큽니다. Base64로 직접 사용합니다.');
-      return imageBase64;
-    }
-    
-      const { error } = await supabase
-        .storage
-        .from(folderName)
-        .upload(fileName, blob, {
-          contentType: mimeType,
-          upsert: true
-        });
-        
-        if (error) {
-      console.error('스토리지 업로드 오류:', error);
-          return imageBase64;
-        }
-        
-      const { data: urlData } = supabase
-        .storage
-        .from(folderName)
-        .getPublicUrl(fileName);
       
-      return urlData.publicUrl;
+      byteArrays.push(new Uint8Array(byteNumbers));
+    }
+    
+    // 이미지 데이터를 Blob으로 변환
+    const blob = new Blob(byteArrays, { type: mime });
+    
+    console.log(`이미지 업로드 시도: ${fileName}, 크기: ${blob.size} bytes, 타입: ${mime}`);
+    console.log('현재 세션 사용자:', session.user.email);
+    
+    // 스토리지에 업로드 - 명시적 contentType 설정
+    const { error: uploadError } = await supabase
+      .storage
+      .from(folderName)
+      .upload(fileName, blob, {
+        contentType: mime,
+        upsert: true
+      });
+    
+    if (uploadError) {
+      console.error('스토리지 업로드 오류:', uploadError);
+      throw new Error(`이미지 업로드 실패: ${uploadError.message}`);
+    }
+    
+    // 업로드된 이미지의 공개 URL 가져오기
+    const { data: urlData } = supabase
+      .storage
+      .from(folderName)
+      .getPublicUrl(fileName);
+    
+    if (!urlData || !urlData.publicUrl) {
+      throw new Error('이미지 URL을 가져올 수 없습니다.');
+    }
+    
+    console.log(`이미지 업로드 성공: ${urlData.publicUrl}`);
+    return urlData.publicUrl;
   } catch (error) {
     console.error('이미지 업로드 처리 중 오류:', error);
-      return imageBase64;
-    }
+    throw error;
+  }
 };
 
 export const getMyVotes = async (userId: string): Promise<VoteTopic[]> => {
   try {
+    // userId가 비어있으면 빈 배열 반환
+    if (!userId) {
+      console.log('getMyVotes: userId가 비어있어 빈 배열 반환');
+      return [];
+    }
+    
     // 사용자가 생성하거나 참여한 투표 가져오기
     const { data: voteResults, error: votesError } = await supabase
       .from('vote_results')
@@ -391,6 +497,35 @@ export const getMyVotes = async (userId: string): Promise<VoteTopic[]> => {
 
 export const createVoteTopic = async (voteData: VoteTopicCreateData): Promise<VoteTopic> => {
   try {
+    console.log('createVoteTopic 함수 호출됨:', voteData);
+    
+    // 현재 로그인 상태 확인
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('로그인 세션이 없습니다. 투표 주제를 생성할 수 없습니다.');
+    }
+    
+    // 관련 이미지가 Base64 형식인 경우 스토리지에 업로드
+    let relatedImageUrl = voteData.related_image;
+    if (relatedImageUrl) {
+      if (relatedImageUrl.startsWith('data:')) {
+        try {
+          console.log('관련 이미지 업로드 시도...');
+          relatedImageUrl = await uploadImageToStorage(relatedImageUrl);
+          console.log('관련 이미지 업로드 성공:', relatedImageUrl);
+        } catch (error) {
+          console.error('관련 이미지 업로드 실패:', error);
+          // 이미지 업로드 실패 시에도 계속 진행 (이미지 없이 투표 주제 생성)
+          console.log('이미지 업로드 실패로 이미지 없이 투표 주제를 생성합니다.');
+          relatedImageUrl = '';
+        }
+      } else if (!relatedImageUrl.includes('supabase.co/storage')) {
+        // 유효하지 않은 이미지 URL인 경우
+        console.log('유효하지 않은 이미지 URL입니다. 이미지 없이 투표 주제를 생성합니다.');
+        relatedImageUrl = '';
+      }
+    }
+    
     // 투표 주제 생성
     const { data: topic, error: topicError } = await supabase
       .from('vote_topics')
@@ -399,7 +534,7 @@ export const createVoteTopic = async (voteData: VoteTopicCreateData): Promise<Vo
         question: voteData.question,
         link: voteData.link,
         display_type: voteData.display_type,
-        related_image: voteData.related_image,
+        related_image: relatedImageUrl,
         expires_at: voteData.expires_at,
         visible: voteData.visible,
         vote_period: voteData.vote_period
@@ -407,27 +542,67 @@ export const createVoteTopic = async (voteData: VoteTopicCreateData): Promise<Vo
       .select()
       .single();
     
-    if (topicError) throw topicError;
+    if (topicError) {
+      console.error('투표 주제 생성 오류:', topicError);
+      throw new Error(`투표 주제 생성 실패: ${topicError.message}`);
+    }
+    
+    console.log('투표 주제 생성 성공:', topic);
     
     // 옵션 생성
     if (voteData.options && voteData.options.length > 0) {
-      const optionsToInsert = voteData.options.map(option => ({
-        topic_id: topic.id,
-        text: option.text,
-        image_class: option.image_class,
-        image_url: option.image_url
-      }));
+      const optionsToInsert = [];
+      
+      for (const option of voteData.options) {
+        let imageUrl = option.image_url;
+        
+        // 옵션 이미지가 Base64 형식인 경우 스토리지에 업로드
+        if (imageUrl) {
+          if (imageUrl.startsWith('data:')) {
+            try {
+              console.log(`옵션 이미지 업로드 시도: ${option.text}`);
+              imageUrl = await uploadImageToStorage(imageUrl);
+              console.log(`옵션 이미지 업로드 성공: ${imageUrl}`);
+            } catch (error) {
+              console.error(`옵션 이미지 업로드 실패: ${option.text}`, error);
+              // 이미지 업로드 실패 시에도 계속 진행 (이미지 없이 옵션 생성)
+              console.log(`옵션 이미지 업로드 실패로 이미지 없이 옵션을 생성합니다: ${option.text}`);
+              imageUrl = '';
+            }
+          } else if (!imageUrl.includes('supabase.co/storage')) {
+            // 유효하지 않은 이미지 URL인 경우
+            console.log(`유효하지 않은 이미지 URL입니다. 이미지 없이 옵션을 생성합니다: ${option.text}`);
+            imageUrl = '';
+          }
+        }
+        
+        optionsToInsert.push({
+          topic_id: topic.id,
+          text: option.text,
+          image_class: option.image_class,
+          image_url: imageUrl
+        });
+      }
       
       const { error: optionsError } = await supabase
-    .from('vote_options')
+        .from('vote_options')
         .insert(optionsToInsert);
       
-      if (optionsError) throw optionsError;
+      if (optionsError) {
+        console.error('옵션 생성 오류:', optionsError);
+        throw new Error(`옵션 생성 실패: ${optionsError.message}`);
+      }
+      
+      console.log('옵션 생성 성공:', optionsToInsert.length, '개');
     }
     
     // 생성된 투표 주제 반환
     const createdTopic = await getVoteTopicById(topic.id);
-    if (!createdTopic) throw new Error('생성된 투표 주제를 찾을 수 없습니다.');
+    if (!createdTopic) {
+      throw new Error('생성된 투표 주제를 찾을 수 없습니다.');
+    }
+    
+    console.log('생성된 투표 주제 반환:', createdTopic);
     return createdTopic;
   } catch (error) {
     console.error('createVoteTopic 함수 오류:', error);
@@ -520,30 +695,49 @@ export const addVoteOption = async (topicId: number, optionText: string): Promis
 
 export const incrementLikes = async (topicId: number, userId: string): Promise<void> => {
   try {
-      
-    // vote_topics 테이블의 likes 카운트 증가 (SQL 프로시저 호출)
-    const { error: likeError } = await supabase.rpc('handle_like', {
-      p_topic_id: topicId, p_user_id: userId
-    });
+    // 사용자의 현재 좋아요 상태 확인
+    const { data: reaction, error: reactionError } = await supabase
+      .from('vote_results')
+      .select('like_kind')
+      .eq('user_id', userId)
+      .eq('topic_id', topicId)
+      .maybeSingle();
     
-    if (likeError) throw likeError;
+    if (reactionError && reactionError.code !== 'PGRST116') {
+      console.error('좋아요 상태 확인 오류:', reactionError);
+      throw reactionError;
+    }
+    
+    const isLiked = reaction?.like_kind === 'like';
+    
+    // 좋아요 토글 처리 - 있으면 취소, 없으면 추가
+    if (isLiked) {
+      // 좋아요 취소
+      const { error: unlikeError } = await supabase.rpc('toggle_like', {
+        p_topic_id: topicId,
+        p_user_id: userId,
+        p_operation: 'unlike'
+      });
+      
+      if (unlikeError) {
+        console.error('좋아요 취소 오류:', unlikeError);
+        throw unlikeError;
+      }
+    } else {
+      // 좋아요 추가
+      const { error: likeError } = await supabase.rpc('toggle_like', {
+        p_topic_id: topicId,
+        p_user_id: userId,
+        p_operation: 'like'
+      });
+      
+      if (likeError) {
+        console.error('좋아요 추가 오류:', likeError);
+        throw likeError;
+      }
+    }
   } catch (error) {
     console.error('incrementLikes 함수 오류:', error);
-    throw error;
-  }
-};
-
-export const incrementDislikes = async (topicId: number, userId: string): Promise<void> => {
-  try {
-     
-    // vote_topics 테이블의 dislikes 카운트 증가 (SQL 프로시저 호출)
-    const { error: dislikeError } = await supabase.rpc('handle_dislike', {
-      p_topic_id: topicId, p_user_id: userId
-    });
-    
-    if (dislikeError) throw dislikeError;
-  } catch (error) {
-    console.error('incrementDislikes 함수 오류:', error);
     throw error;
   }
 };
@@ -555,7 +749,7 @@ export const updateUserVote = async (userId: string, topicId: number, optionId: 
       .update({ option_id: optionId })
       .eq('user_id', userId)
       .eq('topic_id', topicId)
-      .is('like_kind', null);  // 좋아요/싫어요가 없는 레코드만 업데이트
+      .is('like_kind', null);  // 좋아요가 없는 레코드만 업데이트
     
     if (error) throw error;
   } catch (error) {
@@ -590,12 +784,11 @@ export const getUserReactionStatus = async (userId: string, topicId: number): Pr
     if (error) throw error;
     
     return {
-      liked: data?.like_kind === 'like',
-      disliked: data?.like_kind === 'dislike'
+      liked: data?.like_kind === 'like'
     };
   } catch (error) {
     console.error('사용자 반응 상태 확인 중 오류:', error);
-    return { liked: false, disliked: false };
+    return { liked: false };
   }
 };
 

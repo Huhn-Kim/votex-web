@@ -1,7 +1,7 @@
 .vote-card-list {
   width: 100%;
-  max-width: 800px;
-  margin: 5 5px; /* 좌우 마진만 설정 */
+  max-width: 600px;
+  margin: 0 auto;
   padding: 0;
 }
 

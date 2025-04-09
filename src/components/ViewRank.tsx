@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { useVoteContext } from "../context/VoteContext";
-import { VoteTopic, VoteRank } from "../../lib/types";
+import { VoteTopic, VoteRank } from "../lib/types";
 import styles from "../styles/ViewRank.module.css";
 import "../styles/TabStyles.css";
-import { updateRankings } from "../../lib/api";
+import { updateRankings } from "../lib/api";
 import VoteCard from './VoteCard';
-import supabase from '../../lib/supabase';
+import supabase from '../lib/supabase';
 import { formatNumber } from '../utils/numberFormat';
 import RankSkeletonCard from './RankSkeletonCard';
 
@@ -83,8 +83,12 @@ export default function ViewRank() {
     userVotes,
     updateVote,
     handleLike,
-    handleDislike,
   } = useVoteContext();
+  
+  // AuthContext에서 현재 로그인한 사용자 정보 가져오기
+  // const { user } = useAuth();
+  // const userId = user?.id || '';
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [sortCriteria, setSortCriteria] = useState<'total' | 'today' | 'hourly' | 'comments'>('total');
   const [isActive, setIsActive] = useState(true);
@@ -230,7 +234,7 @@ export default function ViewRank() {
       id: '',
       username: '사용자',
       email: '',
-      profile_image: '',
+      profile_Image: '',
       user_grade: 0,
       created_at: '',
       updated_at: ''
@@ -268,7 +272,6 @@ export default function ViewRank() {
         }}
         onVote={handleVote}
         onLike={() => handleLike(topic.id)}
-        onDislike={() => handleDislike(topic.id)}
         alwaysShowResults={true}
         showPeriodInsteadOfDate={true}
         isMyVote={false}
@@ -305,7 +308,7 @@ export default function ViewRank() {
               id,
               username,
               email,
-              profile_image,
+              profile_Image,
               user_grade,
               created_at,
               updated_at
@@ -426,7 +429,7 @@ export default function ViewRank() {
             className={`tab-button ${sortCriteria === "total" ? 'active' : ''}`}
             onClick={() => setSortCriteria("total")}
           >
-            {isMobile ? "전체득표" : "전체득표수"}
+            {isMobile ? "총득표" : "총득표수"}
           </button>
           {isActive && (
             <button 
@@ -545,17 +548,6 @@ export default function ViewRank() {
                     onClick={handleBackdropClick}
                   >
                     <div className={styles.expandedCard}>
-                      <div className={styles.expandedCardHeader}>
-                        <button 
-                          className={styles.closeButton}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedTopicId(null);
-                          }}
-                        >
-                          닫기
-                        </button>
-                      </div>
                       <div className={styles.expandedCardContent} onClick={e => e.stopPropagation()}>
                         {MemoizedVoteCard}
                       </div>

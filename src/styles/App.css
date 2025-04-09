@@ -28,8 +28,8 @@ body {
   flex-direction: column;
   min-height: 100vh;
   max-width: 600px;
-  margin: 0 auto; /* 중앙 정렬을 위해 margin auto 추가 */
-  position: relative; /* 내비게이션 바의 기준점이 됨 */
+  margin: 0 auto;
+  position: relative;
 }
 
 /* 헤더 */
@@ -37,12 +37,24 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 8px;
-  border-bottom: 1px solid var(--border-color);
-  background-color: #000;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  z-index: 100;
-  overflow: auto;
+  padding: 4px 12px;
+  /* 반투명 배경으로 변경 */
+  background-color: rgba(26, 26, 26, 0.85);
+  /* 블러 효과 추가 */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); /* Safari 지원 */
+  /* 테두리도 반투명하게 */
+  border-bottom: 1px solid rgba(51, 51, 51, 0.5);
+  z-index: 1000;
+  height: 48px;
+  position: sticky;
+  top: 0;
+  transition: transform 0.3s ease;
+  transform: translateY(0);
+}
+
+.header-hidden {
+  transform: translateY(-100%);
 }
 
 /* 헤더 콘텐츠 레이아웃 */
@@ -56,75 +68,79 @@ body {
 .logo-container {
   display: flex;
   align-items: center;
-  background-color: transparent;
+  gap: 8px;
 }
 
 .app-logo {
-  width: 30px;
-  height: 30px;
-  margin-right: 8px;
-  background-color: transparent;
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 8px;
 }
 
 .app-title {
   font-size: 20px;
   font-weight: 600;
-  color: #fff;
-  margin: 0;
+  color: var(--text-color);
 }
 
 /* 헤더 액션 아이콘 */
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 15px;
+  justify-content: center;
+  gap: 16px;
+  height: 100%;
 }
 
 .notification-icon, .search-icon {
-  font-size: 20px;
-  cursor: pointer;
   position: relative;
+  cursor: pointer;
+  color: var(--text-color);
+  transition: color 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 100%;
 }
 
 .notification-icon svg, .search-icon svg {
   width: 24px;
   height: 24px;
-  transition: transform 0.2s ease;
 }
 
-.notification-icon:hover svg, .search-icon:hover svg {
-  transform: scale(1.1);
+.notification-icon:hover, .search-icon:hover {
+  color: var(--primary-color);
 }
 
 .notification-badge {
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: -4px;
+  right: -4px;
   background-color: var(--primary-color);
   color: white;
-  font-size: 12px;
-  font-weight: bold;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 600;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  padding: 0 4px;
 }
 
 /* 메인 콘텐츠 */
 .content {
   flex: 1;
-  padding: 5px 5px 60px 5px; /* 하단 패딩을 네비게이션 바 높이만큼 추가 */
-  background-color: #000;
+  padding: 0px;
+  padding-bottom: 80px;
+  padding-top: 16px; /* 헤더가 사라질 때 콘텐츠 위 공간 확보 */
 }
 
 /* 홈 페이지 */
 .home-page {
-  padding-bottom: 50px;
+  padding-bottom: 30px;
   background-color: #000;
 }
 
@@ -164,18 +180,21 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-decoration: none;
   color: #999;
   width: 20%;
-  justify-content: center;
   padding: 4px 0;
+  height: 56px;
 }
 
 .nav-icon {
   display: flex;
-  justify-content: center;
   align-items: center;
-  margin-bottom: 2px;
+  justify-content: center;
+  width: 100%;
+  height: 28px;
+  margin-bottom: 4px;
 }
 
 .nav-icon svg {
@@ -188,8 +207,8 @@ body {
 .nav-text {
   font-size: 11px;
   font-weight: 500;
-  margin-top: 0;
-  margin-bottom: 0;
+  line-height: 1;
+  text-align: center;
 }
 
 /* 네비게이션 활성화 상태 표시 스타일 수정 */
@@ -230,7 +249,7 @@ body {
 /* 모바일 대응 */
 @media (max-width: 480px) {
   .nav-bar {
-    padding: 5px 0;
+    padding: 0px 0;
   }
   
   .nav-icon svg {
@@ -276,4 +295,55 @@ body {
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+/* App.css에 추가 */
+.nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 28px;
+  position: relative;
+}
+
+.nav-icon svg {
+  margin: 0 auto;
+  display: block;
+}
+
+/* 사용자 아바타 관련 스타일 수정 */
+.user-avatar-container {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  overflow: hidden;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+}
+
+.user-avatar {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  object-fit: cover;
+  border-radius: 50%;
+  top: 0;
+  left: 0;
+}
+
+.default-avatar {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.default-avatar svg {
+  width: 28px;
+  height: 28px;
 }

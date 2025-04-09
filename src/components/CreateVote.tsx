@@ -4,12 +4,11 @@ import 'react-datepicker/dist/react-datepicker.css';
 import styles from '../styles/CreateVote.module.css';
 import { useVoteContext } from '../context/VoteContext';
 import { useNavigate, useParams } from 'react-router-dom';
-import { VoteTopic } from '../../lib/types';
-import { getVoteTopicById, uploadImageToStorage } from '../../lib/api';
+import { VoteTopic, VoteOption } from '../lib/types';
+import { getVoteTopicById, uploadImageToStorage } from '../lib/api';
 import { FaUndo, FaRedo, FaSearchMinus, FaSearchPlus, FaSyncAlt } from 'react-icons/fa';
-
-// 임시 사용자 ID 추가
-const tempUserId = '0ac4093b-498d-4e39-af11-145a23385a9a';
+import { useAuth } from '../context/AuthContext';
+import LoadingOverlay from './LoadingOverlay';
 
 interface CreateVoteProps {
   isEditMode?: boolean;
@@ -22,11 +21,44 @@ interface Option {
   id?: number;
   votes?: number;
   image_class?: string;
+  gender_stats?: { male: number, female: number };
+  region_stats?: {
+    seoul: number;
+    gyeonggi: number;
+    incheon: number;
+    busan: number;
+    daegu: number;
+    daejeon: number;
+    gwangju: number;
+    ulsan: number;
+    sejong: number;
+    gangwon: number;
+    chungnam: number;
+    chungbuk: number;
+    jeonnam: number;
+    jeonbuk: number;
+    gyeongsang: number;
+    gyeongnam: number;
+    jeolla: number;
+    jeju: number;
+  };
+  age_stats?: {
+    age10to19: number;
+    age20to29: number;
+    age30to39: number;
+    age40to49: number;
+    age50to59: number;  
+    age60to69: number;
+    age70to79: number;
+    age80plus: number;
+  };
+  topic_id?: number;
 }
 
 const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) => {
   const { id } = useParams<{ id: string }>();
   const currentVoteId = voteId || (id ? parseInt(id) : undefined);
+  const { user } = useAuth();
   const [question, setQuestion] = useState('');
   const [sourceLink, setSourceLink] = useState('');
   const [options, setOptions] = useState<Option[]>([
@@ -870,7 +902,9 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
           questionImageUrl = await uploadImageToStorage(questionImage);
           console.log('질문 이미지 업로드 완료:', questionImageUrl);
         } catch (uploadError) {
-          console.warn('질문 이미지 업로드 실패, 원본 데이터 사용:', uploadError);
+          console.error('질문 이미지 업로드 실패:', uploadError);
+          // 이미지 업로드 실패 시 빈 문자열 사용
+          questionImageUrl = '';
         }
       }
       
@@ -894,7 +928,9 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
               image_url = await uploadImageToStorage(option.image_url);
               console.log(`옵션 ${index+1} 이미지 업로드 완료:`, image_url);
             } catch (uploadError) {
-              console.warn(`옵션 ${index+1} 이미지 업로드 실패, 원본 데이터 사용:`, uploadError);
+              console.error(`옵션 ${index+1} 이미지 업로드 실패:`, uploadError);
+              // 이미지 업로드 실패 시 빈 문자열 사용
+              image_url = '';
             }
           }
           
@@ -926,12 +962,15 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
             visible: originalVote.visible,
             related_image: questionImageUrl || undefined,
             options: processedOptions.map(opt => ({
-              id: opt.id || 0,  // undefined 대신 기본값 0 사용
+              id: opt.id || 0,
               text: opt.text,
               image_url: opt.image_url || '',
               image_class: opt.image_class || 'default',
+              gender_stats: opt.gender_stats || { male: 0, female: 0 },
+              region_stats: opt.region_stats || {} as VoteOption['region_stats'],
+              age_stats: opt.age_stats || {} as VoteOption['age_stats'],
               topic_id: currentVoteId,
-              votes: opt.votes || 0  // undefined 대신 기본값 0 사용
+              votes: opt.votes || 0
             }))
           };
           
@@ -960,7 +999,7 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
           setSuccessMessage('투표가 성공적으로 수정되었습니다!');
           
           // 내 투표 페이지로 즉시 이동
-              navigate('/my-votes');
+          navigate('/my-votes');
         } catch (error) {
           console.error('투표 수정 중 오류 발생:', error);
           setError('투표를 수정하는 중 오류가 발생했습니다.');
@@ -970,7 +1009,7 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
         setProgress(80);
         
         console.log('투표 생성 데이터:', {
-          user_id: tempUserId,
+          user_id: user?.id,
           question,
           options: processedOptions.map(option => ({
             text: option.text,
@@ -984,12 +1023,11 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
           expires_at: selectedDate ? selectedDate.toISOString() : expiryDate.toISOString(),
           visible: true,
           vote_period: votePeriod // 수정된 vote_period 사용
-
         });
         
         // 투표 생성 API 호출
         const result = await addVote({
-          user_id: tempUserId,
+          user_id: user?.id,
           question,
           options: processedOptions.map(option => ({
             text: option.text,
@@ -1022,7 +1060,7 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
           setQuestionImage(null); // 질문 이미지 초기화
           
           // 내 투표 페이지로 즉시 이동
-              navigate('/my-votes');
+          navigate('/my-votes');
         }
       }
     } catch (err: any) {
@@ -1219,28 +1257,12 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
     <div className={styles['create-vote-container']}>
       <h2>{isEditMode ? '투표 수정' : '투표 생성'}</h2>
       
-      {/* 로딩 화면은 실제 투표 생성/수정 작업 중에만 표시 */}
-      {loading && (
-        <div className={styles['loading-overlay']}>
-          <div className={styles['loading-container']}>
-            {progress > 0 && (
-              <div className={styles['progress-container']}>
-                <div 
-                  className={styles['progress-bar']} 
-                  style={{ width: `${progress}%` }}
-                ></div>
-                <div className={styles['progress-text']}>
-                  {progressStatus || "투표 카드 생성 중..."} ({progress}%)
-                </div>
-              </div>
-            )}
-            <div className={styles['loading-spinner']}></div>
-            <p className={styles['loading-message']}>
-              {progress > 0 ? (progressStatus || "투표 카드 생성 중...") : "투표 카드 생성 중..."}
-            </p>
-          </div>
-        </div>
-      )}
+      <LoadingOverlay 
+        isLoading={loading}
+        progress={progress}
+        progressStatus={progressStatus}
+        defaultMessage="투표 카드 생성 중..."
+      />
       
       {error && <div className={styles['error']}>{error}</div>}
       
@@ -1284,9 +1306,9 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
           <label htmlFor="question" className={styles['required-label']}>질문</label>
           
           {/* 질문 이미지 버튼을 텍스트 필드 위로 이동 - 선택사항으로 표시 */}
-          <div className={styles['question-image-container']} style={{ display: 'flex', gap: '10px' }}>
+          <div className={styles['question-image-container']}>
             {/* 질문 이미지 입력 부분 */}
-            <div style={{ flex: 1 }}>
+            <div style={{ width: '100%' }}>
               <input
                 type="file"
                 accept="image/*"
@@ -1334,23 +1356,11 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
                 <label htmlFor="question-image-input" className={styles['question-image-button']}>
                   🖼️ 질문 이미지 (선택사항)
                 </label>
+                
               ) : (
                 renderQuestionImagePreview()
               )}
-            </div>
-
-            {/* 이미지 탐색 버튼 추가 */}
-            <div style={{ flex: 1 }}>
-              <button
-                type="button"
-                className={styles['question-image-button']}
-                onClick={() => {
-                  // 이미지 탐색 기능은 추후 구현
-                  alert('이미지 탐색 기능은 준비 중입니다.');
-                }}
-              >
-                🔍 이미지 탐색 (선택사항)
-              </button>
+            <small className={styles['form-hint']}>브라우저에서 이미지를 길게 눌러 이미지 다운로드 후 앨범에서 불러오세요</small>
             </div>
           </div>
           
@@ -1379,7 +1389,7 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
             placeholder="example.com"
             onClick={(e) => e.stopPropagation()}
           />
-          <small className={styles['form-hint']}>URL 형식으로 입력하세요 (http:// 없이도 가능)</small>
+          <small className={styles['form-hint']}>브라우저에서 제목을 길게 눌러 URL 복사하여 붙여넣기 하세요</small>
         </div>
         
         <div className={styles['form-group']}>

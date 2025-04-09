@@ -5,8 +5,9 @@ import VoteCard from './VoteCard';
 import VoteSkeletonCard from './VoteSkeletonCard';
 import { useVoteContext } from '../context/VoteContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { VoteTopic } from '../../lib/types';
+import { VoteTopic } from '../lib/types';
 import { formatNumber } from '../utils/numberFormat';
+import { useAuth } from '../context/AuthContext';
 
 // 내 투표 컴포넌트
 const MyVotes: React.FC = () => {
@@ -16,6 +17,9 @@ const MyVotes: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'created' | 'participated'>('created');
   const [initialLoading, setInitialLoading] = useState(true); // 초기 로딩 상태 추가
 
+  // AuthContext에서 현재 로그인한 사용자 정보 가져오기
+  const { user } = useAuth();
+  const userId = user?.id || '';
   
   // Context에서 내 투표 데이터와 업데이트 함수 가져오기
   const { 
@@ -27,7 +31,6 @@ const MyVotes: React.FC = () => {
     deleteTopic, 
     updateVoteTopic,
     handleLike,
-    handleDislike,
     progress,
     progressStatus
   } = useVoteContext();
@@ -52,14 +55,13 @@ const MyVotes: React.FC = () => {
 
   // useMemo를 사용하여 필터링 결과 메모이제이션
   const filteredVotes = useMemo(() => {
-    const userId = '0ac4093b-498d-4e39-af11-145a23385a9a';
     return {
       created: myVotes.filter(vote => vote.user_id === userId),
       participated: myVotes.filter(vote => 
         vote.user_id !== userId && vote.selected_option !== null
       )
     };
-  }, [myVotes]);
+  }, [myVotes, userId]);
 
   // 스크롤 위치 저장
   useEffect(() => {
@@ -221,7 +223,6 @@ const MyVotes: React.FC = () => {
         topic={topic}
         onVote={updateVote}
         onLike={() => handleLike(topic.id)}
-        onDislike={() => handleDislike(topic.id)}
         alwaysShowResults={true}
         isMyVote={activeTab === 'created'}
         onDelete={activeTab === 'created' ? handleDeleteVote : undefined}
@@ -287,9 +288,18 @@ const MyVotes: React.FC = () => {
             {skeletonCards}
           </div>
         ) : (
-          // 실제 데이터
+          // 데이터 로딩이 완료된 후
           <div className="vote-cards">
-            {renderVoteList(activeTab === 'created' ? filteredVotes.created : filteredVotes.participated)}
+            {(activeTab === 'created' && filteredVotes.created.length === 0) || 
+             (activeTab === 'participated' && filteredVotes.participated.length === 0) ? (
+              // 데이터가 없는 경우 메시지 표시
+              <div className="no-votes-message">
+                <p>{activeTab === 'created' ? '생성한 투표가 없습니다.' : '참여한 투표가 없습니다.'}</p>
+              </div>
+            ) : (
+              // 데이터가 있는 경우 투표 목록 표시
+              renderVoteList(activeTab === 'created' ? filteredVotes.created : filteredVotes.participated)
+            )}
           </div>
         )}
       </div>

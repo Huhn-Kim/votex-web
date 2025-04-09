@@ -1,13 +1,11 @@
-
--- 좋아요 처리 함수
-CREATE OR REPLACE FUNCTION handle_like(
+CREATE OR REPLACE FUNCTION toggle_like(
   p_topic_id INTEGER,
-  p_user_id UUID
+  p_user_id UUID,
+  p_operation TEXT
 ) RETURNS VOID AS $$
 DECLARE
   p_existing_like_kind text;
   p_existing_option_id INTEGER;
-  current_dislikes INTEGER;
   current_likes INTEGER;
 BEGIN
   -- 기존 반응 확인
@@ -15,37 +13,14 @@ BEGIN
   FROM vote_results
   WHERE user_id = p_user_id AND topic_id = p_topic_id;
 
-  -- 현재 좋아요/싫어요 수 확인
-  SELECT likes, dislikes INTO current_likes, current_dislikes
+  -- 현재 좋아요 수 확인
+  SELECT likes INTO current_likes
   FROM vote_topics
   WHERE id = p_topic_id;
 
-  -- 이미 좋아요를 눌렀다면 아무 작업도 하지 않음
-  IF p_existing_like_kind = 'like' THEN
-    RETURN;
-  END IF;
-
   -- 트랜잭션 시작
   BEGIN
-    -- 이미 싫어요를 눌렀다면 싫어요 취소
-    IF p_existing_like_kind = 'dislike' THEN
-      -- 음수 방지
-      IF current_dislikes > 0 THEN
-        UPDATE vote_topics
-        SET dislikes = dislikes - 1
-        WHERE id = p_topic_id;
-      END IF;
-      
-      -- 좋아요로 변경
-      UPDATE vote_topics
-      SET likes = likes + 1
-      WHERE id = p_topic_id;
-      
-      -- 사용자 반응 업데이트
-      UPDATE vote_results
-      SET like_kind = 'like'
-      WHERE user_id = p_user_id AND topic_id = p_topic_id;
-    ELSE
+    IF p_operation = 'like' THEN
       -- 좋아요 증가
       UPDATE vote_topics
       SET likes = likes + 1
@@ -55,77 +30,30 @@ BEGIN
       INSERT INTO vote_results (user_id, topic_id, option_id, like_kind)
       VALUES (p_user_id, p_topic_id, 
         COALESCE(p_existing_option_id, (SELECT id FROM vote_options WHERE topic_id = p_topic_id LIMIT 1)), 
-        1)
+        'like')
       ON CONFLICT (user_id, topic_id) 
       DO UPDATE SET like_kind = 'like';
-    END IF;
-  END;
-END;
-$$ LANGUAGE plpgsql;
-
--- 싫어요 처리 함수
-CREATE OR REPLACE FUNCTION handle_dislike(
-  p_topic_id INTEGER,
-  p_user_id UUID
-) RETURNS VOID AS $$
-DECLARE
-  p_existing_like_kind text;
-  p_existing_option_id INTEGER;
-  current_likes INTEGER;
-  current_dislikes INTEGER;
-BEGIN
-  -- 기존 반응 확인
-  SELECT like_kind, option_id INTO p_existing_like_kind, p_existing_option_id
-  FROM vote_results
-  WHERE user_id = p_user_id AND topic_id = p_topic_id;
-
-  -- 현재 좋아요/싫어요 수 확인
-  SELECT likes, dislikes INTO current_likes, current_dislikes
-  FROM vote_topics
-  WHERE id = p_topic_id;
-
-  -- 이미 싫어요를 눌렀다면 아무 작업도 하지 않음
-  IF p_existing_like_kind = 'dislike' THEN
-    RETURN;
-  END IF;
-
-  -- 트랜잭션 시작
-  BEGIN
-    -- 이미 좋아요를 눌렀다면 좋아요 취소
-    IF p_existing_like_kind = 'like' THEN
-      -- 음수 방지
-      IF current_likes > 0 THEN
-        UPDATE vote_topics
-        SET likes = likes - 1
-        WHERE id = p_topic_id;
+      
+    ELSIF p_operation = 'unlike' THEN
+      -- 이미 좋아요를 눌렀다면 좋아요 취소
+      IF p_existing_like_kind = 'like' THEN
+        -- 음수 방지
+        IF current_likes > 0 THEN
+          UPDATE vote_topics
+          SET likes = likes - 1
+          WHERE id = p_topic_id;
+        END IF;
+        
+        -- 사용자 반응 업데이트 (좋아요 취소 - null로 설정)
+        UPDATE vote_results
+        SET like_kind = null
+        WHERE user_id = p_user_id AND topic_id = p_topic_id;
       END IF;
-      
-      -- 싫어요로 변경
-      UPDATE vote_topics
-      SET dislikes = dislikes + 1
-      WHERE id = p_topic_id;
-      
-      -- 사용자 반응 업데이트
-      UPDATE vote_results
-      SET like_kind = 'dislike'
-      WHERE user_id = p_user_id AND topic_id = p_topic_id;
-    ELSE
-      -- 싫어요 증가
-      UPDATE vote_topics
-      SET dislikes = dislikes + 1
-      WHERE id = p_topic_id;
-      
-      -- 기존 투표 레코드가 없는 경우 삽입
-      INSERT INTO vote_results (user_id, topic_id, option_id, like_kind)
-      VALUES (p_user_id, p_topic_id, 
-        COALESCE(p_existing_option_id, (SELECT id FROM vote_options WHERE topic_id = p_topic_id LIMIT 1)), 
-        0)
-      ON CONFLICT (user_id, topic_id) 
-      DO UPDATE SET like_kind = 'dislike';
     END IF;
   END;
 END;
 $$ LANGUAGE plpgsql;
+
 
 CREATE OR REPLACE FUNCTION update_vote_rankings()
 RETURNS void

@@ -1,0 +1,667 @@
+/* VoteAnalysisPage.css - 투표 분석 페이지 스타일 */
+
+.vote-analysis-page {
+  margin-top: 0;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0rem;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+.analysis-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  position: sticky;
+  top: 0;
+  background-color: #1e1e1e;
+  z-index: 10;
+  padding: 0;
+  border-bottom: 1px solid #333;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: #e0e0e0;
+  cursor: pointer;
+  padding: 0.4rem;
+  margin-right: 0.3rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.analysis-header h1 {
+  font-size: 1.2rem;
+  margin: 0;
+  padding: 0.3rem 0;
+  color: #fff;
+}
+
+.vote-card-container {
+  margin-bottom: 1rem;
+}
+
+.analysis-container {
+  background: #1e1e1e;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.analysis-tabs {
+  display: flex;
+  border-bottom: 1px solid #333;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  background-color: #252525;
+}
+
+.analysis-tabs::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.tab-button {
+  padding: 1rem 1.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  font-weight: 500;
+  color: #aaa;
+  position: relative;
+  transition: color 0.2s;
+}
+
+.tab-button:hover {
+  color: #fff;
+}
+
+.tab-button.active {
+  color: #6495ed;
+  font-weight: 600;
+}
+
+.tab-button.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: #6495ed;
+  border-radius: 3px 3px 0 0;
+}
+
+.tab-content {
+  padding: 1.5rem 0.75rem;
+  background-color: #1e1e1e;
+}
+
+.demographic-chart {
+  margin-bottom: 1.5rem;
+  background-color: #252525;
+  border-radius: 8px;
+  padding: 1rem 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.demographic-chart h3 {
+  font-size: 1.2rem;
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  color: #e0e0e0;
+  text-align: center;
+}
+
+.bar-chart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.bar-chart-item {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.bar-label {
+  width: 80px;
+  text-align: right;
+  font-size: 0.9rem;
+  color: #bbb;
+  font-weight: 500;
+}
+
+.bar-container {
+  flex: 1;
+  height: 30px;
+  background-color: #333;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.bar {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.5s ease-out;
+}
+
+.male-bar {
+  background-color: #4169e1;
+}
+
+.female-bar {
+  background-color: #e91e63;
+}
+
+.other-bar {
+  background-color: #9c27b0;
+}
+
+.age-bar {
+  background-color: #2196f3;
+}
+
+.region-bar {
+  background-color: #009688;
+}
+
+.max-vote-bar {
+  background-color: #ff9800;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.bar-value {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.7);
+}
+
+.chart-analysis {
+  margin-top: 1.25rem;
+  padding: 1rem 0.75rem;
+  background-color: #2a2a2a;
+  border-radius: 8px;
+  border-left: 3px solid #6495ed;
+}
+
+.analysis-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 0 0 0.5rem 0;
+  color: #e0e0e0;
+}
+
+.chart-analysis p {
+  margin: 0.5rem 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #ccc;
+}
+
+.overview-charts {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.no-data {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 150px;
+  background-color: #2a2a2a;
+  border-radius: 8px;
+  color: #888;
+  font-size: 1rem;
+}
+
+.error-container {
+  padding: 2rem;
+  text-align: center;
+  background-color: #1e1e1e;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  max-width: 500px;
+  margin: 2rem auto;
+  color: #e0e0e0;
+}
+
+.error-container h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #ff5252;
+}
+
+.error-container button {
+  padding: 0.8rem 1.5rem;
+  background-color: #333;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.error-container button:hover {
+  background-color: #444;
+}
+
+/* 반응형 스타일 */
+@media (max-width: 768px) {
+  .vote-analysis-page {
+    padding: 0.5rem;
+  }
+  
+  .analysis-header h1 {
+    font-size: 1.3rem;
+  }
+  
+  .tab-button {
+    padding: 0.8rem 1rem;
+  }
+  
+  .tab-content {
+    padding: 1rem 0.5rem;
+  }
+  
+  .bar-label {
+    width: 70px;
+    font-size: 0.8rem;
+  }
+  
+  .bar-container {
+    height: 25px;
+  }
+  
+  .bar-value {
+    font-size: 0.8rem;
+  }
+  
+  .demographic-chart {
+    padding: 0.75rem 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+  
+  .bar-chart-container {
+    gap: 0.5rem;
+  }
+  
+  .chart-analysis {
+    margin-top: 1rem;
+    padding: 0.75rem 0.5rem;
+  }
+  
+  .overview-charts {
+    gap: 1.25rem;
+  }
+}
+
+/* 모바일 스타일 */
+@media (max-width: 480px) {
+  .analysis-header h1 {
+    font-size: 1.2rem;
+  }
+  
+  .tab-button {
+    padding: 0.7rem 0.8rem;
+    font-size: 0.9rem;
+  }
+  
+  .tab-content {
+    padding: 0.75rem 0.25rem;
+  }
+  
+  .bar-label {
+    width: 60px;
+    font-size: 0.75rem;
+  }
+  
+  .bar-value {
+    font-size: 0.75rem;
+  }
+  
+  .demographic-chart {
+    padding: 0.75rem 0.25rem;
+    margin-bottom: 1rem;
+  }
+  
+  .chart-analysis {
+    margin-top: 0.75rem;
+    padding: 0.75rem 0.5rem;
+  }
+  
+  .analysis-title {
+    font-size: 0.9rem;
+  }
+  
+  .chart-analysis p {
+    font-size: 0.85rem;
+  }
+}
+
+/* 옵션별 인구통계 스타일 */
+.option-demographics {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px dashed #444;
+}
+
+.option-demographics-title {
+  font-size: 1.1rem;
+  color: #fff;
+  margin: 0 0 1rem 0;
+  text-align: center;
+}
+
+.option-demographic-item {
+  margin-bottom: 1.5rem;
+  padding: 0.75rem;
+  background-color: #2a2a2a;
+  border-radius: 8px;
+}
+
+.option-name {
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #444;
+  color: #fff;
+  display: flex;
+  align-items: center;
+}
+
+.option-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: #6495ed;
+  color: #fff;
+  border-radius: 50%;
+  margin-right: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.option-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.option-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* 모바일 대응 스타일 */
+@media (max-width: 768px) {
+  .option-demographics {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+  }
+  
+  .option-demographics-title {
+    font-size: 1rem;
+  }
+  
+  .option-demographic-item {
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .option-name {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.3rem;
+  }
+  
+  .option-number {
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .option-demographics-title {
+    font-size: 0.9rem;
+  }
+  
+  .option-name {
+    font-size: 0.85rem;
+  }
+  
+  .option-demographic-item {
+    padding: 0.4rem;
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* 스택 바 차트 스타일 */
+.demographic-option-group {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: #2a2a2a;
+  border-radius: 8px;
+}
+
+.demographic-name {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.demographic-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.male-icon {
+  background-color: #4169e1;
+}
+
+.female-icon {
+  background-color: #e91e63;
+}
+
+.other-icon {
+  background-color: #9c27b0;
+}
+
+.demographic-name h5 {
+  margin: 0;
+  font-size: 1rem;
+  color: #fff;
+  font-weight: 500;
+}
+
+.stacked-bar-container {
+  position: relative;
+  height: 40px;
+  background-color: #333;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.stacked-bar-segment {
+  position: absolute;
+  height: 100%;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: width 0.5s ease;
+  box-shadow: 1px 0 3px rgba(0, 0, 0, 0.2);
+}
+
+.stacked-bar-label {
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.7);
+  padding: 0 5px;
+  white-space: nowrap;
+}
+
+.demographic-option-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  flex: 1 0 calc(50% - 0.75rem);
+  min-width: 120px;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.legend-text {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  overflow: hidden;
+}
+
+.legend-label {
+  color: #e0e0e0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.legend-value {
+  color: #aaa;
+  font-size: 0.8rem;
+}
+
+/* 연령대 아이콘 스타일 */
+.age-under18-icon {
+  background-color: #8bc34a;
+}
+
+.age-18to24-icon {
+  background-color: #4caf50;
+}
+
+.age-25to34-icon {
+  background-color: #009688;
+}
+
+.age-35to44-icon {
+  background-color: #00bcd4;
+}
+
+.age-45to54-icon {
+  background-color: #03a9f4;
+}
+
+.age-55plus-icon {
+  background-color: #2196f3;
+}
+
+/* 지역 아이콘 스타일 */
+.region-icon {
+  background-color: #ff9800;
+}
+
+/* 모바일 대응 */
+@media (max-width: 768px) {
+  .demographic-option-group {
+    padding: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .stacked-bar-container {
+    height: 35px;
+  }
+  
+  .stacked-bar-label {
+    font-size: 0.7rem;
+  }
+  
+  .legend-item {
+    flex: 1 0 100%;
+  }
+  
+  .demographic-name h5 {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .demographic-option-group {
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .stacked-bar-container {
+    height: 30px;
+  }
+  
+  .legend-item {
+    min-width: 100%;
+  }
+  
+  .legend-text {
+    font-size: 0.8rem;
+  }
+  
+  .legend-value {
+    font-size: 0.75rem;
+  }
+  
+  .demographic-name h5 {
+    font-size: 0.85rem;
+  }
+} 

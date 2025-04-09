@@ -16,13 +16,13 @@
   color: #fff;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  padding: 5px 5px; /* 카드의 좌우 패딩 */
-  margin-bottom: 0px;
+  padding: 0; /* 패딩 제거 */
+  margin-bottom: 5px;
   transition: box-shadow 0.3s ease;
-  max-width: 900px;
+  max-width: 600px; /* 앱 컨테이너와 동일한 너비로 설정 */
   width: 100%;
   margin-left: auto;
-  margin-right: auto;  
+  margin-right: auto;
 }
 
 /* 투표 카드 ID, 헤더 기간 정보 포함된 부분 */
@@ -31,6 +31,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 5px;
+  padding: 10px 12px; /* 헤더와 동일한 좌우 패딩 */
 }
 
 .user-info {
@@ -38,13 +39,18 @@
   align-items: center;
 }
 
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  margin-right: 12px;
-  border: 2px solid #444;
+.user-avatar-image {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  margin-right: 12px !important;
+  border: 2px solid #444 !important;
+  background-color: #444 !important; /* 이미지 로딩 전 배경색 추가 */
+  min-width: 40px !important; /* 최소 너비 설정 */
+  display: block !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
 .user-details {
@@ -61,6 +67,7 @@
   font-weight: 600;
   margin-right: 8px;
   color: #fff;
+  font-size: 17px;
 }
 
 .badge {
@@ -114,6 +121,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding: 0 12px 10px 12px; /* 좌우 패딩만 추가 */
 }
 
 /* 이미지 그리드가 있는 경우 추가 여백 */
@@ -681,6 +689,34 @@
     margin-left: 3px;
     padding: 6px;
   }
+  
+  .username {
+    font-size: 15px;
+    margin-right: 4px;
+  }
+  
+  .vote-period-status-text {
+    font-size: 11px;
+  }
+}
+
+/* 더 작은 모바일 화면에 대한 추가 대응 */
+@media (max-width: 480px) {
+  .username {
+    font-size: 13px;
+    margin-right: 3px;
+  }
+  
+  .user-avatar-image {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important; /* 최소 너비 설정 */
+    margin-right: 8px !important;
+  }
+  
+  .vote-period-status-text {
+    font-size: 10px;
+  }
 }
 
 /* 카드 액션 버튼 컨테이너: 구독/구독취소 */
@@ -691,84 +727,54 @@
 }
 
 /* 구독/구독취소 버튼 */
-.subscription-btn { 
-  background-color: rgba(255, 255, 255, 0.2);
+.subscription-btn {
+  background: transparent;
   border: none;
-  color: #fff;
-  font-weight: 500;
-  min-width: 60px;
-  height: 28px;
-  border-radius: 4px;
   cursor: pointer;
-  padding: 3px 10px;
-  font-size: 12px;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.subscription-btn:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-.subscription-btn.subscribed {
-  background-color: #3a8eff;
-  color: white;
-}
-
-/* 더보기 버튼 스타일 */
-.more-btn-text {
-  background: none;
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  transition: all 0.2s ease;
   padding: 5px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
 }
 
-.more-btn-text:hover {
-  color: #fff;
-}
-
-.more-options-container {
-  position: relative;
-}
-
-.more-options-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background-color: #333;
-  border: 1px solid #444;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 10;
-  width: 150px;
-  margin-top: 8px;
-  overflow: hidden;
-}
-
-.more-option {
+/* 상세분석 버튼 스타일 추가 */
+.analysis-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  padding: 10px 12px;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
-.more-option:hover {
-  background-color: #333;
+.analysis-icon {
+  font-size: 18px;
+  color: #aaa;
+  transition: all 0.3s ease;
 }
 
-.option-icon {
-  margin-right: 8px;
-  font-size: 16px;
-  margin-left: 8px;
+.analysis-btn:hover .analysis-icon {
+  color: #3a8eff;
+  transform: scale(1.1);
 }
+
+.heart-icon {
+  font-size: 18px;
+  color: #aaa;
+  transition: all 0.3s ease;
+}
+
+.heart-icon.filled {
+  color: #FFF;
+  transform: scale(1.1);
+}
+
+/* 더보기 버튼 스타일 및 관련 클래스 삭제 */
 
 /* 좋아요 버튼 컨테이너 */
 .vote-actions {
@@ -814,11 +820,9 @@
   background-color: transparent;
 }
 
-/* 싫어요 버튼 활성화 스타일 */
-.vote-action-btn:nth-child(2).active {
-  color: #ff4a4a;
-  font-weight: bold;
-  background-color: transparent;
+/* 공유 버튼 hover 스타일 - 순서 변경 */
+.vote-action-btn:nth-child(3):hover {
+  color: #4CAF50;
 }
 
 /* 로딩 상태 스타일 */
@@ -988,6 +992,7 @@
   align-items: center;
   margin-top: 10px;
   margin-bottom: 10px;
+  padding: 0 12px; /* 좌우 패딩 추가 */
 }
 
 /* 투표 카운트 컨테이너 */
@@ -1021,6 +1026,7 @@
 .management-section {
   margin-top: 10px;
   width: 100%;
+  padding: 0 12px 10px 12px; /* 좌우 패딩 추가 */
 }
 
 .management-section .vote-info {
@@ -1052,6 +1058,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 70px; /* 모든 버튼에 동일한 너비 적용 */
+  white-space: nowrap; /* 텍스트가 줄바꿈되지 않도록 설정 */
+  overflow: hidden; /* 넘치는 텍스트 숨김 */
+  text-overflow: ellipsis; /* 넘치는 텍스트를 ...으로 표시 */
 }
 
 /* 투표 업로드 버튼 */
@@ -1078,8 +1088,6 @@
 .management-btn.delete-btn {
   background-color: rgba(255, 69, 58, 0.2);
   color: #ff453a;
-  min-width: 60px;
-  height: 36px; /* 다른 버튼들과 동일한 높이 */
 }
 
 .management-btn.delete-btn:hover {
@@ -1088,8 +1096,8 @@
 
 /* 모바일 환경 대응 */
 @media (max-width: 768px) {
-  .management-btn.edit-btn
-  .management-btn.publish-btn
+  .management-btn.edit-btn,
+  .management-btn.publish-btn,
   .management-btn.delete-btn {
     height: 36px; /* 모바일에서도 동일한 높이 유지 */
   }

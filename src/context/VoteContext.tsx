@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { VoteTopic, VoteTopicCreateData, VoteTopicUpdateData, VoteRank } from '../../lib/types';
+import { VoteTopic, VoteTopicCreateData, VoteTopicUpdateData, VoteRank, VoteOption } from '../lib/types';
 import { 
   getVoteTopics, 
   getMyVotes, 
@@ -9,12 +9,12 @@ import {
   deleteVoteOption,
   addVoteOption,
   incrementLikes,
-  incrementDislikes,
   updateVoteVisibility,
   getRankedVotes,
   deleteImageFromStorage,
-} from '../../lib/api';
-import supabase from '../../lib/supabase';
+} from '../lib/api';
+import supabase from '../lib/supabase';
+import { useAuth } from './AuthContext';
 
 // 상단에 RankedVoteData 인터페이스 추가
 interface RankedVoteData {
@@ -39,14 +39,13 @@ interface VoteContextType {
   addOption: (topicId: number, optionText: string) => Promise<void>;
   deleteOption: (topicId: number, optionId: number) => Promise<void>;
   handleLike: (topicId: number) => Promise<void>;
-  handleDislike: (topicId: number) => Promise<void>;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
   getRankedVotes: (criteria: 'total' | 'today' | 'hourly' | 'comments') => Promise<RankedVoteData[]>;
   setLoading: (loading: boolean) => void;
   setProgress: (progress: number) => void;
   setProgressStatus: (status: string) => void;
-  userReactions: Map<number, { liked: boolean, disliked: boolean }>;
-  updateUserReaction: (topicId: number, type: 'like' | 'dislike') => Promise<void>;
+  userReactions: Map<number, { liked: boolean }>;
+  updateUserReaction: (topicId: number) => Promise<void>;
   loadUserReaction: (topicId: number) => Promise<void>;
   loadUserVote: (topicId: number) => Promise<number | null>;
   userVotes: Map<number, number | null>;
@@ -70,7 +69,6 @@ export const VoteContext = createContext<VoteContextType>({
   addOption: async () => {},
   deleteOption: async () => {},
   handleLike: async () => {},
-  handleDislike: async () => {},
   setError: () => {},
   getRankedVotes: async () => [],
   setLoading: () => {},
@@ -93,11 +91,12 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [progressStatus, setProgressStatus] = useState('');
-  const [userReactions, setUserReactions] = useState<Map<number, { liked: boolean, disliked: boolean }>>(new Map());
+  const [userReactions, setUserReactions] = useState<Map<number, { liked: boolean }>>(new Map());
   const [userVotes, setUserVotes] = useState<Map<number, number | null>>(new Map());
   
-  // 헌왕 사용자 ID
-  const tempUserId = '0ac4093b-498d-4e39-af11-145a23385a9a';
+  // AuthContext에서 현재 로그인한 사용자 정보 가져오기
+  const { user } = useAuth();
+  const userId = user?.id || '';
   
   // 투표 데이터 가져오기
   const fetchVotes = async () => {
@@ -105,7 +104,15 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLoading(true);
       setError(null);
       
-      const data = await getVoteTopics(tempUserId);
+      // userId가 비어있으면 API 호출 없이 빈 배열 반환
+      if (!userId) {
+        console.log('fetchVotes: userId가 비어있어 API 호출 취소');
+        setVotes([]);
+        setLoading(false);
+        return;
+      }
+      
+      const data = await getVoteTopics(userId);
       
       if (Array.isArray(data)) {
         // visible이 true인 투표만 필터링
@@ -131,7 +138,15 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLoading(true);
       setError(null);
       
-      const data = await getMyVotes(tempUserId);
+      // userId가 비어있으면 API 호출 없이 빈 배열 반환
+      if (!userId) {
+        console.log('fetchMyVotes: userId가 비어있어 API 호출 취소');
+        setMyVotes([]);
+        setLoading(false);
+        return;
+      }
+      
+      const data = await getMyVotes(userId);
       
       if (Array.isArray(data)) {
         // 자세한 데이터 로깅
@@ -165,10 +180,17 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // 사용자 투표 정보 초기 로드 함수
   const loadUserVotes = async () => {
     try {
+      // userId가 비어있으면 빈 Map 반환
+      if (!userId) {
+        console.log('loadUserVotes: userId가 비어있어 빈 Map 반환');
+        setUserVotes(new Map());
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('vote_results')
         .select('topic_id, option_id')
-        .eq('user_id', tempUserId);
+        .eq('user_id', userId);
 
       if (error) {
         console.error('사용자 투표 정보 로드 실패:', error);
@@ -188,10 +210,18 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   
   // 컴포넌트 마운트 시 데이터 가져오기
   useEffect(() => {
-    fetchVotes();
-    fetchMyVotes();
-    loadUserVotes(); // 사용자 투표 정보도 함께 로드
-  }, []);
+    // 사용자 ID가 있을 때만 데이터 불러오기
+    if (userId) {
+      console.log('사용자 ID 확인됨, 데이터 로드 시작:', userId);
+      fetchVotes();
+      fetchMyVotes();
+      loadUserVotes(); // 사용자 투표 정보도 함께 로드
+    } else {
+      console.log('사용자 ID가 없음, 로그인 대기 중...');
+      // 로드 상태 종료
+      setLoading(false);
+    }
+  }, [userId]); // userId가 변경될 때마다 실행
   
   // 에러 메시지 자동 제거를 위한 useEffect
   useEffect(() => {
@@ -209,11 +239,22 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // 사용자 반응 초기 로드 함수 수정
   const loadUserReaction = async (topicId: number) => {
     try {
+      // userId가 비어있으면 빈 객체 반환
+      if (!userId) {
+        console.log('loadUserReaction: userId가 비어있어 빈 객체 반환');
+        setUserReactions(prev => {
+          const newMap = new Map(prev);
+          newMap.set(topicId, { liked: false });
+          return newMap;
+        });
+        return;
+      }
+      
       // vote_results 테이블에서 사용자의 like_kind와 option_id 정보 조회
       const { data, error } = await supabase
         .from('vote_results')
         .select('like_kind, option_id')
-        .eq('user_id', tempUserId)
+        .eq('user_id', userId)
         .eq('topic_id', topicId)
         .maybeSingle(); // single() 대신 maybeSingle() 사용
 
@@ -224,11 +265,10 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // like_kind 값에 따라 상태 설정
       const liked = data?.like_kind === 'like';
-      const disliked = data?.like_kind === 'dislike';
 
       setUserReactions(prev => {
         const newMap = new Map(prev);
-        newMap.set(topicId, { liked, disliked });
+        newMap.set(topicId, { liked });
         return newMap;
       });
 
@@ -249,10 +289,16 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // 사용자 투표 선택 정보 로드 함수 수정
   const loadUserVote = async (topicId: number): Promise<number | null> => {
     try {
+      // userId가 비어있으면 null 반환
+      if (!userId) {
+        console.log('loadUserVote: userId가 비어있어 null 반환');
+        return null;
+      }
+      
       const { data, error } = await supabase
         .from('vote_results')
         .select('option_id')
-        .eq('user_id', tempUserId)
+        .eq('user_id', userId)
         .eq('topic_id', topicId)
         .maybeSingle(); // single() 대신 maybeSingle() 사용
 
@@ -271,8 +317,8 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // 새 투표 추가 함수
   const addVote = async (vote: Partial<VoteTopic>): Promise<VoteTopic | null> => {
     try {
-      setLoading(true);
-      setError(null);
+      // setLoading(true);
+      // setError(null);
       
       // const voteOptions = vote.options?.map((option, index) => {
       //   // 이미지 URL 필드 확인
@@ -311,12 +357,12 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await fetchVotes();
       await fetchMyVotes();
       
-      setLoading(false);
+      // setLoading(false);
       return result;
     } catch (err) {
       console.error('투표를 추가하는 중 오류 발생:', err);
       setError('투표를 추가하는 중 오류가 발생했습니다.');
-      setLoading(false);
+      // setLoading(false);
       throw err;
     }
   };
@@ -373,7 +419,7 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const { data: existingVote, error: checkError } = await supabase
             .from('vote_results')
             .select('*')
-            .eq('user_id', tempUserId)
+            .eq('user_id', userId)
             .eq('topic_id', topicId)
             .single();
           
@@ -388,7 +434,7 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const { error: updateError } = await supabase
               .from('vote_results')
               .update({ option_id: optionId })
-              .eq('user_id', tempUserId)
+              .eq('user_id', userId)
               .eq('topic_id', topicId);
             
             if (updateError) {
@@ -401,7 +447,7 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const { error: insertError } = await supabase
               .from('vote_results')
               .insert([
-                { user_id: tempUserId, topic_id: topicId, option_id: optionId }
+                { user_id: userId, topic_id: topicId, option_id: optionId }
               ]);
             
             if (insertError) {
@@ -412,7 +458,7 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               const { error: updateError } = await supabase
                 .from('vote_results')
                 .update({ option_id: optionId })
-                .eq('user_id', tempUserId)
+                .eq('user_id', userId)
                 .eq('topic_id', topicId);
               
               if (updateError) {
@@ -478,10 +524,10 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // 투표 주제 업데이트 함수
   const updateVoteTopicHandler = async (vote: Partial<VoteTopic>) => {
     try {
-      setLoading(true);
-      setError(null);
-      setProgress(0);
-      setProgressStatus('업데이트 준비 중...');
+      // setLoading(true);
+      // setError(null);
+      // setProgress(0);
+      // setProgressStatus('업데이트 준비 중...');
      
       // 기존 투표 데이터 찾기
       const existingVote = myVotes.find(v => v.id === vote.id);
@@ -500,23 +546,26 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         visible: vote.visible,
         related_image: vote.related_image,
         options: vote.options?.map(newOpt => {
-          // 기존 옵션 찾기
           const existingOpt = existingVote.options.find(opt => opt.id === newOpt.id);
           return {
-            ...existingOpt, // 기존 데이터 유지
+            ...existingOpt,
             id: newOpt.id || 0,
-            text: newOpt.text, // 새로운 텍스트로 업데이트
+            text: newOpt.text,
+            votes: newOpt.votes || existingOpt?.votes || 0,
             image_url: newOpt.image_url || existingOpt?.image_url || '',
             image_class: newOpt.image_class || existingOpt?.image_class || '',
-            topic_id: Number(vote.id)
+            topic_id: Number(vote.id),
+            gender_stats: newOpt.gender_stats || existingOpt?.gender_stats || { male: 0, female: 0 },
+            region_stats: newOpt.region_stats || existingOpt?.region_stats || {} as VoteOption['region_stats'],
+            age_stats: newOpt.age_stats || existingOpt?.age_stats || {} as VoteOption['age_stats']
           };
         })
       };
       
       await updateVoteTopic(updateData);
       
-      setProgress(60);
-      setProgressStatus('데이터 갱신 중...');
+      // setProgress(60);
+      // setProgressStatus('데이터 갱신 중...');
       
       // 데이터 새로고침
       await fetchVotes();
@@ -527,8 +576,6 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (err) {
       console.error('투표 주제 업데이트 중 오류 발생:', err);
       setError('투표 주제를 업데이트하는 중 오류가 발생했습니다.');
-      setProgress(0);
-      setProgressStatus('');
     } finally {
       setLoading(false);
     }
@@ -545,14 +592,6 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // 투표 삭제 함수 수정
   const deleteTopic = async (topicId: number) => {
     try {
-      setLoading(true);
-      setError(null);
-      setProgress(0);
-      setProgressStatus('삭제 준비 중...');
-
-      // 삭제 시작
-      setProgress(20);
-      setProgressStatus('투표 카드 삭제 중...');
       
       await apiDeleteVoteTopic(topicId);
             
@@ -560,9 +599,6 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setVotes(prevVotes => prevVotes.filter(vote => vote.id !== topicId));
       setMyVotes(prevMyVotes => prevMyVotes.filter(vote => vote.id !== topicId));
       
-      // 관련된 이미지 삭제
-      setProgress(80);
-      setProgressStatus('투표 관련 이미지 삭제 중...');
 
       // 삭제할 투표 주제 찾기
       const targetVote = votes.find(v => v.id === topicId) || myVotes.find(v => v.id === topicId);
@@ -585,13 +621,12 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       setProgress(100);
-      setProgressStatus('삭제 완료');
-      
+      setProgressStatus('삭제 완료');      
+
     } catch (err) {
       console.error('투표를 삭제하는 중 오류 발생:', err);
       setError('투표를 삭제하는 중 오류가 발생했습니다.');
-      setProgress(0);
-      setProgressStatus('');
+
     } finally {
       // 약간의 지연 후 로딩 상태 해제
       setTimeout(() => {
@@ -633,20 +668,19 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  // 사용자 좋아요/싫어요 반응 업데이트 함수
-  const updateUserReaction = async (topicId: number, type: 'like' | 'dislike') => {
+  // 사용자 좋아요 반응 업데이트 함수
+  const updateUserReaction = async (topicId: number) => {
     try {
       // 현재 투표 찾기
       const topic = votes.find(v => v.id === topicId) || myVotes.find(v => v.id === topicId);
       if (!topic) return;
 
       // 현재 반응 상태 가져오기
-      const currentReaction = userReactions.get(topicId) || { liked: false, disliked: false };
+      const currentReaction = userReactions.get(topicId) || { liked: false };
       
-      // 새로운 반응 상태 계산
+      // 새로운 반응 상태 계산 - 좋아요 토글
       const newReaction = {
-        liked: type === 'like' ? !currentReaction.liked : false,
-        disliked: type === 'dislike' ? !currentReaction.disliked : false
+        liked: !currentReaction.liked
       };
 
       // UI 상태 업데이트
@@ -656,18 +690,13 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return newMap;
       });
 
-      // votes와 myVotes에 좋아요/싫어요 업데이트
+      // votes와 myVotes에 좋아요 업데이트
       const updateVoteState = (votes: VoteTopic[]) => {
         return votes.map(vote => {
           if (vote.id === topicId) {
             return {
               ...vote,
-              likes: type === 'like' 
-                ? (newReaction.liked ? vote.likes + 1 : vote.likes - 1)
-                : (currentReaction.liked ? vote.likes - 1 : vote.likes),
-              dislikes: type === 'dislike'
-                ? (newReaction.disliked ? vote.dislikes + 1 : vote.dislikes - 1)
-                : (currentReaction.disliked ? vote.dislikes - 1 : vote.dislikes)
+              likes: newReaction.liked ? vote.likes + 1 : vote.likes - 1
             };
           }
           return vote;
@@ -683,15 +712,10 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  //handleLike와 handleDislike API 함수 호출. DB 업데이트
+  // handleLike API 함수 호출. DB 업데이트
   const handleLike = async (topicId: number) => {
-    await updateUserReaction(topicId, 'like');
-    await incrementLikes(topicId, tempUserId);
-  };
-
-  const handleDislike = async (topicId: number) => {
-    await updateUserReaction(topicId, 'dislike');
-    await incrementDislikes(topicId, tempUserId);
+    await updateUserReaction(topicId);
+    await incrementLikes(topicId, userId);
   };
   
   // 투표 공개(업로드) 함수 수정
@@ -751,7 +775,6 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               today_votes: item.today_votes || 0,
               hourly_votes: item.hourly_votes || 0,
               likes: item.likes || 0,
-              dislikes: item.dislikes || 0,
               comments: item.comments || 0,
               type: item.type || '',
               display_type: item.display_type || 'text',
@@ -765,7 +788,7 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 id: item.users?.id || '',
                 username: item.users?.username || '',
                 email: item.users?.email || '',
-                profile_image: item.users?.profile_image || '',
+                profile_Image: item.users?.profile_Image || '',
                 user_grade: item.users?.user_grade || 0,
                 created_at: item.users?.created_at || '',
                 updated_at: item.users?.updated_at || ''
@@ -836,7 +859,6 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       deleteOption,
       addOption,
       handleLike,
-      handleDislike,
       publishVote,
     setError,
     getRankedVotes: getRankedVotesHandler,
@@ -866,7 +888,6 @@ export const useVoteContext = () => {
   }
   return context;
 }; 
-
 // 아래 미사용 함수들 제거 (이미 주석 처리되어 있음)
 // export const calculatePercentage = ...
 // export const isExpired = ...

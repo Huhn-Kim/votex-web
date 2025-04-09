@@ -3,6 +3,47 @@
 // @supabase.ts @types.ts 위 레퍼런스를 참고해서 supabse library를 사용해서, 투표카드를 생성, 수정, 삭제, 조회하는 기능의 API를 만들어줘.
 
 // 데이터베이스 스키마 기반 타입 정의
+// 뱃지 인터페이스
+export interface Badge {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+  description: string;
+  acquired: boolean;
+  acquiredDate?: string;
+  color: string;
+  level: number;
+}
+
+// 사용자 정보 인터페이스
+export interface UserInfo {
+  id: string;
+  username: string;
+  phone_number: string;
+  email: string; //사용자 ID
+  password: string; //사용자 비밀번호
+  profile_Image: string; //사용자 프로필 이미지
+  gender: string; //사용자 성별
+  region: string; //사용자 지역
+  interests: string; //사용자 관심사
+  birthyear: number; //사용자 생년월일
+  created_at: string; //사용자 가입일
+  updated_at: string;
+  votesCreated: number;
+  votesParticipated: number;
+  total_points: number; // 총 적립포인트
+  monthly_points: number; // 월 적립포인트
+  user_grade: number;
+}
+
+// 구독 회원 인터페이스
+export interface Subscriber {
+  id: string;
+  name: string;
+  profileImage: string;
+  bio: string;
+  isFollowing: boolean;
+}
 
 // 투표 주제 테이블 (vote_topics)
 export interface VoteTopic {
@@ -15,7 +56,6 @@ export interface VoteTopic {
   hourly_votes: number;
   comments: number;
   likes: number;
-  dislikes: number;
   type: string;
   display_type: string;
   created_at: string;
@@ -30,7 +70,7 @@ export interface VoteTopic {
     id: string;
     username: string;
     email: string;
-    profile_image: string;
+    profile_Image: string;
     user_grade: number;
     created_at: string;
     updated_at: string;
@@ -47,6 +87,40 @@ export interface VoteOption {
   votes: number;
   image_class: string;
   image_url: string;
+  gender_stats: {
+    male: number;
+    female: number;
+  };
+  region_stats: {
+    seoul: number;
+    gyeonggi: number;
+    incheon: number;
+    busan: number;
+    daegu: number;
+    daejeon: number;
+    gwangju: number;
+    ulsan: number;
+    sejong: number;
+    gangwon: number;
+    chungnam: number;
+    chungbuk: number;
+    jeonnam: number;
+    jeonbuk: number;
+    gyeongsang: number;
+    gyeongnam: number;
+    jeolla: number;
+    jeju: number;
+  };
+  age_stats: {
+    age10to19: number;
+    age20to29: number;
+    age30to39: number;
+    age40to49: number;
+    age50to59: number;
+    age60to69: number;
+    age70to79: number;
+    age80plus: number;
+  };
 }
 
 // 투표 결과 테이블 (vote_results)
@@ -57,14 +131,6 @@ export interface VoteResult {
   option_id: number;
   created_at: string;
   like_kind: string;  // like, dislike
-}
-
-// 구독 테이블 (subscriptions)
-export interface Subscription {
-  id: number;
-  subscriber_id: string;
-  subscribed_to_id: string;
-  created_at: string;
 }
 
 // createVoteTopic 함수 파라미터 타입
@@ -98,15 +164,45 @@ export interface VoteTopicUpdateData {
   options?: Array<{
     id?: number;
     text: string;
+    topic_id?: number;
+    votes?: number;
     image_url?: string;
     image_class?: string;
+    gender_stats?: { male: number, female: number };
+    region_stats?: {
+      seoul: number;
+      gyeonggi: number;
+      incheon: number;
+      busan: number;
+      daegu: number;
+      daejeon: number;
+      gwangju: number;
+      ulsan: number;
+      sejong: number;
+      gangwon: number;
+      chungnam: number;
+      chungbuk: number;
+      jeonnam: number;
+      jeonbuk: number;
+      gyeongsang: number;
+      gyeongnam: number;
+      jeolla: number;
+      jeju: number;
+    };
+    age_stats: {
+      age10to19: number;
+      age20to29: number;
+      age30to39: number;
+      age40to49: number;
+      age50to59: number;
+      age60to69: number;
+    };
   }>;
 }
 
-// 좋아요/싫어요 상태 타입
+// 사용자 좋아요/싫어요 상태
 export interface ReactionStatus {
   liked: boolean;
-  disliked: boolean;
 }
 
 // 기존 타입 정의에 추가

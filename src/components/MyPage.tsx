@@ -1,77 +1,11 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import styles from "../styles/MyPage.module.css";
 import "../styles/TabStyles.css";
-
-// 뱃지 인터페이스
-interface Badge {
-  id: string;
-  name: string;
-  icon: React.ReactNode;
-  description: string;
-  acquired: boolean;
-  acquiredDate?: string;
-  color: string;
-  level: number;
-}
-
-// 칭호 인터페이스
-interface Title {
-  id: string;
-  name: string;
-  description: string;
-  requiredLevel: number;
-  acquired: boolean;
-  icon: React.ReactNode;
-  color: string;
-  type: 'number' | 'medal' | 'special'; // 숫자, 메달, 특별 아이콘 구분
-}
-
-// 사용자 정보 인터페이스
-interface UserInfo {
-  id: string;
-  name: string;
-  email: string;
-  profileImage: string;
-  bio: string;
-  joinDate: string;
-  votesCreated: number;
-  votesParticipated: number;
-  points: number; // XP를 points로 변경
-  level: number;
-  currentTitle: string;
-  nextLevelPoints: number; // nextLevelXp를 nextLevelPoints로 변경
-}
-
-// 구독 회원 인터페이스
-interface Subscriber {
-  id: string;
-  name: string;
-  profileImage: string;
-  bio: string;
-  isFollowing: boolean;
-}
-
-// 등급별 색상 정의 수정 - 메달 색상을 더 밝게 조정
-const getBadgeColor = (level: number) => {
-  if (level <= 3) {
-    return "#FFFFFF"; // 1-3등급: 흰색
-  } else if (level <= 6) {
-    return "#FFE566"; // 4-6등급: 밝은 노란색
-  } else if (level <= 9) {
-    return "#00FF88"; // 7-9등급: 초록색
-  } else if (level === 10) {
-    return "#FFA07A"; // 동메달: 더 밝은 브론즈 색상
-  } else if (level === 11) {
-    return "#F8F8FF"; // 은메달: 더 밝은 실버 색상
-  } else if (level === 12) {
-    return "#FFDF00"; // 금메달: 더 밝은 골드 색상
-  } else if (level === 13) {
-    return "#00FFFF"; // 다이아몬드: 이전 색상
-  } else if (level === 14) {
-    return "#FFD700"; // 황금왕관: 이전 색상
-  }
-  return "#FFFFFF";
-};
+import { UserInfo, Badge, Subscriber } from '../lib/types';
+import supabase from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+import { FaHeart, FaRegHeart } from 'react-icons/fa';
 
 // 숫자 아이콘 컴포넌트 수정 - 크기 증가
 const NumberIcon = ({ number, color = "#FFFFFF", size = 32 }: { number: number; color?: string; size?: number }) => (
@@ -174,6 +108,46 @@ const CrownIcon = ({ color = "#FFD700", size = 32 }: { color?: string; size?: nu
   </svg>
 );
 
+// 등급별 색상 정의 수정 - 메달 색상을 더 밝게 조정
+const getBadgeColor = (level: number) => {
+  if (level <= 3) {
+    return "#FFFFFF"; // 1-3등급: 흰색
+  } else if (level <= 6) {
+    return "#FFE566"; // 4-6등급: 밝은 노란색
+  } else if (level <= 9) {
+    return "#00FF88"; // 7-9등급: 초록색
+  } else if (level === 10) {
+    return "#FFA07A"; // 동메달: 더 밝은 브론즈 색상
+  } else if (level === 11) {
+    return "#F8F8FF"; // 은메달: 더 밝은 실버 색상
+  } else if (level === 12) {
+    return "#FFDF00"; // 금메달: 더 밝은 골드 색상
+  } else if (level === 13) {
+    return "#00FFFF"; // 다이아몬드: 이전 색상
+  } else if (level === 14) {
+    return "#FFD700"; // 황금왕관: 이전 색상
+  }
+  return "#FFFFFF";
+};
+
+// 뱃지 정보를 가져오는 함수 수정
+const getGradeLevel = (level: number) => {
+  if (level <= 9) {
+    return level * 1000;
+  } else if (level === 10) {
+    return 2000;
+  } else if (level === 11) {
+    return 4000;
+  } else if (level === 12) {
+    return 6000;
+  } else if (level === 13) {
+    return 8000;
+  } else if (level === 14) {
+    return 10000;
+  }
+  return 0; // 기본값 추가
+};
+
 // 뱃지 정보를 가져오는 함수 수정
 const getBadgeInfo = (level: number) => {
   const color = getBadgeColor(level);
@@ -214,22 +188,68 @@ const getBadgeIcon = (level: number, size = 32) => {
   }
 };
 
+// 기본 아바타 컴포넌트 수정
+const DefaultAvatar = () => (
+  <div className="default-profile-icon">
+    <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="#ffffff"/>
+    </svg>
+  </div>
+);
+
+// 일주일 간의 투표 활동 데이터 타입 정의
+type WeeklyActivity = {
+  date: string;
+  votesCreated: number;
+  votesParticipated: number;
+};
+
+// 바 그래프 컴포넌트
+const BarChart = ({ data, maxValue }: { data: WeeklyActivity[], maxValue: number }) => {
+  const getDayLabel = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ko-KR', { weekday: 'short' }).replace('요일', '');
+  };
+
+  return (
+    <div className={styles.barChartContainer}>
+      {data.map((day, index) => (
+        <div key={index} className={styles.barChartColumn}>
+          <div className={styles.barChartBars}>
+            <div 
+              className={`${styles.barChartBar} ${styles.barCreated}`} 
+              style={{ 
+                height: `${maxValue ? (day.votesCreated / maxValue) * 100 : 0}%`,
+              }}
+            >
+              <span className={styles.barTooltip}>{day.votesCreated}개 생성</span>
+            </div>
+            <div 
+              className={`${styles.barChartBar} ${styles.barParticipated}`} 
+              style={{ 
+                height: `${maxValue ? (day.votesParticipated / maxValue) * 100 : 0}%`,
+              }}
+            >
+              <span className={styles.barTooltip}>{day.votesParticipated}개 참여</span>
+            </div>
+          </div>
+          <div className={styles.barChartLabel}>{getDayLabel(day.date)}</div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default function MyPage() {
-  // 사용자 정보 상태
-  const [userInfo, setUserInfo] = useState<UserInfo>({
-    id: "user123",
-    name: "헌왕",
-    email: "user@example.com",
-    profileImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop",
-    bio: "안녕하세요! 투표 앱을 즐겨 사용하고 있습니다.",
-    joinDate: "2023년 5월 15일",
-    votesCreated: 12,
-    votesParticipated: 48,
-    points: 0,
-    level: 2,
-    currentTitle: "2등급",
-    nextLevelPoints: 2000,
-  });
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // 최근 일주일 간의 투표 활동 데이터
+  const [weeklyActivity, setWeeklyActivity] = useState<WeeklyActivity[]>([]);
+  const [maxActivityValue, setMaxActivityValue] = useState<number>(0);
 
   // 뱃지 상태
   const [badges, setBadges] = useState<Badge[]>([
@@ -301,33 +321,11 @@ export default function MyPage() {
     }
   ]);
 
-  // 칭호 상태
-  const [titles, setTitles] = useState<Title[]>([
-    {
-      id: "level1",
-      name: "1등급",
-      description: "첫 번째 투표나 카드를 올리면 획득",
-      requiredLevel: 1,
-      acquired: true,
-      icon: getBadgeIcon(1),
-      color: "#FFFFFF",
-      type: 'number'
-    },
-    {
-      id: "level2",
-      name: "2등급",
-      description: "일정 횟수의 활동 달성 시 획득",
-      requiredLevel: 2,
-      acquired: true,
-      icon: getBadgeIcon(2),
-      color: "#FFFFFF",
-      type: 'number'
-    },
-    // ... 나머지 등급들도 같은 방식으로 추가
-  ]);
-
   // 구독 회원 상태
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+  
+  // 팔로잉 회원 상태 추가
+  const [following, setFollowing] = useState<Subscriber[]>([]);
   
   // 설정 상태
   const [settings, setSettings] = useState({
@@ -336,10 +334,6 @@ export default function MyPage() {
     darkMode: true,
     privateProfile: false,
   });
-
-  // 편집 모드 상태
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedInfo, setEditedInfo] = useState({ ...userInfo });
 
   // 활성 탭 상태
   const [activeTab, setActiveTab] = useState("profile");
@@ -353,7 +347,37 @@ export default function MyPage() {
     badge: null
   });
 
-  // useEffect 수정 - 스타일 관련 코드 제거
+  // 사용자 정보 가져오기
+  useEffect(() => {
+    const loadUserInfo = async () => {
+      if (!user) {
+        setUserInfo(null);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        console.log('MyPage: 사용자 정보 로드 중', user);
+        
+        // 사용자 정보가 이미 있는 경우
+        if (user.id && user.id !== 'guest') {
+          setUserInfo(user);
+          console.log('MyPage: 사용자 정보 설정 완료', user);
+        } else {
+          console.log('MyPage: 유효한 사용자 정보가 없음');
+          setUserInfo(null);
+        }
+      } catch (err) {
+        setError('사용자 정보를 불러오는데 실패했습니다.');
+        console.error('Error fetching user info:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUserInfo();
+  }, [user]);
+
   useEffect(() => {
     // 구독 회원 데이터 가져오기
     const sampleSubscribers = Array.from({ length: 10 }, (_, index) => ({
@@ -365,155 +389,109 @@ export default function MyPage() {
     }));
     
     setSubscribers(sampleSubscribers);
-  }, []);
-
-  // 포인트 획득 함수 (earnXP를 earnPoints로 변경)
-  const earnPoints = (amount: number) => {
-    // 현재 포인트와 레벨 가져오기
-    const currentPoints = userInfo.points;
-    const currentLevel = userInfo.level;
-    const newPoints = currentPoints + amount;
     
-    // 레벨업 체크
-    const { newLevel, nextLevelPoints } = checkLevelUp(newPoints, currentLevel);
-    
-    // 사용자 정보 업데이트
-    setUserInfo(prev => ({
-      ...prev,
-      points: newPoints,
-      level: newLevel,
-      nextLevelPoints: nextLevelPoints
+    // 팔로잉 데이터 가져오기
+    const sampleFollowing = Array.from({ length: 8 }, (_, index) => ({
+      id: `following${index + 1}`,
+      name: `팔로잉 ${index + 1}`,
+      profileImage: `https://randomuser.me/api/portraits/${index % 2 ? 'men' : 'women'}/${index + 30}.jpg`,
+      bio: `팔로잉 ${index + 1}의 간단한 소개입니다.`,
+      isFollowing: true,
     }));
     
-    // 레벨업 시 칭호 업데이트
-    if (newLevel > currentLevel) {
-      updateTitle(newLevel);
-    }
+    setFollowing(sampleFollowing);
+  }, []);
+
+  // 포인트 획득 함수
+  const earnPoints = (points: number) => {
+    if (!userInfo) return;
     
-    // 뱃지 획득 체크
-    checkBadgeAchievements(newPoints, userInfo.votesCreated, userInfo.votesParticipated);
-  };
-  
-  // 레벨업 체크 함수
-  const checkLevelUp = (points: number, currentLevel: number) => {
-    // 레벨별 필요 포인트 (간단한 예시)
-    const levelThresholds = [
-      0,      // 레벨 0 (사용하지 않음)
-      500,    // 레벨 1
-      2000,   // 레벨 2
-      5000,   // 레벨 3
-      10000   // 레벨 4
-    ];
-    
-    let newLevel = currentLevel;
-    
-    // 현재 포인트가 다음 레벨 임계값을 넘었는지 확인
-    while (newLevel < levelThresholds.length - 1 && points >= levelThresholds[newLevel + 1]) {
-      newLevel++;
-    }
-    
-    // 다음 레벨 포인트 계산
-    const nextLevelPoints = newLevel < levelThresholds.length - 1 
-      ? levelThresholds[newLevel + 1] 
-      : levelThresholds[newLevel] + 5000; // 최대 레벨 이후 5000씩 증가
-    
-    return { newLevel, nextLevelPoints };
-  };
-  
-  // 칭호 업데이트 함수
-  const updateTitle = (newLevel: number) => {
-    // 레벨에 맞는 칭호 찾기
-    const newTitle = titles.find(title => title.requiredLevel === newLevel);
-    
-    if (newTitle) {
-      // 칭호 획득 상태 업데이트
-      setTitles(prev => prev.map(title => 
-        title.id === newTitle.id 
-          ? { ...title, acquired: true } 
-          : title
-      ));
-      
-      // 뱃지도 함께 업데이트 (칭호와 뱃지는 동일한 개념)
-      setBadges(prev => prev.map(badge => 
-        badge.id === newTitle.id 
-          ? { ...badge, acquired: true, acquiredDate: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).replace(/\./g, '년').replace(/\s/g, ' ') + '일' } 
-          : badge
-      ));
-      
-      // 현재 칭호 업데이트
-      setUserInfo(prev => ({
-        ...prev,
-        currentTitle: newTitle.name
-      }));
-    }
-  };
-  
-  // 뱃지 획득 체크 함수
-  const checkBadgeAchievements = (_points: number, _votesCreated: number, _votesParticipated: number) => {
-    // 현재 updateTitle 함수에서 뱃지 업데이트를 처리하므로 이 함수에서는 실제 로직을 수행하지 않음
-    // 변수명 앞에 언더스코어를 추가하여 의도적으로 사용하지 않는 매개변수임을 표시
-    const unlockedBadges: Badge[] = [];
-    
-    // 뱃지 획득 조건 체크 및 업데이트
-    const updatedBadges = badges.map(badge => {
-      // 이미 획득한 뱃지는 건너뛰기
-      if (badge.acquired) return badge;
-      
-      let shouldUnlock = false;
-      
-      // 뱃지별 획득 조건 (레벨 기반 뱃지는 updateTitle에서 처리하므로 여기서는 제외)
-      switch (badge.id) {
-        case "level1":
-          // 첫 활동 시 획득 (레벨 1에 해당)
-          // updateTitle에서 처리하므로 여기서는 처리하지 않음
-          break;
-        case "level2":
-          // 50번 이상 활동 시 획득 (레벨 2에 해당)
-          // updateTitle에서 처리하므로 여기서는 처리하지 않음
-          break;
-        case "level3":
-          // 5000 XP 이상 획득 시 (레벨 3에 해당)
-          // updateTitle에서 처리하므로 여기서는 처리하지 않음
-          break;
-        // 여기에 레벨과 관계없는 다른 뱃지 조건을 추가할 수 있음
-      }
-      
-      if (shouldUnlock) {
-        const today = new Date();
-        const acquiredDate = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
-        const unlockedBadge = { ...badge, acquired: true, acquiredDate };
-        unlockedBadges.push(unlockedBadge);
-        return unlockedBadge;
-      }
-      
-      return badge;
+    const newPoints = userInfo.total_points + points;
+    setUserInfo({
+      ...userInfo,
+      total_points: newPoints
     });
+  };
     
-    // 새로 획득한 뱃지가 있으면 상태 업데이트 및 알림 표시
-    if (unlockedBadges.length > 0) {
-      setBadges(updatedBadges);
-      
-      // 가장 높은 레벨의 뱃지 알림 표시
-      const highestBadge = unlockedBadges.reduce((prev, current) => {
-        const prevIndex = badges.findIndex(b => b.id === prev.id);
-        const currentIndex = badges.findIndex(b => b.id === current.id);
-        return prevIndex > currentIndex ? prev : current;
-      }, unlockedBadges[0]);
-      
-      setBadgeNotification({
-        show: true,
-        badge: highestBadge
-      });
-      
-      // 3초 후 알림 숨기기
-      setTimeout(() => {
-        setBadgeNotification({
-          show: false,
-          badge: null
+  // 등급 업데이트 함수
+  const updateTitle = async () => {
+    // 현재 사용자 정보가 없으면 함수 종료
+    if (!userInfo) return;
+    
+    // 현재 레벨
+    const currentLevel = userInfo.user_grade;
+        
+    // 다음 레벨에 필요한 포인트
+    const nextLevelPoints = getGradeLevel(currentLevel + 1);
+    
+    // 사용자의 현재 포인트
+    const userPoints = userInfo.total_points;
+    
+    // 사용자의 포인트가 다음 레벨에 필요한 포인트 이상이면 레벨 업그레이드
+    if (userPoints >= nextLevelPoints && currentLevel < 14) {
+      try {
+        // 현재 시간을 ISO 문자열로 변환
+        const updatedAt = new Date().toISOString();
+        
+        // Supabase users 테이블 업데이트
+        const { error } = await supabase
+          .from('users')
+          .update({
+            user_grade: currentLevel + 1,
+            updated_at: updatedAt
+          })
+          .eq('id', userInfo.id);
+        
+        if (error) {
+          console.error('Error updating user grade:', error);
+          return;
+        }
+        
+        // 뱃지 업데이트
+        setBadges(prev => prev.map(badge => 
+          badge.level === currentLevel + 1
+            ? { ...badge, acquired: true, acquiredDate: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).replace(/\./g, '년').replace(/\s/g, ' ') + '일' } 
+            : badge
+        ));
+        
+        // 사용자 등급 업데이트
+        setUserInfo(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            user_grade: currentLevel + 1,
+            updated_at: updatedAt
+          };
         });
-      }, 3000);
+        
+        // 레벨 업 알림 표시
+        setBadgeNotification({
+          show: true,
+          badge: {
+            id: `level${currentLevel + 1}`,
+            name: getBadgeInfo(currentLevel + 1).name,
+            icon: getBadgeIcon(currentLevel + 1),
+            description: `${currentLevel + 1}등급 달성`,
+            acquired: true,
+            acquiredDate: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }).replace(/\./g, '년').replace(/\s/g, ' ') + '일',
+            color: getBadgeColor(currentLevel + 1),
+            level: currentLevel + 1
+          }
+        });
+        
+        // 2초 후 알림 숨기기
+        setTimeout(() => {
+          setBadgeNotification({
+            show: false,
+            badge: null
+          });
+        }, 2000);
+      } catch (error) {
+        console.error('Error in updateTitle:', error);
+      }
     }
   };
+  
 
   // 설정 변경 핸들러
   const handleSettingChange = (setting: keyof typeof settings) => {
@@ -523,29 +501,25 @@ export default function MyPage() {
     });
   };
 
-  // 프로필 편집 시작
-  const handleEditStart = () => {
-    setIsEditing(true);
-    setEditedInfo({ ...userInfo });
-  };
-
-  // 편집 필드 변경 핸들러
-  const handleEditChange = (field: keyof UserInfo, value: string) => {
-    setEditedInfo({
-      ...editedInfo,
-      [field]: value,
-    });
-  };
-
-  // 구독 상태 변경 핸들러
-  const handleFollowToggle = (subscriberId: string) => {
-    setSubscribers(
-      subscribers.map((sub) =>
-        sub.id === subscriberId
-          ? { ...sub, isFollowing: !sub.isFollowing }
-          : sub
-      )
-    );
+  // 구독 상태 변경 핸들러 수정
+  const handleFollowToggle = (userId: string, isFollowingTab: boolean = false) => {
+    if (isFollowingTab) {
+      setFollowing(
+        following.map((user) =>
+          user.id === userId
+            ? { ...user, isFollowing: !user.isFollowing }
+            : user
+        )
+      );
+    } else {
+      setSubscribers(
+        subscribers.map((sub) =>
+          sub.id === userId
+            ? { ...sub, isFollowing: !sub.isFollowing }
+            : sub
+        )
+      );
+    }
     // 실제로는 여기서 API 호출하여 서버에 저장
   };
 
@@ -554,13 +528,14 @@ export default function MyPage() {
     setActiveTab(tab);
   };
 
-  // 포인트 진행률 계산 (calculateXpProgress를 calculatePointsProgress로 변경)
+  // 포인트 진행률 계산
   const calculatePointsProgress = () => {
-    const currentPoints = userInfo.points;
-    const nextLevelPoints = userInfo.nextLevelPoints;
-    const prevLevelPoints = nextLevelPoints - 1000; // 간단한 예시, 실제로는 레벨별 필요 포인트 계산 로직 필요
+    if (!userInfo) return 0;
     
-    return Math.floor(((currentPoints - prevLevelPoints) / (nextLevelPoints - prevLevelPoints)) * 100);
+    const currentPoints = userInfo.total_points;
+    // const monthlyPoints = userInfo.monthly_points;
+    
+    return Math.floor(((getGradeLevel(userInfo.user_grade) - currentPoints) / 2000) * 100);
   };
 
   // HEX 색상을 RGB로 변환하는 유틸리티 함수
@@ -581,53 +556,159 @@ export default function MyPage() {
     return `${r}, ${g}, ${b}`;
   };
 
-  // 테스트 버튼 섹션 수정
+  // 테스트 버튼 렌더링 함수
   const renderTestButtons = () => (
     <div className={styles.testButtons}>
       <button 
         className={styles.testButton}
-        onClick={() => earnPoints(50)} // 투표 생성 시 포인트 획득
+        onClick={() => earnPoints(50)}
       >
         투표 생성 (+50P)
       </button>
       <button 
         className={styles.testButton}
-        onClick={() => earnPoints(30)} // 투표 참여 시 포인트 획득
+        onClick={() => earnPoints(30)}
       >
         투표 참여 (+30P)
       </button>
       <button 
         className={styles.testButton}
-        onClick={() => earnPoints(20)} // 획득 투표 시 포인트 획득
+        onClick={() => earnPoints(20)}
       >
         획득 투표 (+20P)
       </button>
       <button 
         className={styles.testButton}
-        onClick={() => earnPoints(100)} // 친구 추천 시 포인트 획득
+        onClick={() => earnPoints(100)}
       >
         친구 추천 (+100P)
       </button>
       <button 
         className={styles.testButton}
-        onClick={() => earnPoints(200)} // AI 분석 시 포인트 획득
+        onClick={() => earnPoints(200)}
       >
         AI 분석 (+200P)
       </button>
       <button 
         className={styles.testButton}
-        onClick={() => earnPoints(150)} // AI 투표 추천 시 포인트 획득
+        onClick={() => earnPoints(150)}
       >
         AI 투표 추천 (+150P)
       </button>
       <button 
         className={styles.testButton}
-        onClick={() => earnPoints(100)} // 끌어올리기 시 포인트 획득
+        onClick={() => earnPoints(100)}
       >
         끌어올리기 (+100P)
       </button>
     </div>
   );
+
+  // 로그인 핸들러 추가
+  const handleLogin = () => {
+    navigate('/auth');
+  };
+
+  // 회원가입 핸들러 추가
+  const handleSignup = () => {
+    navigate('/signup');
+  };
+
+  // 로그아웃 핸들러
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/mypage');
+    } catch (err) {
+      console.error('Error signing out:', err);
+    }
+  };
+
+  // MyPage 컴포넌트 내부에 useEffect 추가
+  useEffect(() => {
+    // 사용자 정보가 있을 때만 updateTitle 함수 호출
+    if (userInfo) {
+      updateTitle();
+    }
+  }, [userInfo]); // userInfo가 변경될 때마다 useEffect 실행
+
+  // 최근 일주일 간의 투표 활동 데이터 생성
+  useEffect(() => {
+    if (userInfo) {
+      // 실제 구현에서는 API로 데이터를 가져오지만, 여기서는 예시 데이터 생성
+      const today = new Date();
+      const weeklyData: WeeklyActivity[] = [];
+      
+      // 최근 7일 데이터 생성 (오늘 포함)
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(today.getDate() - i);
+        
+        // 실제 구현에서는 API를 통해 날짜별 데이터를 가져와야 함
+        // 여기서는 사용자 정보를 기반으로 한 가상 데이터 생성
+        const baseCreated = userInfo.id === "guest" ? 0 : Math.floor(userInfo.votesCreated / 30);
+        const baseParticipated = userInfo.id === "guest" ? 0 : Math.floor(userInfo.votesParticipated / 30);
+        
+        // 주말(토,일)에는 더 많은 활동을 한다고 가정
+        const dayOfWeek = date.getDay(); // 0: 일요일, 6: 토요일
+        const weekendMultiplier = (dayOfWeek === 0 || dayOfWeek === 6) ? 1.5 : 1;
+        
+        // 각 날짜별 랜덤 활동 생성 (현실적인 패턴으로)
+        const createdCount = userInfo.id === "guest" ? 0 : 
+          Math.floor((baseCreated + Math.random() * 3) * weekendMultiplier);
+        const participatedCount = userInfo.id === "guest" ? 0 : 
+          Math.floor((baseParticipated + Math.random() * 5) * weekendMultiplier);
+        
+        weeklyData.push({
+          date: date.toISOString(),
+          votesCreated: createdCount,
+          votesParticipated: participatedCount
+        });
+      }
+      
+      setWeeklyActivity(weeklyData);
+      
+      // 최댓값 계산 (차트 스케일링용)
+      const maxValue = Math.max(
+        ...weeklyData.map(day => Math.max(day.votesCreated, day.votesParticipated)),
+        1  // 최소값 1 설정 (0으로 나누기 방지)
+      );
+      
+      setMaxActivityValue(maxValue);
+    }
+  }, [userInfo]);
+
+  if (isLoading) {
+    return <div className="loading">로딩 중...</div>;
+  }
+
+  if (error) {
+    return <div className="error">{error}</div>;
+  }
+
+  // 게스트 사용자 정보 생성 부분 수정
+  const guestUserInfo: UserInfo = {
+    id: "guest",
+    email: "guest@example.com",
+    username: "게스트",
+    profile_Image: "",
+    gender: "게스트 사용자입니다.",
+    user_grade: 0,
+    total_points: 0,
+    monthly_points: 1000, // 목표 포인트 표시를 위해 추가
+    votesCreated: 0,
+    votesParticipated: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    phone_number: "",
+    password: "",
+    region: "",
+    interests: "",
+    birthyear: 0
+  };
+
+  // 현재 사용자 정보 (로그인 상태가 아니면 게스트 정보 사용)
+  const currentUserInfo = userInfo || guestUserInfo;
 
   return (
     <div className="my-votes-container">
@@ -646,6 +727,132 @@ export default function MyPage() {
         </div>
       )}
       
+      {/* 상단 사용자 정보 영역 */}
+      <div className={styles.userHeader}>
+        <div className={styles.userInfoContainer}>
+          {/* 사용자 프로필 섹션과 레벨 정보를 가로로 배치 */}
+          <div className={styles.userProfileRow}>
+            {/* 사용자 이미지, 이름, 등급 영역 */}
+            <div className={styles.userProfileSection}>
+              <div className={styles.profileFlexContainer}>
+                <div className={styles.userAvatar}>
+                  <div className="user-profile-image">
+                    {currentUserInfo.profile_Image && currentUserInfo.profile_Image !== "" ? (
+                      <img 
+                        src={currentUserInfo.profile_Image} 
+                        alt="프로필 이미지" 
+                        className="profile-image"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          // 에러 발생 시 대체 아이콘 표시
+                          (e.currentTarget.parentNode as HTMLElement).classList.add('default-profile-icon');
+                        }}
+                      />
+                    ) : (
+                      <DefaultAvatar />
+                    )}
+                  </div>
+                </div>
+                
+                <div className={styles.userNameContainer}>
+                  <h2 className={styles.userName}>{currentUserInfo.username}</h2>
+                  
+                  {currentUserInfo.id !== "guest" && (
+                    <div className={styles.titleBadge} style={{ 
+                      backgroundColor: `rgba(${hexToRgb(getBadgeColor(currentUserInfo.user_grade))}, 0.15)`, 
+                      borderColor: `rgba(${hexToRgb(getBadgeColor(currentUserInfo.user_grade))}, 0.3)`,
+                      alignSelf: 'flex-start'
+                    }}>
+                      <span className={styles.titleIcon}>
+                        {getBadgeIcon(currentUserInfo.user_grade, 18)}
+                      </span>
+                      <span className={styles.titleText} style={{ 
+                        color: getBadgeColor(currentUserInfo.user_grade) 
+                      }}>
+                        {getBadgeInfo(currentUserInfo.user_grade).name}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* 레벨 정보 영역 - 우측에 배치 */}
+            <div className={styles.userInfoRight}>
+              <div className={styles.levelInfo}>
+                <div className={styles.levelHeader}>
+                  <span className={styles.levelLabel} style={{ color: getBadgeColor(currentUserInfo.user_grade) }}>
+                    레벨 {currentUserInfo.user_grade}
+                  </span>
+                </div>
+                <div className={styles.pointsInfoRow}>
+                  <span className={styles.pointsLabel}>적립</span>
+                  <span className={styles.pointsValue}>{currentUserInfo.total_points} / {currentUserInfo.monthly_points} P</span>
+                </div>
+                <div className={styles.pointsProgressContainer}>
+                  <div 
+                    className={styles.pointsProgressBar} 
+                    style={{ 
+                      width: `${calculatePointsProgress()}%`,
+                      backgroundColor: getBadgeColor(currentUserInfo.user_grade)
+                    }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* 이메일과 가입일, 로그인/로그아웃 버튼을 가로로 배치 */}
+          <div className={styles.userInfoFooter}>
+            {/* 이메일과 가입일 영역 */}
+            <div className={styles.userContactSection}>
+              <div className={styles.userContactInfo}>
+                <p className={styles.userEmail}>{currentUserInfo.email}</p>
+                <p className={styles.userJoinDate}>
+                  {currentUserInfo.id === "guest" ? 
+                    "게스트로 접속 중" :
+                    `가입일: ${new Date(currentUserInfo.created_at).toLocaleDateString('ko-KR', { 
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}`
+                  }
+                </p>
+              </div>
+            </div>
+
+            {/* 로그아웃 버튼 영역 */}
+            {currentUserInfo.id !== "guest" ? (
+              <div className={styles.logoutButtonContainer}>
+                <button 
+                  className={styles.logoutButton}
+                  onClick={handleSignOut}
+                >
+                  로그아웃
+                </button>
+              </div>
+            ) : (
+              <div className={styles.guestActions}>
+                <button 
+                  className={styles.loginButton}
+                  onClick={handleLogin}
+                >
+                  로그인
+                </button>
+                <button 
+                  className={styles.signupButton}
+                  onClick={handleSignup}
+                >
+                  회원가입
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+           
+
       <div className="vote-tabs">
         <div className="tab-list">
           <button 
@@ -655,22 +862,28 @@ export default function MyPage() {
             프로필
           </button>
           <button 
-            className={`tab-button ${activeTab === "settings" ? 'active' : ''}`}
-            onClick={() => handleTabChange("settings")}
+            className={`tab-button ${activeTab === "badges" ? 'active' : ''}`}
+            onClick={() => handleTabChange("badges")}
           >
-            설정
+            등급
           </button>
           <button 
             className={`tab-button ${activeTab === "subscribers" ? 'active' : ''}`}
             onClick={() => handleTabChange("subscribers")}
           >
-            구독 회원
+            팔로워
           </button>
           <button 
-            className={`tab-button ${activeTab === "badges" ? 'active' : ''}`}
-            onClick={() => handleTabChange("badges")}
+            className={`tab-button ${activeTab === "following" ? 'active' : ''}`}
+            onClick={() => handleTabChange("following")}
           >
-            나의 등급
+            팔로잉
+          </button>
+          <button 
+            className={`tab-button ${activeTab === "settings" ? 'active' : ''}`}
+            onClick={() => handleTabChange("settings")}
+          >
+            설정
           </button>
         </div>
       </div>
@@ -680,124 +893,139 @@ export default function MyPage() {
         {/* 프로필 탭 */}
         {activeTab === "profile" && (
           <div className={styles.tabContent}>
-            <div className={styles.card}>
-              <div className={styles.profileContainer}>
-                <div className={styles.profileHeader}>
-                  <div className={styles.profileAvatar}>
-                    <img src={userInfo.profileImage} alt="프로필 이미지" />
-                  </div>
-                  <div className={styles.profileInfo}>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editedInfo.name}
-                        onChange={(e) => handleEditChange("name", e.target.value)}
-                        className={styles.editInput}
-                      />
-                    ) : (
-                      <div className={styles.profileNameContainer}>
-                        <h2 className={styles.profileName}>{userInfo.name}</h2>
-                        <div className={styles.titleBadge} style={{ 
-                          backgroundColor: `rgba(${hexToRgb(titles.find(t => t.name === userInfo.currentTitle)?.color || "#3a8eff")}, 0.15)`, 
-                          borderColor: `rgba(${hexToRgb(titles.find(t => t.name === userInfo.currentTitle)?.color || "#3a8eff")}, 0.3)` 
-                        }}>
-                          <span className={styles.titleIcon}>
-                            {titles.find(t => t.name === userInfo.currentTitle)?.icon}
-                          </span>
-                          <span className={styles.titleText} style={{ 
-                            color: titles.find(t => t.name === userInfo.currentTitle)?.color 
-                          }}>
-                            {userInfo.currentTitle}
-                          </span>
-                        </div>
+            <div className={styles.profileContainer}>
+              <div className={styles.profileStatsCompact}>
+                <div className={styles.statItemCompact}>
+                  <span className={styles.statLabel}>생성한 투표</span>
+                  <span className={styles.statValue}>{currentUserInfo.votesCreated}</span>
+                </div>
+                <div className={styles.statItemCompact}>
+                  <span className={styles.statLabel}>참여한 투표</span>
+                  <span className={styles.statValue}>{currentUserInfo.votesParticipated}</span>
+                </div>
+              </div>
+              
+              {/* 주간 투표 활동 그래프 추가 */}
+              <div className={styles.weeklyActivitySection}>
+                <h3>최근 일주일 활동</h3>
+                {currentUserInfo.id !== "guest" ? (
+                  <div className={styles.weeklyActivityChart}>
+                    <div className={styles.chartLegend}>
+                      <div className={styles.legendItem}>
+                        <div className={`${styles.legendColor} ${styles.createdColor}`}></div>
+                        <span>생성한 투표</span>
                       </div>
-                    )}
-                    <div className={styles.profileContact}>
-                      <p className={styles.profileEmail}>{userInfo.email}</p>
-                      <p className={styles.profileJoinDate}>가입일: {userInfo.joinDate}</p>
-                    </div>
-                    
-                    {/* 레벨 및 포인트 정보 */}
-                    <div className={styles.levelInfo}>
-                      <div className={styles.levelHeader}>
-                        <span className={styles.levelLabel}>레벨 {userInfo.level}</span>
-                        <span className={styles.pointsValue}>{userInfo.points} / {userInfo.nextLevelPoints} P</span>
-                      </div>
-                      <div className={styles.pointsProgressContainer}>
-                        <div 
-                          className={styles.pointsProgressBar} 
-                          style={{ width: `${calculatePointsProgress()}%` }}
-                        ></div>
+                      <div className={styles.legendItem}>
+                        <div className={`${styles.legendColor} ${styles.participatedColor}`}></div>
+                        <span>참여한 투표</span>
                       </div>
                     </div>
+                    <BarChart data={weeklyActivity} maxValue={maxActivityValue} />
+                    <div className={styles.chartFooter}>
+                      <p className={styles.chartNote}>
+                        {weeklyActivity.reduce((sum, day) => sum + day.votesCreated, 0)}개 생성 / {weeklyActivity.reduce((sum, day) => sum + day.votesParticipated, 0)}개 참여
+                      </p>
+                    </div>
                   </div>
-                </div>
-                
-                <div className={styles.profileBio}>
-                  <h3>소개</h3>
-                  {isEditing ? (
-                    <textarea
-                      value={editedInfo.bio}
-                      onChange={(e) => handleEditChange("bio", e.target.value)}
-                      className={styles.editTextarea}
-                    />
-                  ) : (
-                    <p>{userInfo.bio}</p>
-                  )}
-                </div>
-                
-                <div className={styles.profileStatsCompact}>
-                  <div className={styles.statItemCompact}>
-                    <span className={styles.statLabel}>생성한 투표</span>
-                    <span className={styles.statValue}>{userInfo.votesCreated}</span>
+                ) : (
+                  <div className={styles.guestChartPlaceholder}>
+                    <p>로그인하여 활동 통계를 확인하세요</p>
                   </div>
-                  <div className={styles.statItemCompact}>
-                    <span className={styles.statLabel}>참여한 투표</span>
-                    <span className={styles.statValue}>{userInfo.votesParticipated}</span>
-                  </div>
-                </div>
-                
-                {/* 최근 획득한 등급 */}
+                )}
+              </div>
+              
+              {/* 최근 획득한 등급과 적립금 정보 */}
+              <div className={styles.profileInfoRow}>
                 <div className={styles.recentBadges}>
                   <h3>최근 획득한 등급</h3>
                   <div className={styles.badgesList}>
-                    {badges.filter(badge => badge.acquired).slice(0, 3).map(badge => (
-                      <div key={badge.id} className={styles.badgeItem}>
-                        <div className={styles.badgeIcon} style={{ color: badge.color }}>
-                          {badge.icon}
+                    <div className={styles.badgeItem}>
+                      <div className={styles.recentBadgeContent}>
+                        <div className={styles.badgeIcon} data-level={currentUserInfo.user_grade}>
+                          {getBadgeIcon(currentUserInfo.user_grade)}
                         </div>
                         <div className={styles.badgeInfo}>
-                          <span className={styles.badgeName}>{badge.name}</span>
-                          <span className={styles.badgeDate}>{badge.acquiredDate}</span>
+                          <div className={styles.badgeName}>{getBadgeInfo(currentUserInfo.user_grade).name}</div>
+                          <div className={styles.badgeDate}>
+                            {currentUserInfo.id === "guest" ? 
+                              "로그인하여 등급을 획득하세요" :
+                              `획득일: ${new Date(currentUserInfo.updated_at).toLocaleDateString('ko-KR', { 
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}`
+                            }
+                          </div>
                         </div>
                       </div>
-                    ))}
-                    <button 
-                      className={styles.viewAllBadgesButton}
-                      onClick={() => handleTabChange("badges")}
-                    >
-                      모든 등급 보기
-                    </button>
-                    <button onClick={handleEditStart} className={styles.editButton}>프로필 편집</button>
+                    </div>
                   </div>
                 </div>
                 
-                {/* 적립금 정보 추가 */}
-                <div className={styles.pointsInfo}>
+                <div className={styles.pointsInfoCard}>
                   <h3>적립금</h3>
                   <div className={styles.pointsValue}>
-                    {userInfo.points} P
+                    {currentUserInfo.total_points} P
                   </div>
-                  {userInfo.level >= 10 && (
-                    <div className={styles.pointsRate}>
-                      예상 배당율: {Math.min(userInfo.level - 9, 5)}%
-                    </div>
-                  )}
+                  <div className={styles.pointsDescription}>
+                    {currentUserInfo.id === "guest" ? 
+                      "로그인하여 포인트를 적립하세요" :
+                      currentUserInfo.user_grade >= 10 && 
+                        <div className={styles.pointsRate}>
+                          예상 배당율: {Math.min(currentUserInfo.user_grade - 9, 5)}%
+                        </div>
+                    }
+                  </div>
                 </div>
-                
-                {/* 테스트 버튼 섹션 */}
-                {renderTestButtons()}
               </div>
+              
+              {/* 게스트 사용자 안내 메시지 개선 */}
+              {currentUserInfo.id === "guest" && (
+                <div className={styles.guestInfo}>
+                  <div className={styles.guestInfoHeader}>
+                    <h3>🎉 VoteY의 더 많은 기능을 이용해보세요!</h3>
+                    <p className={styles.guestInfoSubtitle}>
+                      로그인하시면 다음과 같은 특별한 기능들을 이용하실 수 있습니다
+                    </p>
+                  </div>
+                  <div className={styles.guestFeatureGrid}>
+                    <div className={styles.guestFeatureItem}>
+                      <span className={styles.featureIcon}>📊</span>
+                      <h4>투표 생성 및 참여</h4>
+                      <p>나만의 투표를 만들고 다른 사용자의 투표에 참여하세요</p>
+                    </div>
+                    <div className={styles.guestFeatureItem}>
+                      <span className={styles.featureIcon}>💎</span>
+                      <h4>포인트 적립</h4>
+                      <p>활동할 때마다 포인트를 획득하고 등급을 올려보세요</p>
+                    </div>
+                    <div className={styles.guestFeatureItem}>
+                      <span className={styles.featureIcon}>🏆</span>
+                      <h4>등급 혜택</h4>
+                      <p>높은 등급을 달성하여 특별한 혜택을 받아보세요</p>
+                    </div>
+                    <div className={styles.guestFeatureItem}>
+                      <span className={styles.featureIcon}>🤝</span>
+                      <h4>커뮤니티 활동</h4>
+                      <p>다른 회원들과 소통하고 의견을 나눠보세요</p>
+                    </div>
+                  </div>
+                  <div className={styles.guestActionButtons}>
+                    <button 
+                      className={styles.loginButton}
+                      onClick={handleLogin}
+                    >
+                      로그인
+                    </button>
+                    <button 
+                      className={styles.signupButton}
+                      onClick={handleSignup}
+                    >
+                      회원가입
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -805,101 +1033,203 @@ export default function MyPage() {
         {/* 설정 탭 */}
         {activeTab === "settings" && (
           <div className={styles.tabContent}>
-            <div className={styles.card}>
-              <div className={styles.settingsContainer}>
-                <div className={styles.settingItem}>
-                  <div className={styles.settingInfo}>
-                    <label htmlFor="email-notifications">이메일 알림</label>
-                    <p className={styles.settingDescription}>새 투표와 결과에 대한 이메일 알림을 받습니다.</p>
+            <div className={styles.settingsContainer}>
+              <div className={styles.settingItem}>
+                <div className={styles.settingInfo}>
+                  <label htmlFor="email-notifications">이메일 알림</label>
+                  <p className={styles.settingDescription}>새 투표와 결과에 대한 이메일 알림을 받습니다.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  id="email-notifications"
+                  checked={settings.emailNotifications}
+                  onChange={() => handleSettingChange("emailNotifications")}
+                  className={styles.settingSwitch}
+                  disabled={currentUserInfo.id === "guest"}
+                />
+              </div>
+              
+              <div className={styles.settingItem}>
+                <div className={styles.settingInfo}>
+                  <label htmlFor="push-notifications">푸시 알림</label>
+                  <p className={styles.settingDescription}>앱 푸시 알림을 받습니다.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  id="push-notifications"
+                  checked={settings.pushNotifications}
+                  onChange={() => handleSettingChange("pushNotifications")}
+                  className={styles.settingSwitch}
+                  disabled={currentUserInfo.id === "guest"}
+                />
+              </div>
+              
+              <div className={styles.settingItem}>
+                <div className={styles.settingInfo}>
+                  <label htmlFor="dark-mode">다크 모드</label>
+                  <p className={styles.settingDescription}>어두운 테마를 사용합니다.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  id="dark-mode"
+                  checked={settings.darkMode}
+                  onChange={() => handleSettingChange("darkMode")}
+                  className={styles.settingSwitch}
+                  disabled={currentUserInfo.id === "guest"}
+                />
+              </div>
+              
+              <div className={styles.settingItem}>
+                <div className={styles.settingInfo}>
+                  <label htmlFor="private-profile">비공개 프로필</label>
+                  <p className={styles.settingDescription}>프로필을 비공개로 설정합니다.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  id="private-profile"
+                  checked={settings.privateProfile}
+                  onChange={() => handleSettingChange("privateProfile")}
+                  className={styles.settingSwitch}
+                  disabled={currentUserInfo.id === "guest"}
+                />
+              </div>
+              
+              <div className={styles.settingActions}>
+                {currentUserInfo.id !== "guest" ? (
+                  <>
+                    <button className={styles.saveSettingsButton}>설정 저장</button>
+                  </>
+                ) : (
+                  <div className={styles.guestActions}>
+                    <button 
+                      className={styles.loginButton}
+                      onClick={handleLogin}
+                    >
+                      로그인
+                    </button>
+                    <button 
+                      className={styles.signupButton}
+                      onClick={handleSignup}
+                    >
+                      회원가입
+                    </button>
                   </div>
-                  <input
-                    type="checkbox"
-                    id="email-notifications"
-                    checked={settings.emailNotifications}
-                    onChange={() => handleSettingChange("emailNotifications")}
-                    className={styles.settingSwitch}
-                  />
-                </div>
-                
-                <div className={styles.settingItem}>
-                  <div className={styles.settingInfo}>
-                    <label htmlFor="push-notifications">푸시 알림</label>
-                    <p className={styles.settingDescription}>앱 푸시 알림을 받습니다.</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    id="push-notifications"
-                    checked={settings.pushNotifications}
-                    onChange={() => handleSettingChange("pushNotifications")}
-                    className={styles.settingSwitch}
-                  />
-                </div>
-                
-                <div className={styles.settingItem}>
-                  <div className={styles.settingInfo}>
-                    <label htmlFor="dark-mode">다크 모드</label>
-                    <p className={styles.settingDescription}>어두운 테마를 사용합니다.</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    id="dark-mode"
-                    checked={settings.darkMode}
-                    onChange={() => handleSettingChange("darkMode")}
-                    className={styles.settingSwitch}
-                  />
-                </div>
-                
-                <div className={styles.settingItem}>
-                  <div className={styles.settingInfo}>
-                    <label htmlFor="private-profile">비공개 프로필</label>
-                    <p className={styles.settingDescription}>프로필을 비공개로 설정합니다.</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    id="private-profile"
-                    checked={settings.privateProfile}
-                    onChange={() => handleSettingChange("privateProfile")}
-                    className={styles.settingSwitch}
-                  />
-                </div>
-                
-                <div className={styles.settingActions}>
-                  <button className={styles.saveSettingsButton}>설정 저장</button>
-                </div>
+                )}
               </div>
             </div>
           </div>
         )}
         
-        {/* 구독 회원 탭 */}
+        {/* 구독 회원 탭 - 구독 버튼을 하트 아이콘으로 변경 */}
         {activeTab === "subscribers" && (
           <div className={styles.tabContent}>
-            <div className={styles.card}>
-              <div className={styles.subscribersContainer}>
-                {subscribers.length > 0 ? (
-                  subscribers.map((subscriber) => (
-                    <div key={subscriber.id} className={styles.subscriberItem}>
-                      <div className={styles.subscriberInfo}>
-                        <div className={styles.subscriberAvatar}>
-                          <img src={subscriber.profileImage} alt={`${subscriber.name}의 프로필`} />
+            <div className={styles.subscribersContainer}>
+              {currentUserInfo.id === "guest" ? (
+                <div className={styles.guestSubscribersInfo}>
+                  <h3>팔로워</h3>
+                  <p>팔로워 회원이 없습니다.</p>
+                  <div className={styles.guestActions}>
+                    <button 
+                      className={styles.loginButton}
+                      onClick={handleLogin}
+                    >
+                      로그인
+                    </button>
+                    <button 
+                      className={styles.signupButton}
+                      onClick={handleSignup}
+                    >
+                      회원가입
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {subscribers.length > 0 ? (
+                    subscribers.map((subscriber) => (
+                      <div key={subscriber.id} className={styles.subscriberItem}>
+                        <div className={styles.subscriberInfo}>
+                          <div className={styles.subscriberAvatar}>
+                            <img src={subscriber.profileImage} alt={`${subscriber.name}의 프로필`} />
+                          </div>
+                          <div className={styles.subscriberText}>
+                            <h3 className={styles.subscriberName}>{subscriber.name}</h3>
+                            <p className={styles.subscriberBio}>{subscriber.bio}</p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className={styles.subscriberName}>{subscriber.name}</h3>
-                          <p className={styles.subscriberBio}>{subscriber.bio}</p>
-                        </div>
+                        <button
+                          className={`${styles.heartButton} ${subscriber.isFollowing ? styles.following : ""}`}
+                          onClick={() => handleFollowToggle(subscriber.id)}
+                        >
+                          {subscriber.isFollowing ? 
+                            <FaHeart className={styles.heartIconFilled} /> : 
+                            <FaRegHeart className={styles.heartIcon} />
+                          }
+                        </button>
                       </div>
-                      <button
-                        className={`${styles.followButton} ${subscriber.isFollowing ? styles.following : ""}`}
-                        onClick={() => handleFollowToggle(subscriber.id)}
-                      >
-                        {subscriber.isFollowing ? "구독 중" : "구독하기"}
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <p className={styles.noSubscribers}>구독 중인 회원이 없습니다.</p>
-                )}
-              </div>
+                    ))
+                  ) : (
+                    <p className={styles.noSubscribers}>팔로워 회원이 없습니다.</p>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {/* 팔로잉 탭 추가 */}
+        {activeTab === "following" && (
+          <div className={styles.tabContent}>
+            <div className={styles.subscribersContainer}>
+              {currentUserInfo.id === "guest" ? (
+                <div className={styles.guestSubscribersInfo}>
+                  <h3>팔로잉</h3>
+                  <p>팔로잉 중인 회원이 없습니다.</p>
+                  <div className={styles.guestActions}>
+                    <button 
+                      className={styles.loginButton}
+                      onClick={handleLogin}
+                    >
+                      로그인
+                    </button>
+                    <button 
+                      className={styles.signupButton}
+                      onClick={handleSignup}
+                    >
+                      회원가입
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {following.length > 0 ? (
+                    following.map((user) => (
+                      <div key={user.id} className={styles.subscriberItem}>
+                        <div className={styles.subscriberInfo}>
+                          <div className={styles.subscriberAvatar}>
+                            <img src={user.profileImage} alt={`${user.name}의 프로필`} />
+                          </div>
+                          <div className={styles.subscriberText}>
+                            <h3 className={styles.subscriberName}>{user.name}</h3>
+                            <p className={styles.subscriberBio}>{user.bio}</p>
+                          </div>
+                        </div>
+                        <button
+                          className={`${styles.heartButton} ${user.isFollowing ? styles.following : ""}`}
+                          onClick={() => handleFollowToggle(user.id, true)}
+                        >
+                          {user.isFollowing ? 
+                            <FaHeart className={styles.heartIconFilled} /> : 
+                            <FaRegHeart className={styles.heartIcon} />
+                          }
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className={styles.noSubscribers}>팔로잉 중인 회원이 없습니다.</p>
+                  )}
+                </>
+              )}
             </div>
           </div>
         )}
@@ -907,41 +1237,64 @@ export default function MyPage() {
         {/* 등급 탭 */}
         {activeTab === "badges" && (
           <div className={styles.tabContent}>
-            <div className={styles.card}>
-              <div className={styles.badgesContainer}>
-                <div className={styles.badgesList}>
-                  {badges.map(badge => (
-                    <div 
-                      key={badge.id} 
-                      className={`${styles.badgeItem} ${badge.acquired ? styles.acquiredBadge : styles.lockedBadge}`}
-                    >
-                      <div className={styles.badgeIcon} style={{ color: badge.color }}>
-                        {badge.icon}
-                      </div>
-                      <div className={styles.badgeInfo}>
-                        <span className={styles.badgeName}>{badge.name}</span>
-                        <span className={styles.badgeDescription}>{badge.description}</span>
-                        {badge.level >= 10 && (
-                          <span className={styles.badgeReward}>
-                            {Math.min(badge.level - 9, 5)}% 배당
-                          </span>
-                        )}
-                      </div>
-                      <div className={styles.badgeStatus}>
-                        {badge.acquired ? (
-                          <span className={styles.acquiredStatus}>획득</span>
-                        ) : (
-                          <span className={styles.lockedStatus}>잠김</span>
-                        )}
-                      </div>
+            <div className={styles.badgesContainer}>
+              <div className={styles.badgesList}>
+                {badges.map(badge => (
+                  <div 
+                    key={badge.id} 
+                    className={`${styles.badgeItem} ${currentUserInfo.id === "guest" ? styles.lockedBadge : badge.acquired ? styles.acquiredBadge : styles.lockedBadge}`}
+                  >
+                    <div className={styles.badgeIcon} style={{ color: badge.color }}>
+                      {badge.icon}
                     </div>
-                  ))}
-                </div>
+                    <div className={styles.badgeInfo}>
+                      <span className={styles.badgeName}>{badge.name}</span>
+                      <span className={styles.badgeDescription}>{badge.description}</span>
+                      {badge.level >= 10 && (
+                        <span className={styles.badgeReward}>
+                          {Math.min(badge.level - 9, 5)}% 배당
+                        </span>
+                      )}
+                    </div>
+                    <div className={styles.badgeStatus}>
+                      {currentUserInfo.id === "guest" ? (
+                        <span className={styles.lockedStatus}>잠김</span>
+                      ) : badge.acquired ? (
+                        <span className={styles.acquiredStatus}>획득</span>
+                      ) : (
+                        <span className={styles.lockedStatus}>잠김</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
+              
+              {currentUserInfo.id === "guest" && (
+                <div className={styles.guestBadgesInfo}>
+                  <p>로그인하여 등급을 획득하고 더 많은 기능을 이용해보세요.</p>
+                  <div className={styles.guestActions}>
+                    <button 
+                      className={styles.loginButton}
+                      onClick={handleLogin}
+                    >
+                      로그인
+                    </button>
+                    <button 
+                      className={styles.signupButton}
+                      onClick={handleSignup}
+                    >
+                      회원가입
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
       </div>
+
+      {/* 테스트 버튼 섹션 추가 */}
+      {renderTestButtons()}
     </div>
   );
 }

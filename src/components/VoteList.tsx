@@ -7,7 +7,7 @@ import { useVoteContext } from '../context/VoteContext';
 // 투표 목록 컴포넌트
 const VoteList: React.FC = () => {
   // Context에서 투표 데이터와 업데이트 함수 가져오기
-  const { votes, updateVote, loading, error, refreshVotes, setError, myVotes, handleLike, handleDislike } = useVoteContext();
+  const { votes, updateVote, loading, error, refreshVotes, setError, myVotes, handleLike} = useVoteContext();
   
   // 사용자가 참여한 투표 ID 목록
   const [participatedVoteIds, setParticipatedVoteIds] = useState<number[]>([]);
@@ -57,6 +57,17 @@ const VoteList: React.FC = () => {
   // 활성화된 투표만 필터링 (투표 기간이 종료되지 않은 투표)
   const activeVotes = votes.filter(vote => !vote.is_expired && vote.visible);
 
+  // 디버깅을 위한 로그 추가
+  useEffect(() => {
+    console.log('전체 투표 수:', votes.length);
+    console.log('활성 투표 수:', activeVotes.length);
+    console.log('투표 상태:', votes.map(vote => ({
+      id: vote.id,
+      is_expired: vote.is_expired,
+      visible: vote.visible
+    })));
+  }, [votes, activeVotes]);
+
   // 스켈레톤 카드 메모이제이션
   const skeletonCards = React.useMemo(() => (
     [...Array(skeletonCount)].map((_, index) => (
@@ -95,7 +106,6 @@ const VoteList: React.FC = () => {
               topic={topic} 
               onVote={updateVote}
               onLike={() => handleLike(topic.id)}
-              onDislike={() => handleDislike(topic.id)}
               alwaysShowResults={participatedVoteIds.includes(topic.id)}
               isLoading={false}
             />

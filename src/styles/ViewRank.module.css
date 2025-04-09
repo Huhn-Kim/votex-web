@@ -366,6 +366,14 @@
   padding: 0 0.5rem;
 }
 
+
+/* 확장된 카드 콘텐츠 */
+.expandedCardContent {
+  padding: 10px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
 .expandedCard {
   background-color: rgb(56, 56, 56);
   border: 1px solid #333333;

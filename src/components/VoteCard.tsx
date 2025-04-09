@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '../styles/VoteCard.css';
-import { VoteTopic } from '../../lib/types';
-import { FaThumbsUp, FaThumbsDown, FaComment } from 'react-icons/fa';
+import { VoteTopic } from '../lib/types';
+import { FaThumbsUp, FaComment, FaHeart, FaRegHeart, FaChartBar, FaShare } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useVoteContext } from '../context/VoteContext';
 import { formatNumber } from '../utils/numberFormat';
 import VoteSkeletonCard from './VoteSkeletonCard';
+import LoadingOverlay from '../components/LoadingOverlay';
 
 interface VoteCardProps {
   topic: VoteTopic;
   onVote: (topic_id: number, option_id: number) => Promise<void>;
   onLike: () => Promise<void>;
-  onDislike: () => Promise<void>;
   alwaysShowResults?: boolean;
   isMyVote?: boolean;
   onDelete?: (topicId: number) => void;
@@ -268,14 +268,7 @@ const calculateRemainingTime = (expiresAt: string): string => {
   return `${Math.floor(diffDays / 30)}개월`;
 };
 
-// 더보기 아이콘 컴포넌트
-const MoreIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="5" r="1"></circle>
-    <circle cx="12" cy="12" r="1"></circle>
-    <circle cx="12" cy="19" r="1"></circle>
-  </svg>
-);
+// 더보기 아이콘 컴포넌트 삭제
 
 // PNG 이미지의 투명도 확인 함수
 const isPngWithTransparency = (src: string): boolean => {
@@ -293,6 +286,9 @@ const isStorageImage = (src: string): boolean => {
          (src.includes('http') && !src.startsWith('data:'));
 };
 
+// 이미지 로드 실패 시 사용할 기본 이미지 (Base64)
+const DEFAULT_ERROR_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjM1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjM1MCIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7lm77niYfmsLTkvZPmiJDlip88L3RleHQ+PC9zdmc+';
+
 const VoteCard: React.FC<VoteCardProps> = ({
   topic,
   onVote,
@@ -306,29 +302,24 @@ const VoteCard: React.FC<VoteCardProps> = ({
   id,
   isLoading = false
 }) => {
-  const { handleLike, handleDislike, userReactions, loadUserReaction, updateVoteTopic } = useVoteContext();
+  const { handleLike, userReactions, loadUserReaction, updateVoteTopic } = useVoteContext();
   
   // 현재 투표의 반응 상태 가져오기
-  const currentReaction = userReactions.get(topic.id) || { liked: false, disliked: false };
-  const { liked: hasLiked, disliked: hasDisliked } = currentReaction;
+  const currentReaction = userReactions.get(topic.id) || { liked: false };
+  const { liked: hasLiked } = currentReaction;
 
   const [topicState, setTopic] = useState(topic);
   const [showResults, setShowResults] = useState(alwaysShowResults || !!topicState.selected_option);
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(topicState.selected_option || null);
   const [isVoting, setIsVoting] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // ref 추가
-  const moreOptionsRef = useRef<HTMLDivElement>(null);
-  const moreButtonRef = useRef<HTMLButtonElement>(null);
-
   // 컴포넌트 마운트 여부를 추적하는 ref 추가
   const isInitialMount = useRef(true);
 
-  // 컴포넌트 마운트 시에만 사용자의 좋아요/싫어요 상태 확인
+  // 컴포넌트 마운트 시에만 사용자의 좋아요 상태 확인
   useEffect(() => {
     if (isInitialMount.current) {
       const checkUserReaction = async () => {
@@ -383,15 +374,10 @@ const VoteCard: React.FC<VoteCardProps> = ({
 
   // 좋아요 처리 함수
   const onLike = async () => {
-    if (hasLiked) return;
-
-    const wasDisliked = hasDisliked;
-    
-    // UI 즉시 업데이트
+    // UI 즉시 업데이트 - 좋아요 토글
     setTopic(prev => ({
       ...prev,
-      likes: prev.likes + 1,
-      dislikes: wasDisliked ? prev.dislikes - 1 : prev.dislikes
+      likes: hasLiked ? prev.likes - 1 : prev.likes + 1
     }));
 
     try {
@@ -402,32 +388,7 @@ const VoteCard: React.FC<VoteCardProps> = ({
       // API 실패 시 UI 롤백
       setTopic(prev => ({
         ...prev,
-        likes: prev.likes - 1,
-        dislikes: wasDisliked ? prev.dislikes + 1 : prev.dislikes
-      }));
-    }
-  };
-
-  // 싫어요 처리 함수
-  const onDislike = async () => {
-    if (hasDisliked) return;
-
-    const wasLiked = hasLiked;
-    
-    setTopic(prev => ({
-      ...prev,
-      dislikes: prev.dislikes + 1,
-      likes: wasLiked ? prev.likes - 1 : prev.likes
-    }));
-
-    try {
-      await handleDislike(topic.id);
-    } catch (error) {
-      console.error('싫어요 처리 오류:', error);
-      setTopic(prev => ({
-        ...prev,
-        dislikes: prev.dislikes - 1,
-        likes: wasLiked ? prev.likes + 1 : prev.likes
+        likes: hasLiked ? prev.likes + 1 : prev.likes - 1
       }));
     }
   };
@@ -465,8 +426,8 @@ const VoteCard: React.FC<VoteCardProps> = ({
       }));
 
       // 애니메이션을 더 부드럽게 만들기 위한 설정
-      const ANIMATION_DURATION = 200; // 인터벌 시간
-      const FRAME_RATE = 120; // 프레임 수
+      const ANIMATION_DURATION = 100; // 인터벌 시간
+      const FRAME_RATE = 60; // 프레임 수
       const TOTAL_FRAMES = (ANIMATION_DURATION / 1000) * FRAME_RATE;
       
       const updateVotesProgressively = () => {
@@ -482,11 +443,14 @@ const VoteCard: React.FC<VoteCardProps> = ({
                 // easeInOutCubic 이징 함수 사용
                 const progress = frame / TOTAL_FRAMES;
                 const easeProgress = progress < 0.5
-                  ? 4 * progress * progress * progress
+                  ? 5 * progress * progress * progress
                   : 1 - Math.pow(-2 * progress + 2, 3) / 2;
                 
                 const currentVotes = oldOpt.votes + (diff * easeProgress);
                 
+                frame ++;
+                requestAnimationFrame(animate);
+
                 setTopic(prev => ({
                   ...prev,
                   options: prev.options.map(opt => 
@@ -499,8 +463,6 @@ const VoteCard: React.FC<VoteCardProps> = ({
                   )
                 }));
                 
-                frame++;
-                requestAnimationFrame(animate);
               }
             };
             
@@ -554,39 +516,6 @@ const VoteCard: React.FC<VoteCardProps> = ({
       return defaultClasses[Math.floor(Math.random() * defaultClasses.length)];
     }
     return imageClass;
-  };
-
-  // 외부 클릭 감지를 위한 useEffect 수정
-  useEffect(() => {
-    if (showMoreOptions) {
-      const handleClickOutside = (event: Event) => {  // MouseEvent 대신 Event 타입 사용
-        // 클릭된 요소가 팝업 내부나 버튼이 아닌 경우 팝업 닫기
-        if (
-          moreOptionsRef.current && 
-          !moreOptionsRef.current.contains(event.target as Node) &&
-          moreButtonRef.current && 
-          !moreButtonRef.current.contains(event.target as Node)
-        ) {
-          setShowMoreOptions(false);
-        }
-      };
-
-      // 이벤트 리스너 등록
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('touchstart', handleClickOutside);
-      
-      // 클린업 함수
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-        document.removeEventListener('touchstart', handleClickOutside);
-      };
-    }
-  }, [showMoreOptions]); // showMoreOptions가 변경될 때만 실행
-
-  // 더보기 메뉴 토글 함수 수정
-  const toggleMoreOptions = (e: React.MouseEvent) => {
-    e.stopPropagation(); // 이벤트 버블링 방지
-    setShowMoreOptions(!showMoreOptions);
   };
 
   // 디버깅을 위한 로그
@@ -657,7 +586,8 @@ const VoteCard: React.FC<VoteCardProps> = ({
               onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                 console.error(`질문 이미지 로드 오류: ${topicState.id}`);
                 const target = e.target as HTMLImageElement;
-                target.src = 'https://via.placeholder.com/600x350?text=이미지+로드+실패';
+                // placeholder 이미지 URL을 Base64 이미지로 변경
+                target.src = DEFAULT_ERROR_IMAGE;
                 target.classList.remove('storage-image');
               }} 
             />
@@ -763,11 +693,10 @@ const VoteCard: React.FC<VoteCardProps> = ({
                       className={`option-image ${isStorageImage(imageSource) ? 'storage-image' : ''}`}
 
                       onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                        console.error(`이미지 로드 오류 (옵션 ${option.id}):`, {
-                          url: imageSource
-                        });
+                        console.error(`옵션 이미지 로드 오류: ${option.id}`);
                         const target = e.target as HTMLImageElement;
-                        target.src = 'https://via.placeholder.com/300?text=이미지+로드+실패';
+                        // placeholder 이미지 URL을 Base64 이미지로 변경
+                        target.src = DEFAULT_ERROR_IMAGE;
                       }}
                     />
                   </div>
@@ -802,23 +731,121 @@ const VoteCard: React.FC<VoteCardProps> = ({
     );
   };
 
+  // 상태 관리
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressStatus, setProgressStatus] = useState('');
+
+  // 기존 onClick 핸들러를 대체하는 새 핸들러 추가
+  const handleEditClick = async () => {
+    if (!onEdit) return;
+    
+    setLoading(true);
+    setProgress(20);
+    setProgressStatus("카드 수정 준비 중...");
+    
+    try {
+      setProgress(50);
+      setProgressStatus("카드 수정 중...");
+      
+      // 원래 onEdit 함수 호출
+      await onEdit(topicState.id);
+      
+      setProgress(100);
+      setProgressStatus("수정 완료!");
+      
+      // 완료 후 잠시 보여주기
+      setTimeout(() => {
+        setLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error("카드 수정 중 오류:", error);
+      setProgress(0);
+      setProgressStatus("수정 실패");
+      setTimeout(() => {
+        setLoading(false);
+      }, 1000);
+    }
+  };
+
+  const handleDeleteClick = async () => {
+    if (!onDelete) return;
+    
+    setLoading(true);
+    setProgress(20);
+    setProgressStatus("카드 삭제 준비 중...");
+    
+    try {
+      setProgress(50);
+      setProgressStatus("카드 삭제 중...");
+      
+      // 원래 onDelete 함수 호출
+      await onDelete(topicState.id);
+      
+      setProgress(100);
+      setProgressStatus("삭제 완료!");
+      
+      setTimeout(() => {
+        setLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error("카드 삭제 중 오류:", error);
+      setProgress(0);
+      setProgressStatus("삭제 실패");
+      setTimeout(() => {
+        setLoading(false);
+      }, 1000);
+    }
+  };
+
+  const handlePublishClick = async () => {
+    if (!onPublish) return;
+    
+    setLoading(true);
+    setProgress(20);
+    setProgressStatus("카드 업로드 준비 중...");
+    
+    try {
+      setProgress(50);
+      setProgressStatus("카드 업로드 중...");
+      
+      // 원래 onPublish 함수 호출
+      await onPublish(topicState.id);
+      
+      setProgress(100);
+      setProgressStatus("업로드 완료!");
+      
+      setTimeout(() => {
+        setLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error("카드 업로드 중 오류:", error);
+      setProgress(0);
+      setProgressStatus("업로드 실패");
+      setTimeout(() => {
+        setLoading(false);
+      }, 1000);
+    }
+  };
+
+  // 분석 페이지로 이동하는 함수 수정
+  const handleAnalysisClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/vote/${topicState.id}/analysis`);
+  };
+
   return (
     <div className={`vote-card modern-card ${topicState.is_expired ? 'expired' : ''}`} id={id}>
       <div className="vote-card-header">
-        <div className="user-info">
+        <div className="user-info">          
           <img 
-            src={topicState.users.profile_image || 'https://placehold.co/40x40/444/fff'} 
-            alt={topicState.users.username} 
-            className="user-avatar" 
-            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-              const target = e.target as HTMLImageElement;
-              target.style.objectFit = 'contain';
-              target.src = 'https://placehold.co/40x40/444/fff?text=?';
-            }}
+            src={topicState.users.profile_Image || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIyMCIgZmlsbD0iIzQ0NCIvPjx0ZXh0IHg9IjIwIiB5PSIyNSIgZm9udC1zaXplPSIyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiPj88L3RleHQ+PC9zdmc+'}
+            alt="사용자 프로필" 
+            className="user-avatar-image"
           />
           <div className="user-details">
             <div className="user-name-container">
-              <span className="username">{topicState.users.username || "익명 사용자"}</span>
+              <span className="username">{topicState.users.username || "게스트"}</span>
               <span className="user-badge">{getBadgeIcon(topicState.users.user_grade)}</span>
             </div>
             {renderTimeInfo()}
@@ -831,42 +858,19 @@ const VoteCard: React.FC<VoteCardProps> = ({
               onClick={() => {
                 setIsSubscribed(!isSubscribed);
               }}
+              title={isSubscribed ? '구독 취소' : '구독하기'}
             >
-              {isSubscribed ? '구독중' : '구독'}
+              {isSubscribed ? <FaHeart className="heart-icon filled" /> : <FaRegHeart className="heart-icon" />}
             </button>
           )}
-          <div className="more-options-container">
-            <button 
-              ref={moreButtonRef} 
-              className="more-btn-text" 
-              onClick={toggleMoreOptions}
-            >
-              <MoreIcon />
-            </button>
-            {showMoreOptions && (
-              <div 
-                ref={moreOptionsRef}
-                className="more-options-menu"
-              >
-                <div className="more-option" data-option="ai-analysis" onClick={(e) => e.stopPropagation()}>
-                  <span className="option-icon">🤖</span>
-                  <span className="option-text">AI 분석</span>
-                </div>
-                <div className="more-option" data-option="share" onClick={(e) => e.stopPropagation()}>
-                  <span className="option-icon">🔗</span>
-                  <span className="option-text">공유하기</span>
-                </div>
-                <div className="more-option" data-option="report" onClick={(e) => e.stopPropagation()}>
-                  <span className="option-icon">🚨</span>
-                  <span className="option-text">신고하기</span>
-                </div>
-                <div className="more-option" data-option="not-interested" onClick={(e) => e.stopPropagation()}>
-                  <span className="option-icon">🔕</span>
-                  <span className="option-text">관심없음</span>
-                </div>
-              </div>
-            )}
-          </div>
+          {/* 상세분석 아이콘만 배치 */}
+          <button 
+            className="analysis-btn" 
+            onClick={handleAnalysisClick}
+            title="상세분석"
+          >
+            <FaChartBar className="analysis-icon" />
+          </button>
         </div>
       </div>
 
@@ -905,14 +909,6 @@ const VoteCard: React.FC<VoteCardProps> = ({
                 <FaThumbsUp />
                 <span>{formatNumber(topicState.likes)}</span>
               </button>
-              <button 
-                className={`vote-action-btn ${hasDisliked ? 'active' : ''}`}
-                onClick={onDislike}
-                aria-label="싫어요"
-              >
-                <FaThumbsDown />
-                <span>{formatNumber(topicState.dislikes)}</span>
-              </button>
               <button
                 className="vote-action-btn"
                 onClick={() => navigate(`/vote/${topicState.id}/comments`)}
@@ -920,6 +916,13 @@ const VoteCard: React.FC<VoteCardProps> = ({
               >
                 <FaComment />
                 <span>{formatNumber(topicState.comments)}</span>
+              </button>
+              <button
+                className="vote-action-btn"
+                onClick={(e) => e.stopPropagation()}
+                aria-label="공유"
+              >
+                <FaShare />
               </button>
             </div>
           </div>
@@ -929,7 +932,7 @@ const VoteCard: React.FC<VoteCardProps> = ({
             {(!topicState.visible || topicState.is_expired) && onPublish && (
               <button 
                 className="management-btn publish-btn"
-                onClick={() => onPublish(topicState.id)}
+                onClick={handlePublishClick}
               >
                 업로드
               </button>
@@ -937,7 +940,7 @@ const VoteCard: React.FC<VoteCardProps> = ({
             {onEdit && (!topicState.visible || topicState.is_expired) && (
               <button 
                 className="management-btn edit-btn"
-                onClick={() => onEdit(topicState.id)}
+                onClick={handleEditClick}
               >
                 수정
               </button>
@@ -945,7 +948,7 @@ const VoteCard: React.FC<VoteCardProps> = ({
             {onDelete && (
               <button 
                 className="management-btn delete-btn"
-                onClick={() => onDelete(topicState.id)}
+                onClick={handleDeleteClick}
               >
                 삭제
               </button>
@@ -970,14 +973,6 @@ const VoteCard: React.FC<VoteCardProps> = ({
               <FaThumbsUp />
               <span>{formatNumber(topicState.likes)}</span>
             </button>
-            <button 
-              className={`vote-action-btn ${hasDisliked ? 'active' : ''}`}
-              onClick={onDislike}
-              aria-label="싫어요"
-            >
-              <FaThumbsDown />
-              <span>{formatNumber(topicState.dislikes)}</span>
-            </button>
             <button
               className="vote-action-btn"
               onClick={() => navigate(`/vote/${topicState.id}/comments`)}
@@ -986,9 +981,23 @@ const VoteCard: React.FC<VoteCardProps> = ({
               <FaComment />
               <span>{formatNumber(topicState.comments)}</span>
             </button>
+            <button
+              className="vote-action-btn"
+              onClick={(e) => e.stopPropagation()}
+              aria-label="공유"
+            >
+              <FaShare />
+            </button>
           </div>
         </div>
       )}
+
+      <LoadingOverlay 
+        isLoading={loading}
+        progress={progress}
+        progressStatus={progressStatus}
+        defaultMessage="카드 처리 중..."
+      />
     </div>
   );
 };
