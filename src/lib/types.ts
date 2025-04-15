@@ -25,15 +25,17 @@ export interface UserInfo {
   profile_Image: string; //사용자 프로필 이미지
   gender: string; //사용자 성별
   region: string; //사용자 지역
-  interests: string; //사용자 관심사
+  interests: string[]; //사용자 관심사
   birthyear: number; //사용자 생년월일
   created_at: string; //사용자 가입일
-  updated_at: string;
+  updated_at: string[]; // 등급업 날짜
   votesCreated: number;
   votesParticipated: number;
   total_points: number; // 총 적립포인트
   monthly_points: number; // 월 적립포인트
   user_grade: number;
+  weekly_created: number[];
+  weekly_voted: number[];
 }
 
 // 구독 회원 인터페이스
@@ -73,7 +75,9 @@ export interface VoteTopic {
     profile_Image: string;
     user_grade: number;
     created_at: string;
-    updated_at: string;
+    updated_at: string[]; // 등급업 날짜
+    weekly_created: number[];
+    weekly_voted: number[];
   };
   options: VoteOption[];
   selected_option?: number | null;  // 클라이언트 상태

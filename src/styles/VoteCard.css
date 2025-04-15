@@ -708,9 +708,9 @@
   }
   
   .user-avatar-image {
-    width: 36px !important;
-    height: 36px !important;
-    min-width: 36px !important; /* 최소 너비 설정 */
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important; /* 최소 너비 설정 */
     margin-right: 8px !important;
   }
   
@@ -753,8 +753,8 @@
 }
 
 .analysis-icon {
-  font-size: 18px;
-  color: #aaa;
+  font-size: 20px;
+  color: #FFF;
   transition: all 0.3s ease;
 }
 
@@ -1344,4 +1344,234 @@ img {
 .vote-option.show-results,
 .image-grid-option.show-results {
   transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.question-media-container {
+  width: 100%; /* 컨테이너가 카드 폭을 꽉 채우도록 설정 */
+  position: relative; /* 필요에 따라 추가 (오버레이 등) */
+  margin-bottom: 15px; /* 질문 텍스트와의 간격 */
+}
+
+.question-media-container.image-container {
+  /* 이미지 컨테이너에 필요한 스타일 (기존 스타일 유지 또는 조정) */
+  max-height: 350px; /* 이미지 최대 높이 제한 (예시) */
+  overflow: hidden;
+}
+
+.question-media-container.video-container {
+  /* 비디오 컨테이너에 필요한 스타일 */
+  background-color: #000; /* 비디오 배경색 (선택사항) */
+  max-height: 450px; /* 비디오 최대 높이 제한 (예시) */
+  overflow: hidden; /* 비디오가 컨테이너를 벗어나지 않도록 */
+}
+
+.question-image {
+  display: block; /* 이미지가 인라인 요소처럼 동작하지 않도록 */
+  width: 100%; /* 이미지 폭을 컨테이너에 맞춤 */
+  height: auto; /* 이미지 높이를 비율에 맞게 자동 조정 */
+  object-fit: cover; /* 이미지가 컨테이너를 꽉 채우도록 (비율 유지하며 잘릴 수 있음) */
+}
+
+.question-video {
+  display: block; /* 비디오가 인라인 요소처럼 동작하지 않도록 */
+  width: 100%; /* 비디오 폭을 컨테이너에 맞춤 */
+  height: auto; /* 비디오 높이를 비율에 맞게 자동 조정 */
+  max-height: 450px; /* 비디오 최대 높이 (컨테이너와 동일하게 설정) */
+  object-fit: contain; /* 비디오 전체가 보이도록 (레터박스 생길 수 있음) */
+  /* object-fit: cover; 로 설정하면 비디오가 컨테이너를 꽉 채우지만 잘릴 수 있습니다. */
+}
+
+/* 공유 모달 스타일 */
+.share-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1500;
+  animation: fadeIn 0.3s ease;
+}
+
+.share-modal {
+  background-color: #1e1e1e;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  animation: zoomIn 0.3s ease;
+  margin-bottom: 80px; /* 하단 네비게이션에 가려지지 않도록 마진 추가 */
+}
+
+.share-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
+}
+
+.share-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #aaa;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: #fff;
+}
+
+.share-url-container {
+  display: flex;
+  margin-bottom: 15px;
+  border: 1px solid #444;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #252525;
+}
+
+.share-url-input {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: #252525;
+  color: #ddd;
+  font-size: 14px;
+}
+
+.copy-button {
+  border: none;
+  background: #333;
+  padding: 0 15px;
+  cursor: pointer;
+  transition: background 0.2s;
+  color: #fff;
+}
+
+.copy-button:hover {
+  background: #444;
+}
+
+.copy-status {
+  text-align: center;
+  color: #4CAF50;
+  margin-bottom: 15px;
+  font-size: 14px;
+  height: 20px;
+}
+
+.share-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.share-option-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px 10px;
+  border: none;
+  border-radius: 10px;
+  background: #252525;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.share-option-btn svg {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.share-option-btn span {
+  font-size: 12px;
+  color: #ddd;
+}
+
+.share-option-btn.facebook {
+  color: #3b5998;
+}
+
+.share-option-btn.twitter {
+  color: #1DA1F2;
+}
+
+.share-option-btn.gmail {
+  color: #DB4437;
+}
+
+.share-option-btn.link {
+  color: #2196F3;
+}
+
+.share-option-btn:hover {
+  background: #333;
+  transform: translateY(-2px);
+}
+
+/* 애니메이션 */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes zoomIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* 모바일 스타일 조정 */
+@media (max-width: 768px) {
+  .share-modal {
+    width: 90%;
+    max-width: 400px;
+    padding: 15px;
+  }
+  
+  .share-options {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+}
+
+/* 작은 모바일 화면 */
+@media (max-width: 480px) {
+  .share-modal {
+    width: 95%;
+    padding: 15px;
+    margin-bottom: 70px; /* 하단 네비게이션에 가려지지 않도록 마진 추가 */
+  }
+  
+  .share-options {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  
+  .share-option-btn {
+    padding: 12px 8px;
+  }
+  
+  .share-option-btn svg {
+    font-size: 20px;
+  }
+  
+  .share-option-btn span {
+    font-size: 11px;
+  }
 }

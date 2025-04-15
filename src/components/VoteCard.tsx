@@ -1,12 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '../styles/VoteCard.css';
 import { VoteTopic } from '../lib/types';
-import { FaThumbsUp, FaComment, FaHeart, FaRegHeart, FaChartBar, FaShare } from 'react-icons/fa';
+import { FaThumbsUp, FaComment, FaHeart, FaRegHeart, FaChartBar, FaShare, FaCopy, FaLink } from 'react-icons/fa';
+import { FaFacebook, FaTwitter } from 'react-icons/fa';
+import { FaEnvelope } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useVoteContext } from '../context/VoteContext';
 import { formatNumber } from '../utils/numberFormat';
 import VoteSkeletonCard from './VoteSkeletonCard';
 import LoadingOverlay from '../components/LoadingOverlay';
+import ConfirmModal from '../components/ConfirmModal';
+import supabase from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 
 interface VoteCardProps {
   topic: VoteTopic;
@@ -289,6 +294,148 @@ const isStorageImage = (src: string): boolean => {
 // 이미지 로드 실패 시 사용할 기본 이미지 (Base64)
 const DEFAULT_ERROR_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjM1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjM1MCIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7lm77niYfmsLTkvZPmiJDlip88L3RleHQ+PC9zdmc+';
 
+// 파일 확장자를 기반으로 비디오인지 확인하는 함수
+const isVideoUrl = (url: string): boolean => {
+  if (!url) return false;
+  const lowerCaseUrl = url.toLowerCase();
+  return lowerCaseUrl.endsWith('.mp4') || 
+         lowerCaseUrl.endsWith('.webm') || 
+         lowerCaseUrl.endsWith('.ogg'); // 필요에 따라 다른 비디오 확장자 추가
+};
+
+// ShareModal 컴포넌트 추가
+interface ShareModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  url: string;
+  title: string;
+  description: string;
+}
+
+const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, url, title, description }) => {
+  const [copyStatus, setCopyStatus] = useState<string>('');
+  
+  // 공유 모달이 닫힐 때 복사 상태 초기화
+  useEffect(() => {
+    if (!isOpen) {
+      setCopyStatus('');
+    }
+  }, [isOpen]);
+
+  // 클립보드에 URL 복사
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(url)
+      .then(() => {
+        setCopyStatus('링크가 복사되었습니다!');
+        setTimeout(() => setCopyStatus(''), 2000);
+      })
+      .catch(err => {
+        console.error('클립보드 복사 실패:', err);
+        setCopyStatus('복사 실패');
+      });
+  };
+
+  // 소셜 미디어로 공유
+  const shareToSocial = (platform: string) => {
+    let shareUrl = '';
+    
+    switch(platform) {
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(description)}`;
+        break;
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`;
+        break;
+      case 'gmail':
+        shareUrl = `https://mail.google.com/mail/?view=cm&to=&su=${encodeURIComponent(title)}&body=${encodeURIComponent(description)}%0A%0A${encodeURIComponent(url)}`;
+        break;
+      case 'linkedin':
+        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+        break;
+      default:
+        return;
+    }
+    
+    window.open(shareUrl, '_blank', 'width=600,height=400');
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="share-modal-overlay" onClick={onClose}>
+      <div className="share-modal" onClick={e => e.stopPropagation()}>
+        <div className="share-modal-header">
+          <h3>공유하기</h3>
+          <button className="close-btn" onClick={onClose}>&times;</button>
+        </div>
+        
+        <div className="share-modal-content">
+          <div className="share-url-container">
+            <input 
+              type="text" 
+              value={url} 
+              readOnly 
+              className="share-url-input"
+            />
+            <button 
+              className="copy-button" 
+              onClick={copyToClipboard}
+              title="링크 복사"
+            >
+              <FaCopy />
+            </button>
+          </div>
+          
+          {copyStatus && (
+            <div className="copy-status">
+              {copyStatus}
+            </div>
+          )}
+          
+          <div className="share-options">
+            <button 
+              className="share-option-btn facebook"
+              onClick={() => shareToSocial('facebook')}
+              title="페이스북으로 공유"
+            >
+              <FaFacebook />
+              <span>페이스북</span>
+            </button>
+            
+            <button 
+              className="share-option-btn twitter"
+              onClick={() => shareToSocial('twitter')}
+              title="트위터로 공유"
+            >
+              <FaTwitter />
+              <span>트위터</span>
+            </button>
+            
+            <button 
+              className="share-option-btn gmail"
+              onClick={() => shareToSocial('gmail')}
+              title="Gmail로 공유"
+            >
+              <FaEnvelope />
+              <span>Gmail</span>
+            </button>
+            
+            <button 
+              className="share-option-btn link"
+              onClick={copyToClipboard}
+              title="링크 복사"
+            >
+              <FaLink />
+              <span>링크 복사</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const VoteCard: React.FC<VoteCardProps> = ({
   topic,
   onVote,
@@ -303,6 +450,7 @@ const VoteCard: React.FC<VoteCardProps> = ({
   isLoading = false
 }) => {
   const { handleLike, userReactions, loadUserReaction, updateVoteTopic } = useVoteContext();
+  const { user } = useAuth();
   
   // 현재 투표의 반응 상태 가져오기
   const currentReaction = userReactions.get(topic.id) || { liked: false };
@@ -418,6 +566,54 @@ const VoteCard: React.FC<VoteCardProps> = ({
         return opt;
       });
 
+    // 애니메이션을 더 부드럽게 만들기 위한 설정
+    const ANIMATION_DURATION = 100; // 인터벌 시간
+    const FRAME_RATE = 60; // 프레임 수
+    const TOTAL_FRAMES = (ANIMATION_DURATION / 1000) * FRAME_RATE;
+    
+    const updateVotesProgressively = () => {
+      oldOptions.forEach((oldOpt, index) => {
+        const newOpt = updatedOptions[index];
+        const diff = newOpt.votes - oldOpt.votes;
+        
+        if (diff !== 0) {
+          let frame = 0;
+          
+          const animate = () => {
+            if (frame <= TOTAL_FRAMES) {
+              // easeInOutCubic 이징 함수 사용
+              const progress = frame / TOTAL_FRAMES;
+              const easeProgress = progress < 0.5
+                ? 5 * progress * progress * progress
+                : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+              
+              const currentVotes = oldOpt.votes + (diff * easeProgress);
+              
+              frame ++;
+              requestAnimationFrame(animate);
+
+              setTopic(prev => ({
+                ...prev,
+                options: prev.options.map(opt => 
+                  opt.id === oldOpt.id 
+                    ? { 
+                        ...opt, 
+                        votes: Math.round(currentVotes * 10) / 10 // 소수점 한자리까지 표현
+                      }
+                    : opt
+                )
+              }));
+              
+            }
+          };
+          
+          requestAnimationFrame(animate);
+        }
+      });
+    };
+
+    updateVotesProgressively();
+      
       // total_votes 업데이트 추가
       setTopic(prev => ({
         ...prev,
@@ -425,54 +621,37 @@ const VoteCard: React.FC<VoteCardProps> = ({
         total_votes: previousOptionId === null ? prev.total_votes + 1 : prev.total_votes
       }));
 
-      // 애니메이션을 더 부드럽게 만들기 위한 설정
-      const ANIMATION_DURATION = 100; // 인터벌 시간
-      const FRAME_RATE = 60; // 프레임 수
-      const TOTAL_FRAMES = (ANIMATION_DURATION / 1000) * FRAME_RATE;
-      
-      const updateVotesProgressively = () => {
-        oldOptions.forEach((oldOpt, index) => {
-          const newOpt = updatedOptions[index];
-          const diff = newOpt.votes - oldOpt.votes;
-          
-          if (diff !== 0) {
-            let frame = 0;
-            
-            const animate = () => {
-              if (frame <= TOTAL_FRAMES) {
-                // easeInOutCubic 이징 함수 사용
-                const progress = frame / TOTAL_FRAMES;
-                const easeProgress = progress < 0.5
-                  ? 5 * progress * progress * progress
-                  : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-                
-                const currentVotes = oldOpt.votes + (diff * easeProgress);
-                
-                frame ++;
-                requestAnimationFrame(animate);
+      // 다른 사람의 투표카드에 투표할 때만 weekly_voted 증가
+      if (!isMyVote) {
+        const { data, error: fetchError } = await supabase
+          .from('users')
+          .select('weekly_voted, total_points, monthly_points, votesParticipated')
+          .eq('id', user?.id)
+          .single();
 
-                setTopic(prev => ({
-                  ...prev,
-                  options: prev.options.map(opt => 
-                    opt.id === oldOpt.id 
-                      ? { 
-                          ...opt, 
-                          votes: Math.round(currentVotes * 10) / 10 // 소수점 한자리까지 표현
-                        }
-                      : opt
-                  )
-                }));
-                
-              }
-            };
-            
-            requestAnimationFrame(animate);
-          }
-        });
-      };
+        if (fetchError) {
+          console.error('weekly_voted 가져오기 중 오류 발생:', fetchError);
+          return;
+        }
 
-      updateVotesProgressively();
-      
+        const updatedWeeklyVoted = [...data.weekly_voted];
+        updatedWeeklyVoted[updatedWeeklyVoted.length - 1] += 1;
+
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ 
+            weekly_voted: updatedWeeklyVoted,
+            votesParticipated: data.votesParticipated + 1,
+            total_points: data.total_points + 10,    // 10점 추가
+            monthly_points: data.monthly_points + 10  // 10점 추가
+          })
+          .eq('id', user?.id);
+
+        if (updateError) {
+          console.error('weekly_voted 업데이트 중 오류 발생:', updateError);
+        }
+      }
+
       // 백그라운드에서 API 호출
       await onVote(topicState.id, optionId);
 
@@ -572,25 +751,43 @@ const VoteCard: React.FC<VoteCardProps> = ({
 
   // 질문 관련 부분을 렌더링
   const renderQuestion = () => {
+    // 비디오 URL인지 확인
+    const isVideo = topicState.related_image && isVideoUrl(topicState.related_image);
 
     return (
       <div className="question-container">
         {topicState.related_image && (
           <div 
-            className={`question-image-container ${isPngWithTransparency(topicState.related_image) ? 'transparent-bg' : ''}`}
+            className={`question-media-container ${isVideo ? 'video-container' : 'image-container'} ${!isVideo && isPngWithTransparency(topicState.related_image) ? 'transparent-bg' : ''}`}
           >
-            <img 
-              src={topicState.related_image} 
-              alt={topicState.question} 
-              className={`question-image ${isStorageImage(topicState.related_image) ? 'storage-image' : ''}`}
-              onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                console.error(`질문 이미지 로드 오류: ${topicState.id}`);
-                const target = e.target as HTMLImageElement;
-                // placeholder 이미지 URL을 Base64 이미지로 변경
-                target.src = DEFAULT_ERROR_IMAGE;
-                target.classList.remove('storage-image');
-              }} 
-            />
+            {isVideo ? (
+              <video 
+                src={topicState.related_image} 
+                controls 
+                className="question-video"
+                onError={(e) => {
+                  console.error(`질문 비디오 로드 오류: ${topicState.id}`);
+                  // 비디오 로드 실패 시 대체 콘텐츠 표시 (예: 메시지)
+                  const target = e.target as HTMLVideoElement;
+                  target.style.display = 'none'; // 비디오 숨김
+                  // 필요하다면 대체 텍스트나 이미지를 여기에 추가
+                }}
+              >
+                현재 브라우저에서 비디오 재생을 지원하지 않습니다.
+              </video>
+            ) : (
+              <img 
+                src={topicState.related_image} 
+                alt={topicState.question} 
+                className={`question-image ${isStorageImage(topicState.related_image) ? 'storage-image' : ''}`}
+                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                  console.error(`질문 이미지 로드 오류: ${topicState.id}`);
+                  const target = e.target as HTMLImageElement;
+                  target.src = DEFAULT_ERROR_IMAGE;
+                  target.classList.remove('storage-image');
+                }} 
+              />
+            )}
           </div>
         )}
         <div className="question-text-container">
@@ -735,6 +932,15 @@ const VoteCard: React.FC<VoteCardProps> = ({
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressStatus, setProgressStatus] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
+
+  // 공유 관련 상태 추가
+  const [showShareModal, setShowShareModal] = useState(false);
+  // 모바일 디바이스 확인
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    typeof navigator !== 'undefined' ? navigator.userAgent : ''
+  );
 
   // 기존 onClick 핸들러를 대체하는 새 핸들러 추가
   const handleEditClick = async () => {
@@ -768,9 +974,14 @@ const VoteCard: React.FC<VoteCardProps> = ({
     }
   };
 
-  const handleDeleteClick = async () => {
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    setShowDeleteConfirm(false);
     if (!onDelete) return;
-    
+
     setLoading(true);
     setProgress(20);
     setProgressStatus("카드 삭제 준비 중...");
@@ -779,7 +990,6 @@ const VoteCard: React.FC<VoteCardProps> = ({
       setProgress(50);
       setProgressStatus("카드 삭제 중...");
       
-      // 원래 onDelete 함수 호출
       await onDelete(topicState.id);
       
       setProgress(100);
@@ -798,23 +1008,63 @@ const VoteCard: React.FC<VoteCardProps> = ({
     }
   };
 
-  const handlePublishClick = async () => {
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    console.log("투표 삭제가 취소되었습니다.");
+  };
+
+  // 투표 업로드 확인 모달 확인 함수
+  const handlePublishClick = () => {
+    setShowPublishConfirm(true);
+  };
+
+  // 투표 업로드 확인 모달 확인 함수
+  const confirmPublish = async () => {
+    setShowPublishConfirm(false);
     if (!onPublish) return;
-    
+
     setLoading(true);
     setProgress(20);
     setProgressStatus("카드 업로드 준비 중...");
-    
+
     try {
       setProgress(50);
       setProgressStatus("카드 업로드 중...");
-      
-      // 원래 onPublish 함수 호출
+
+      // weekly_created 값 증가
+      const { data, error: fetchError } = await supabase
+        .from('users')
+        .select('weekly_created, total_points, monthly_points, votesCreated')
+        .eq('id', user?.id)
+        .single();
+
+      if (fetchError) {
+        console.error('weekly_created 가져오기 중 오류 발생:', fetchError);
+        return;
+      }
+
+      const updatedWeeklyCreated = [...data.weekly_created];
+      updatedWeeklyCreated[updatedWeeklyCreated.length - 1] += 1;
+
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ 
+          weekly_created: updatedWeeklyCreated,
+          votesCreated: data.votesCreated + 1,
+          total_points: data.total_points + 50,    // 50점 추가
+          monthly_points: data.monthly_points + 50  // 50점 추가
+        })
+        .eq('id', user?.id);
+
+      if (updateError) {
+        console.error('weekly_created 업데이트 중 오류 발생:', updateError);
+      }
+
       await onPublish(topicState.id);
-      
+
       setProgress(100);
       setProgressStatus("업로드 완료!");
-      
+
       setTimeout(() => {
         setLoading(false);
       }, 1000);
@@ -828,10 +1078,40 @@ const VoteCard: React.FC<VoteCardProps> = ({
     }
   };
 
+  const cancelPublish = () => {
+    setShowPublishConfirm(false);
+    console.log("투표 업로드가 취소되었습니다.");
+  };
+
   // 분석 페이지로 이동하는 함수 수정
   const handleAnalysisClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     navigate(`/vote/${topicState.id}/analysis`);
+  };
+
+  // 공유 핸들러 수정
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const shareUrl = `${window.location.origin}/vote/${topicState.id}`;
+    const shareTitle = `${topicState.question} - VoteY 투표`;
+    const shareText = `${topicState.question}에 대한 투표에 참여해보세요!`;
+    
+    // 네이티브 공유 API 지원 확인
+    if (navigator.share && isMobile) {
+      navigator.share({
+        title: shareTitle,
+        text: shareText,
+        url: shareUrl,
+      }).then(() => {
+        console.log('네이티브 공유 성공');
+      }).catch((error) => {
+        console.error('공유 실패:', error);
+        setShowShareModal(true); // 실패 시 커스텀 모달 표시
+      });
+    } else {
+      setShowShareModal(true); // 네이티브 API 미지원 시 커스텀 모달 표시
+    }
   };
 
   return (
@@ -852,6 +1132,13 @@ const VoteCard: React.FC<VoteCardProps> = ({
           </div>
         </div>
         <div className="card-actions">
+          <button 
+            className="analysis-btn" 
+            onClick={handleAnalysisClick}
+            title="상세분석"
+          >
+            <FaChartBar className="analysis-icon" />
+          </button>
           {!isMyVote && (
             <button 
               className={`subscription-btn ${isSubscribed ? 'subscribed' : ''}`} 
@@ -863,14 +1150,6 @@ const VoteCard: React.FC<VoteCardProps> = ({
               {isSubscribed ? <FaHeart className="heart-icon filled" /> : <FaRegHeart className="heart-icon" />}
             </button>
           )}
-          {/* 상세분석 아이콘만 배치 */}
-          <button 
-            className="analysis-btn" 
-            onClick={handleAnalysisClick}
-            title="상세분석"
-          >
-            <FaChartBar className="analysis-icon" />
-          </button>
         </div>
       </div>
 
@@ -919,7 +1198,7 @@ const VoteCard: React.FC<VoteCardProps> = ({
               </button>
               <button
                 className="vote-action-btn"
-                onClick={(e) => e.stopPropagation()}
+                onClick={handleShare}
                 aria-label="공유"
               >
                 <FaShare />
@@ -930,7 +1209,7 @@ const VoteCard: React.FC<VoteCardProps> = ({
           <div className="management-divider"></div>
           <div className="management-buttons">
             {(!topicState.visible || topicState.is_expired) && onPublish && (
-              <button 
+              <button
                 className="management-btn publish-btn"
                 onClick={handlePublishClick}
               >
@@ -946,7 +1225,7 @@ const VoteCard: React.FC<VoteCardProps> = ({
               </button>
             )}
             {onDelete && (
-              <button 
+              <button
                 className="management-btn delete-btn"
                 onClick={handleDeleteClick}
               >
@@ -983,7 +1262,7 @@ const VoteCard: React.FC<VoteCardProps> = ({
             </button>
             <button
               className="vote-action-btn"
-              onClick={(e) => e.stopPropagation()}
+              onClick={handleShare}
               aria-label="공유"
             >
               <FaShare />
@@ -991,6 +1270,37 @@ const VoteCard: React.FC<VoteCardProps> = ({
           </div>
         </div>
       )}
+
+      {/* 삭제 확인 모달 */}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={cancelDelete}
+        onConfirm={confirmDelete}
+        title="투표 삭제 확인"
+        message="정말로 이 투표를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
+        confirmButtonText="삭제"
+        confirmButtonVariant="danger"
+      />
+
+      {/* 업로드 확인 모달 */}
+      <ConfirmModal
+        isOpen={showPublishConfirm}
+        onClose={cancelPublish}
+        onConfirm={confirmPublish}
+        title="투표 업로드 확인"
+        message="이 투표를 공개 게시하시겠습니까?"
+        confirmButtonText="업로드"
+        confirmButtonVariant="primary"
+      />
+
+      {/* 공유 모달 추가 */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        url={`${window.location.origin}/vote/${topicState.id}`}
+        title={`${topicState.question} - VoteY 투표`}
+        description={`${topicState.question}에 대한 투표에 참여해보세요!`}
+      />
 
       <LoadingOverlay 
         isLoading={loading}

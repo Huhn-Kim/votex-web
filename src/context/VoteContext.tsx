@@ -1,10 +1,9 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { VoteTopic, VoteTopicCreateData, VoteTopicUpdateData, VoteRank, VoteOption } from '../lib/types';
 import { 
   getVoteTopics, 
   getMyVotes, 
   createVoteTopic, 
-  deleteVoteTopic as apiDeleteVoteTopic,
   updateVoteTopic,
   deleteVoteOption,
   addVoteOption,
@@ -12,6 +11,7 @@ import {
   updateVoteVisibility,
   getRankedVotes,
   deleteImageFromStorage,
+  deleteVideoFromStorage,
 } from '../lib/api';
 import supabase from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -590,52 +590,123 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   
   // 투표 삭제 함수 수정
-  const deleteTopic = async (topicId: number) => {
+  const deleteTopic = useCallback(async (topicId: number) => {
+    console.log(`투표 삭제 요청 시작: ID=${topicId}`);
+    setLoading(true);
+    setError(null);
+
+    // 삭제 전 스토리지 파일 정보 조회를 위한 데이터 임시 저장 변수
+    let relatedMediaUrl: string | null = null;
+    let optionImageUrls: (string | null)[] = []; // 옵션 이미지 URL 배열
+
     try {
-      
-      await apiDeleteVoteTopic(topicId);
-            
-      // 로컬 상태 업데이트
-      setVotes(prevVotes => prevVotes.filter(vote => vote.id !== topicId));
-      setMyVotes(prevMyVotes => prevMyVotes.filter(vote => vote.id !== topicId));
-      
+        // 1. 삭제할 투표의 관련 미디어 URL 정보 조회
+        const { data: topicData, error: fetchError } = await supabase
+            .from('vote_topics')
+            .select(`
+                related_image,
+                vote_options ( image_url )
+            `) // vote_topics의 related_image 와 관련된 vote_options의 image_url 조회
+            .eq('id', topicId)
+            .single();
 
-      // 삭제할 투표 주제 찾기
-      const targetVote = votes.find(v => v.id === topicId) || myVotes.find(v => v.id === topicId);
-      if (!targetVote) {
-        throw new Error('삭제할 투표를 찾을 수 없습니다.');
-      }
+        if (fetchError) throw fetchError;
+        if (!topicData) throw new Error('삭제할 투표 토픽을 찾을 수 없습니다.');
 
-      // 이미지 삭제 처리
-      const imageDeletionPromises = [];
-      if (targetVote.related_image) {
-        imageDeletionPromises.push(deleteImageFromStorage(targetVote.related_image));
-      }
-      targetVote.options.forEach(option => {
-        if (option.image_url) {
-          imageDeletionPromises.push(deleteImageFromStorage(option.image_url));
+        // 조회된 정보 저장
+        relatedMediaUrl = topicData.related_image;
+        // vote_options 데이터가 있고 배열인지 확인 후 URL 추출
+        if (topicData.vote_options && Array.isArray(topicData.vote_options)) {
+             optionImageUrls = topicData.vote_options.map(opt => opt.image_url).filter(url => url); // null/undefined 제외
         }
-      });
-      if (imageDeletionPromises.length > 0) {
-        await Promise.all(imageDeletionPromises);
-      }
+        console.log('삭제 대상 미디어 정보:', { relatedMediaUrl, optionImageUrls });
 
-      setProgress(100);
-      setProgressStatus('삭제 완료');      
+        // 1-2. 먼저 vote_results 테이블에서 관련 데이터 삭제
+        const { error: deleteResultsError } = await supabase
+            .from('vote_results')
+            .delete()
+            .eq('topic_id', topicId);
+        
+        if (deleteResultsError) {
+            console.error(`vote_results 삭제 실패: ID=${topicId}`, deleteResultsError);
+            // 실패해도 계속 진행 (나중에 CASCADE 설정이 되어있을 수 있음)
+        } else {
+            console.log(`vote_results 데이터 삭제 성공: ID=${topicId}`);
+        }
 
-    } catch (err) {
-      console.error('투표를 삭제하는 중 오류 발생:', err);
-      setError('투표를 삭제하는 중 오류가 발생했습니다.');
+        // 1-3. vote_ranks 테이블에서 관련 데이터 삭제
+        const { error: deleteRanksError } = await supabase
+            .from('vote_ranks')
+            .delete()
+            .eq('topic_id', topicId);
+        
+        if (deleteRanksError) {
+            console.error(`vote_ranks 삭제 실패: ID=${topicId}`, deleteRanksError);
+            // 실패해도 계속 진행
+        } else {
+            console.log(`vote_ranks 데이터 삭제 성공: ID=${topicId}`);
+        }
 
+        // 2. 데이터베이스에서 투표 주제 삭제
+        const { error: deleteDbError } = await supabase
+            .from('vote_topics')
+            .delete()
+            .eq('id', topicId);
+
+        if (deleteDbError) throw deleteDbError;
+        console.log(`DB 투표 삭제 성공: ID=${topicId}`);
+
+        // 3. DB 삭제 성공 후, 스토리지 파일 삭제 시도
+        const deletionPromises: Promise<boolean>[] = [];
+
+        // 3-1. 주제 관련 미디어(이미지 또는 비디오) 삭제
+        if (relatedMediaUrl) {
+            if (isVideoUrl(relatedMediaUrl)) {
+                console.log(`주제 관련 비디오 삭제 준비: ${relatedMediaUrl}`);
+                deletionPromises.push(deleteVideoFromStorage(relatedMediaUrl));
+            } else {
+                console.log(`주제 관련 이미지 삭제 준비: ${relatedMediaUrl}`);
+                deletionPromises.push(deleteImageFromStorage(relatedMediaUrl));
+            }
+        }
+
+        // 3-2. 옵션 이미지 삭제
+        optionImageUrls.forEach(imageUrl => {
+            if (imageUrl) { // null 체크 한번 더 (filter에서 처리했지만 안전하게)
+                console.log(`옵션 이미지 삭제 준비: ${imageUrl}`);
+                deletionPromises.push(deleteImageFromStorage(imageUrl));
+            }
+        });
+
+        // 3-3. 모든 스토리지 삭제 Promise 실행
+        if (deletionPromises.length > 0) {
+            console.log(`${deletionPromises.length}개의 스토리지 파일 삭제 시도...`);
+            const deleteResults = await Promise.allSettled(deletionPromises);
+            console.log('스토리지 파일 삭제 결과:', deleteResults);
+            // 실패 로그 처리 (필요시)
+            deleteResults.forEach((result, index) => {
+                 if(result.status === 'rejected' || (result.status === 'fulfilled' && !result.value)) {
+                     const url = index === 0 && relatedMediaUrl ? relatedMediaUrl : optionImageUrls[index - (relatedMediaUrl ? 1 : 0)];
+                     console.error(`스토리지 파일 삭제 실패/문제 발생 (${url}):`, result.status === 'rejected' ? result.reason : 'API false 반환');
+                 }
+            });
+        } else {
+            console.log('삭제할 스토리지 파일 없음.');
+        }
+
+        // 4. 로컬 상태 업데이트 (삭제된 투표 제거)
+        setMyVotes(prevVotes => prevVotes.filter(vote => vote.id !== topicId));
+        console.log(`로컬 상태 업데이트 완료: ID=${topicId} 제거`);
+
+    } catch (err: any) {
+        console.error('투표 삭제 처리 중 오류 발생:', err);
+        setError(err.message || '투표 삭제 중 오류가 발생했습니다.');
+        // DB 삭제 실패 시 스토리지 삭제는 시도되지 않음
     } finally {
-      // 약간의 지연 후 로딩 상태 해제
-      setTimeout(() => {
-        setLoading(false);
-        setProgress(0);
-        setProgressStatus('');
-      }, 500);
+        setLoading(false); // 로딩 종료
+        console.log(`투표 삭제 요청 종료: ID=${topicId}`);
     }
-  };
+  }, [setMyVotes]); // 종속성 배열 확인
   
   // 투표 옵션 삭제 함수
   const deleteOption = async (optionId: number) => {
@@ -791,7 +862,9 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 profile_Image: item.users?.profile_Image || '',
                 user_grade: item.users?.user_grade || 0,
                 created_at: item.users?.created_at || '',
-                updated_at: item.users?.updated_at || ''
+                updated_at: item.users?.updated_at || '',
+                weekly_created: item.users?.weekly_created || [],
+                weekly_voted: item.users?.weekly_voted || []
               },
               options: Array.isArray(item.options) ? item.options.map((opt: {
                 id: number;
@@ -892,3 +965,22 @@ export const useVoteContext = () => {
 // export const calculatePercentage = ...
 // export const isExpired = ...
 // export const mapToVoteTopic = ... 
+
+// isVideoUrl 함수 정의 (lib/api.ts 에 없다면 여기에 추가)
+const isVideoUrl = (url: string): boolean => {
+    if (!url) return false;
+    // blob URL 체크는 여기선 불필요할 수 있음 (DB에 저장된 URL 대상)
+    try {
+      const pathname = new URL(url).pathname;
+      const lowerCasePath = pathname.toLowerCase();
+      return lowerCasePath.endsWith('.mp4') ||
+             lowerCasePath.endsWith('.webm') ||
+             lowerCasePath.endsWith('.ogg');
+    } catch (e) {
+      // URL 파싱 실패 시 확장자 검사 시도
+      const lowerCaseUrl = url.toLowerCase();
+       return lowerCaseUrl.endsWith('.mp4') ||
+              lowerCaseUrl.endsWith('.webm') ||
+              lowerCaseUrl.endsWith('.ogg');
+    }
+  };

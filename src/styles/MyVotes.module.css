@@ -131,3 +131,44 @@
 .image-grid-option.selected .vote-bar-overlay {
   background-color: rgba(58, 142, 255, 0.8);
 }
+
+/* Last viewed card highlight styles */
+.last-viewed {
+  animation: highlight-pulse 2s ease-in-out;
+  position: relative;
+}
+
+.last-viewed::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 2px solid #6495ed;
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 1;
+  box-shadow: 0 0 15px rgba(100, 149, 237, 0.5);
+}
+
+@keyframes highlight-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(100, 149, 237, 0.4);
+  }
+  70% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 10px rgba(100, 149, 237, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(100, 149, 237, 0);
+  }
+}
+
+.highlight-card {
+  animation: highlight-pulse 2s ease-in-out;
+  position: relative;
+  z-index: 10;
+}

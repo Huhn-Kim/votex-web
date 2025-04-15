@@ -1,0 +1,112 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.modalContent {
+  background-color: var(--card-background, #1e1e1e);
+  padding: 1.25rem;
+  border-radius: var(--border-radius, 0.75rem);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 360px;
+  text-align: center;
+  color: var(--text-color, #ffffff);
+  border: 1px solid var(--border-color, #333333);
+}
+
+.modalContent h2 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.modalContent p {
+  margin-bottom: 1.25rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--text-secondary, #aaaaaa);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+/* 확인 버튼만 있을 때의 컨테이너 스타일 */
+.modalActions.singleButton {
+  gap: 0;
+}
+
+/* 모든 버튼 공통 스타일 */
+.modalActions button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.modalActions button:hover {
+  transform: translateY(-1px);
+}
+
+/* 취소 버튼 스타일 */
+.cancelButton {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-color, #ffffff);
+  border: 1px solid var(--border-color, #333333);
+}
+.cancelButton:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* 확인 버튼 공통 스타일 (색상은 variant 클래스에서 지정) */
+.confirmButton {
+  color: white;
+}
+
+/* 확인 버튼 Variant: 기본 (회색 계열) */
+.confirmButtonDefault {
+  background-color: var(--primary-color, #3a8eff);
+}
+.confirmButtonDefault:hover {
+  background-color: var(--secondary-color, #2980b9);
+}
+
+/* 확인 버튼 Variant: Primary (파란색 계열 - 예: 업로드) */
+.confirmButtonPrimary {
+  background-color: var(--primary-color, #3a8eff);
+}
+.confirmButtonPrimary:hover {
+  background-color: var(--secondary-color, #2980b9);
+}
+
+/* 확인 버튼 Variant: Danger (빨간색 계열 - 예: 삭제) */
+.confirmButtonDanger {
+  background-color: #e74c3c;
+}
+.confirmButtonDanger:hover {
+  background-color: #c0392b;
+}
+
+/* 전체 너비 버튼 스타일 (확인 버튼만 있을 때) */
+.fullWidthButton {
+  width: 100%;
+}

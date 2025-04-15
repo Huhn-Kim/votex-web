@@ -13,13 +13,15 @@
 .analysis-header {
   display: flex;
   align-items: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
   position: sticky;
   top: 0;
-  background-color: #1e1e1e;
-  z-index: 10;
-  padding: 0;
+  background-color: #121212;
+  z-index: 100;
+  padding: 0.8rem 0.5rem;
   border-bottom: 1px solid #333;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .back-button {
@@ -27,8 +29,8 @@
   border: none;
   color: #e0e0e0;
   cursor: pointer;
-  padding: 0.4rem;
-  margin-right: 0.3rem;
+  padding: 0.3rem;
+  margin-right: 0.2rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -42,7 +44,7 @@
 .analysis-header h1 {
   font-size: 1.2rem;
   margin: 0;
-  padding: 0.3rem 0;
+  padding: 0.2rem 0;
   color: #fff;
 }
 
@@ -65,6 +67,7 @@
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE and Edge */
   background-color: #252525;
+  align-items: center;
 }
 
 .analysis-tabs::-webkit-scrollbar {
@@ -81,6 +84,8 @@
   color: #aaa;
   position: relative;
   transition: color 0.2s;
+  text-align: center;
+  width: 100%;
 }
 
 .tab-button:hover {
@@ -150,13 +155,17 @@
   background-color: #333;
   border-radius: 6px;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .bar {
   height: 100%;
   border-radius: 6px;
   transition: width 0.5s ease-out;
+  display: block; /* 이 속성 추가 */
+  position: absolute; /* 이 속성 추가 */
+  top: 0; /* 이 속성 추가 */
+  left: 0; /* 이 속성 추가 */
 }
 
 .male-bar {
@@ -205,6 +214,10 @@
   font-size: 0.9rem;
   font-weight: 500;
   text-shadow: 0 0 2px rgba(0, 0, 0, 0.7);
+  white-space: nowrap;
+  z-index: 20;
+  background-color: transparent;
+  pointer-events: none; /* 클릭을 방지하여 하위 요소와 상호작용 가능하게 함 */
 }
 
 .chart-analysis {
@@ -283,7 +296,7 @@
 /* 반응형 스타일 */
 @media (max-width: 768px) {
   .vote-analysis-page {
-    padding: 0.5rem;
+    padding: 0.3rem;
   }
   
   .analysis-header h1 {
@@ -292,23 +305,53 @@
   
   .tab-button {
     padding: 0.8rem 1rem;
+    text-align: center;
+    width: 100%;
   }
   
   .tab-content {
     padding: 1rem 0.5rem;
   }
   
+  .bar-chart-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+    width: 100%;
+    position: relative;
+    padding-top: 20px;
+  }
+  
   .bar-label {
-    width: 70px;
+    width: 100%;
+    text-align: left;
     font-size: 0.8rem;
   }
   
   .bar-container {
+    width: 100%;
     height: 25px;
+    min-height: 25px;
+  }
+  
+  .bar {
+    min-width: 20px;
   }
   
   .bar-value {
     font-size: 0.8rem;
+    right: auto;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 3px;
+    padding: 1px 4px;
+    white-space: nowrap;
+    z-index: 20;
+    text-align: center;
+    width: auto;
+    max-width: none;
   }
   
   .demographic-chart {
@@ -328,6 +371,26 @@
   .overview-charts {
     gap: 1.25rem;
   }
+  
+  .stacked-bar-container {
+    height: 35px;
+    margin-top: 20px;
+  }
+  
+  .stacked-bar-label {
+    font-size: 0.75rem;
+    padding: 3px 6px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: transparent;
+    border-radius: 3px;
+    box-shadow: none;
+    color: #fff;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  }
 }
 
 /* 모바일 스타일 */
@@ -339,19 +402,44 @@
   .tab-button {
     padding: 0.7rem 0.8rem;
     font-size: 0.9rem;
+    text-align: center;
+    width: 100%;
   }
   
   .tab-content {
     padding: 0.75rem 0.25rem;
   }
   
+  .bar-chart-item {
+    gap: 0.2rem;
+    width: 100%;
+    padding-top: 18px;
+  }
+  
   .bar-label {
-    width: 60px;
+    width: 100%;
     font-size: 0.75rem;
+  }
+  
+  .bar-container {
+    width: 100%;
+    min-height: 22px;
+  }
+  
+  .bar {
+    min-width: 15px;
   }
   
   .bar-value {
     font-size: 0.75rem;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 1px 3px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 3px;
+    white-space: nowrap;
+    z-index: 20;
   }
   
   .demographic-chart {
@@ -370,6 +458,20 @@
   
   .chart-analysis p {
     font-size: 0.85rem;
+  }
+  
+  .stacked-bar-container {
+    height: 30px;
+    margin-top: 18px;
+  }
+  
+  .stacked-bar-label {
+    font-size: 0.7rem;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 2px 5px;
+    background-color: transparent;
   }
 }
 
@@ -517,10 +619,10 @@
 .stacked-bar-container {
   position: relative;
   height: 40px;
-  background-color: #333;
+  background-color: #2a2a2a;
   border-radius: 6px;
   margin-bottom: 1rem;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .stacked-bar-segment {
@@ -530,40 +632,68 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
   transition: width 0.5s ease;
-  box-shadow: 1px 0 3px rgba(0, 0, 0, 0.2);
+  box-shadow: 1px 0 3px rgba(0, 0, 0, 0.3);
+  min-width: 20px;
 }
 
 .stacked-bar-label {
+  font-size: 0.75rem;
+  padding: 3px 6px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: transparent;
+  border-radius: 3px;
+  box-shadow: none;
   color: #fff;
-  font-size: 0.8rem;
   font-weight: 600;
-  text-shadow: 0 0 3px rgba(0, 0, 0, 0.7);
-  padding: 0 5px;
-  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  width: 100%;
+  text-align: center;
+  z-index: 11;
 }
 
 .demographic-option-legend {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 1rem;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  margin-top: 0;
+  padding: 0.5rem;
+  background-color: transparent;
+  border-radius: 0;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.demographic-option-legend::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  flex: 1 0 calc(50% - 0.75rem);
-  min-width: 120px;
+  flex: 0 0 auto;
+  min-width: 50px;
+  max-width: 150px;
+  padding: 0.3rem 0.5rem;
+  background-color: transparent;
+  border-radius: 4px;
+  white-space: nowrap;
+  margin-right: 5px;
 }
 
 .legend-color {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  margin-right: 8px;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  margin-right: 6px;
   flex-shrink: 0;
+  box-shadow: none;
 }
 
 .legend-text {
@@ -574,45 +704,115 @@
 }
 
 .legend-label {
-  color: #e0e0e0;
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.legend-value {
-  color: #aaa;
+  font-weight: 500;
+  max-width: 120px;
   font-size: 0.8rem;
 }
 
+.option-demographics-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+.option-demographics-title {
+  font-size: 1rem;
+  color: #fff;
+  margin: 0 0 0.5rem 0;
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.compact-legend {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  background-color: transparent;
+  border-radius: 0;
+  overflow-x: auto;
+  width: 100%;
+  justify-content: flex-end;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  max-height: 40px;
+}
+
+.compact-legend::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.compact-legend .legend-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 4px;
+}
+
+.compact-legend .legend-item {
+  flex: 0 0 auto;
+  min-width: 40px;
+  max-width: 120px;
+  padding: 0.1rem 0.3rem;
+  background-color: transparent;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.compact-legend .legend-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+
+@media (max-width: 768px) {
+  .option-demographics-header {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    width: 100%;
+  }
+  
+  .option-demographics-title {
+    font-size: 0.9rem;
+    margin: 0 0 0.5rem 0;
+    width: 100%;
+    text-align: left;
+  }
+  
+  .compact-legend {
+    width: 100%;
+    padding: 0;
+    justify-content: flex-end;
+  }
+}
+
 /* 연령대 아이콘 스타일 */
-.age-under18-icon {
-  background-color: #8bc34a;
+.age-age10to19-icon, .age-age20to29-icon, .age-age30to39-icon, 
+.age-age40to49-icon, .age-age50to59-icon, .age-age60to69-icon, 
+.age-age70to79-icon, .age-age80plus-icon {
+  background-color: #2196f3; /* 기본 연령 바 색상과 동일 */
 }
 
-.age-18to24-icon {
-  background-color: #4caf50;
-}
-
-.age-25to34-icon {
-  background-color: #009688;
-}
-
-.age-35to44-icon {
-  background-color: #00bcd4;
-}
-
-.age-45to54-icon {
-  background-color: #03a9f4;
-}
-
-.age-55plus-icon {
-  background-color: #2196f3;
-}
-
-/* 지역 아이콘 스타일 */
 .region-icon {
-  background-color: #ff9800;
+  background-color: #009688; /* 지역 바 색상과 동일 */
+}
+
+/* 최대 투표 연령대 또는 지역 아이콘 색상 */
+.max-vote-region-icon, .max-vote-age-icon {
+  background-color: #ff9800; /* max-vote-bar 색상과 동일 */
 }
 
 /* 모바일 대응 */
@@ -627,15 +827,32 @@
   }
   
   .stacked-bar-label {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
+    padding: 3px 6px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: transparent;
+    border-radius: 3px;
+    box-shadow: none;
+    color: #fff;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   }
   
   .legend-item {
-    flex: 1 0 100%;
+    flex: 1 0 calc(50% - 1rem);
+    min-width: 120px;
   }
   
-  .demographic-name h5 {
-    font-size: 0.9rem;
+  .legend-color {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .legend-text {
+    font-size: 0.85rem;
   }
 }
 
@@ -649,19 +866,52 @@
     height: 30px;
   }
   
+  .stacked-bar-label {
+    font-size: 0.7rem;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 2px 5px;
+    background-color: transparent;
+  }
+  
   .legend-item {
+    flex: 1 0 100%;
     min-width: 100%;
+  }
+  
+  .legend-color {
+    width: 14px;
+    height: 14px;
   }
   
   .legend-text {
     font-size: 0.8rem;
   }
-  
-  .legend-value {
-    font-size: 0.75rem;
+}
+
+.demographic-chart-section {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: #1e1e1e;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.demographic-chart-section h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+@media (max-width: 480px) {
+  .demographic-chart-section {
+    margin: 1rem 0;
+    padding: 0.8rem;
   }
   
-  .demographic-name h5 {
-    font-size: 0.85rem;
+  .demographic-chart-section h3 {
+    font-size: 1rem;
+    margin-bottom: 0.8rem;
   }
 } 

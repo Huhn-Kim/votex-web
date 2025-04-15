@@ -74,6 +74,8 @@ const AuthPage: React.FC = () => {
           />
           <h1 className={styles.title}>VoteY</h1>
         </div>
+        
+        <h2 className={styles.subtitle}>Vote Your Opinion</h2>
 
         {error && <div className={styles.errorMessage}>{error}</div>}
         {loading && <div className={styles.loading}>처리 중...</div>}

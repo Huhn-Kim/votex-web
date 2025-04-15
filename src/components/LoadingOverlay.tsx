@@ -1,5 +1,5 @@
-import React from 'react';
-import styles from '../styles/CreateVote.module.css';
+import React, { useEffect } from 'react';
+import styles from '../styles/ConfirmModal.module.css';
 
 interface LoadingOverlayProps {
   isLoading: boolean;
@@ -10,30 +10,39 @@ interface LoadingOverlayProps {
 
 const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   isLoading,
-  progress = 0,
   progressStatus = '',
   defaultMessage = '처리 중...'
 }) => {
+  useEffect(() => {
+    if (isLoading) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isLoading]);
+  
   if (!isLoading) return null;
   
   return (
-    <div className={styles['loading-overlay']}>
-      <div className={styles['loading-container']}>
-        {progress > 0 && (
-          <div className={styles['progress-container']}>
-            <div 
-              className={styles['progress-bar']} 
-              style={{ width: `${progress}%` }}
-            ></div>
-            <div className={styles['progress-text']}>
-              {progressStatus || defaultMessage} ({progress}%)
-            </div>
-          </div>
-        )}
-        <div className={styles['loading-spinner']}></div>
-        <p className={styles['loading-message']}>
-          {progress > 0 ? (progressStatus || defaultMessage) : defaultMessage}
-        </p>
+    <div className={styles.modalOverlay}>
+      <div className={styles.modalContent}>
+        <h2>{progressStatus || defaultMessage}</h2>
+        
+        <div 
+          className="loading-spinner"
+          style={{
+            width: '40px',
+            height: '40px',
+            margin: '20px auto',
+            border: '4px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '50%',
+            borderTop: '4px solid #3a8eff',
+            animation: 'spin 1s linear infinite'
+          }}
+        ></div>
       </div>
     </div>
   );

@@ -5,10 +5,12 @@ import styles from '../styles/CreateVote.module.css';
 import { useVoteContext } from '../context/VoteContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { VoteTopic, VoteOption } from '../lib/types';
-import { getVoteTopicById, uploadImageToStorage } from '../lib/api';
+import { getVoteTopicById, uploadImageToStorage, uploadVideoToStorage, deleteVideoFromStorage, deleteImageFromStorage, updateRelatedImage, updateOptionImageUrl } from '../lib/api';
 import { FaUndo, FaRedo, FaSearchMinus, FaSearchPlus, FaSyncAlt } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import LoadingOverlay from './LoadingOverlay';
+import supabase from '../lib/supabase'; // Supabase 클라이언트 import
+import ConfirmModal from './ConfirmModal';
 
 interface CreateVoteProps {
   isEditMode?: boolean;
@@ -55,10 +57,10 @@ interface Option {
   topic_id?: number;
 }
 
+
 const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) => {
   const { id } = useParams<{ id: string }>();
   const currentVoteId = voteId || (id ? parseInt(id) : undefined);
-  const { user } = useAuth();
   const [question, setQuestion] = useState('');
   const [sourceLink, setSourceLink] = useState('');
   const [options, setOptions] = useState<Option[]>([
@@ -71,7 +73,6 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
   const [optionType, setOptionType] = useState<'text' | 'image' | 'video'>('text');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
   const [originalVote, setOriginalVote] = useState<VoteTopic | null>(null);
   const [questionImage, setQuestionImage] = useState<string | null>(null);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
@@ -104,6 +105,10 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
   
   // 페이지 이동을 위한 navigate 함수
   const navigate = useNavigate();
+  
+  // 로그인 상태 확인
+  const { user } = useAuth();
+  const isGuest = !user;
   
   // 커스텀 입력 컴포넌트
   const CustomInput = forwardRef<HTMLButtonElement, { value?: string; onClick?: () => void }>(
@@ -168,37 +173,6 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
       }));
       setOptions(voteOptions);
       
-      // // 만료 시간 설정
-      // if (voteData.vote_period) {
-      //   // 저장된 투표 기간 설정
-      //   setSelectedPeriod(voteData.vote_period);
-        
-      //   // 기간에 따른 일수 설정
-      //   switch (voteData.vote_period) {
-      //     case '1일':
-      //       setExpiryDays(1);
-      //       break;
-      //     case '3일':
-      //       setExpiryDays(3);
-      //       break;
-      //     case '1주일':
-      //       setExpiryDays(7);
-      //       break;
-      //     case '1개월':
-      //       setExpiryDays(30);
-      //       break;
-      //     case '특정일':
-      //       if (voteData.expires_at) {
-      //         setSelectedDate(new Date(voteData.expires_at));
-      //         const diffDays = Math.ceil(
-      //           (new Date(voteData.expires_at).getTime() - new Date().getTime()) / 
-      //           (1000 * 60 * 60 * 24)
-      //         );
-      //         setExpiryDays(diffDays);
-      //       }
-      //       break;
-      //   }
-      // }
     } catch (err: any) {
       console.error('투표 데이터를 불러오는 중 오류 발생:', err);
       setError(err.message || '투표 데이터를 불러오는 중 오류가 발생했습니다.');
@@ -212,9 +186,9 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
     }
   }, [isEditMode, currentVoteId]);
 
-  const handleOptionChange = (index: number, value: string) => {
+  const handleOptionChange = (index: number, text: string) => {
     const newOptions = [...options];
-    newOptions[index].text = value;
+    newOptions[index].text = text;
     setOptions(newOptions);
   };
 
@@ -291,74 +265,148 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
     setIsDatePickerOpen(false);
   };
 
-  const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>, index: number) => {
+  // 이미지 편집기 상태 초기화 함수 추가
+  const resetImageEditor = () => {
+    setEditingImageIndex(null);
+    setImageSrc(null);
+    setOriginalImageSrc(null);
+    setShowImageEditor(false);
+  };
+
+  // 이미지/비디오 삭제 핸들러
+  const handleImageDelete = async (mediaUrl: string, optionIndex?: number) => {
+    try {
+      setLoading(true);
+      
+      // 원래 API URL인지 Base64/Blob인지 확인
+      const isApiUrl = mediaUrl.startsWith('http') || mediaUrl.startsWith('https');
+      const isVideo = mediaUrl.match(/\.(mp4|webm|ogg)$/) || mediaUrl.startsWith('blob:');
+      
+      // API URL이라면 스토리지에서 삭제
+      if (isApiUrl) {
+        if (isVideo) {
+          console.log('비디오 삭제 시도:', mediaUrl);
+          await deleteVideoFromStorage(mediaUrl);
+        } else {
+          console.log('이미지 삭제 시도:', mediaUrl);
+          await deleteImageFromStorage(mediaUrl);
+        }
+      }
+      
+      // 옵션 이미지인 경우
+      if (optionIndex !== undefined) {
+        // 옵션 이미지 삭제 처리
+        const newOptions = [...options];
+        
+        if (isApiUrl && isEditMode && currentVoteId) {
+          // 수정 모드에서는 DB도 업데이트
+          const option = newOptions[optionIndex];
+          if (option.id) {
+            await updateOptionImageUrl(option.id, null);
+          }
+        }
+        
+        newOptions[optionIndex].image_url = '';
+        setOptions(newOptions);
+      } else {
+        // 질문 이미지/비디오 삭제 처리
+        if (isApiUrl && isEditMode && currentVoteId) {
+          // 수정 모드에서는 DB도 업데이트
+          await updateRelatedImage(currentVoteId, null);
+        }
+        
+        setQuestionImage(null);
+      }
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('이미지/비디오 삭제 중 오류:', error);
+      setError('이미지/비디오 삭제 중 오류가 발생했습니다.');
+      setLoading(false);
+    }
+  };
+
+  // handleMediaSelect 함수 수정
+  const handleMediaSelect = async (event: React.ChangeEvent<HTMLInputElement>, optionIndex?: number) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    
-    // 이미지 유형 확인
-    if (!file.type.startsWith('image/')) {
-      setError('이미지 파일만 선택할 수 있습니다.');
-      return;
-    }
-    
-    // 이미지 크기 제한 (10MB로 증가)
-    if (file.size > 10 * 1024 * 1024) {
-      setError('이미지 크기는 10MB 이하여야 합니다.');
-      return;
-    }
-    
+
+    // 파일 선택 후 input value 초기화 - 동일한 파일 선택 가능하도록
+    event.target.value = '';
+
     // 네비게이션 타이머 초기화
     if (navigationTimeoutRef.current) {
       clearTimeout(navigationTimeoutRef.current);
       navigationTimeoutRef.current = null;
     }
-    
+
     // 에러 메시지 초기화
     setError(null);
-    
+
     try {
       // 로딩 상태 설정
       setLoading(true);
 
-      // 파일을 Base64로 변환
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        try {
-          // 이미지 처리
-          if (typeof reader.result === 'string') {
-            // 이미지 데이터를 에디터에 전달
-            openImageEditor(index, reader.result);
+      if (file.type.startsWith('image/')) {
+        // 이미지 처리
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          // 명시적으로 string 타입 체크
+          const result = reader.result;
+          if (result && typeof result === 'string') {
+            // 먼저 편집기 상태 초기화
+            resetImageEditor();
+            
+            setTimeout(() => {
+              if (optionIndex !== undefined) {
+                // 옵션 이미지인 경우
+                setEditingImageIndex(optionIndex);
+                setOriginalImageSrc(result);
+                setImageSrc(result);
+                setShowImageEditor(true);
+              } else {
+                // 질문 이미지인 경우
+                setEditingImageIndex(-1);
+                setOriginalImageSrc(result);
+                setImageSrc(result);
+                setShowImageEditor(true);
+              }
+            }, 100);
           }
           setLoading(false);
-        } catch (err) {
-          console.error('이미지 로드 중 오류:', err);
-          setError('이미지를 로드하는 중 오류가 발생했습니다.');
+        };
+        reader.onerror = () => {
+          setError('파일을 읽는 중 오류가 발생했습니다.');
           setLoading(false);
+        };
+        reader.readAsDataURL(file);
+      } else if (file.type.startsWith('video/')) {
+        const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
+        if (file.size > MAX_VIDEO_SIZE) {
+          setLoading(false);
+          setShowSizeWarningModal(true); // 모달 표시
+          return;
         }
-      };
-      
-      reader.onerror = () => {
-        setError('파일을 읽는 중 오류가 발생했습니다.');
+        // 동영상 선택 시 URL 생성
+        const videoUrl = URL.createObjectURL(file);
+        if (optionIndex !== undefined) {
+          // 옵션 동영상인 경우
+          const newOptions = [...options];
+          newOptions[optionIndex].image_url = videoUrl;
+          setOptions(newOptions);
+        } else {
+          // 질문 동영상인 경우
+          setQuestionImage(videoUrl);
+        }
         setLoading(false);
-      };
-      
-      reader.readAsDataURL(file);
+      }
     } catch (err) {
-      console.error('이미지 처리 중 오류:', err);
-      setError('이미지를 처리하는 중 오류가 발생했습니다.');
+      console.error('미디어 처리 중 오류:', err);
+      setError('미디어를 처리하는 중 오류가 발생했습니다.');
       setLoading(false);
     }
   };
 
-  // 이미지 에디터 닫기
-  const closeImageEditor = () => {
-    // 에디터 상태 초기화
-    setShowImageEditor(false);
-    setImageSrc(null);
-    setOriginalImageSrc(null);
-    setEditingImageIndex(null);
-  };
-  
   // 이미지 에디터 열기
   const openImageEditor = async (index: number, imageData: string) => {
     console.log('이미지 에디터 열기', index);
@@ -422,6 +470,8 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
     const [imgPosition, setImgPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [pinchStart, setPinchStart] = useState(0);
+    const [pinchScale, setPinchScale] = useState(1);
 
     const imageRef = useRef<HTMLImageElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -471,7 +521,21 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
         return;
       }
       
-      setIsLoading(false);
+      // 초기 위치 및 크기 설정 - 페이지 로드 시 자동 맞춤
+      if (imageRef.current && containerRef.current) {
+        const container = containerRef.current;
+        const cropFrame = container.querySelector(`.${styles['crop-frame']}`);
+        
+        if (cropFrame) {
+          // 이미지를 크롭 프레임에 맞추기 위한 초기화
+          setIsLoading(false);
+        } else {
+          // 크롭 프레임이 없는 경우 기본 처리
+          setIsLoading(false);
+        }
+      } else {
+        setIsLoading(false);
+      }
     }, [editingImageIndex, imgSrc, editHistory]);
 
     // 마우스/터치 이벤트 핸들러
@@ -503,16 +567,27 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
 
     // 줌 변경 핸들러
     const handleZoomChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-      setScale(parseFloat(e.target.value));
+      const newScale = parseFloat(e.target.value);
+      setScale(newScale);
+      setPinchScale(newScale);
+      console.log('Zoom change:', { newScale });
     }, []);
 
-    const decreaseZoom = useCallback(() => {
-      setScale(prev => Math.max(0.05, prev - 0.01));
-    }, []);
+    const decreaseZoom = () => {
+      // 더 작은 단계로 줌 감소 (0.05 단위)
+      const newScale = Math.max(0.1, scale - 0.05);
+      setScale(newScale);
+      setPinchScale(newScale);
+      console.log('Decrease zoom:', { newScale });
+    };
 
-    const increaseZoom = useCallback(() => {
-      setScale(prev => Math.min(5, prev + 0.01));
-    }, []);
+    const increaseZoom = () => {
+      // 더 작은 단계로 줌 증가 (0.05 단위)
+      const newScale = Math.min(5, scale + 0.05);
+      setScale(newScale);
+      setPinchScale(newScale);
+      console.log('Increase zoom:', { newScale });
+    };
 
     // 회전 핸들러
     const rotateLeft = useCallback(() => {
@@ -524,131 +599,251 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
     }, []);
 
     // 이미지 리셋
-    const resetImage = useCallback(() => {
-      // 편집 기록이 있는지 확인
-      const key = editingImageIndex === -1 ? 'question' : `option-${editingImageIndex}`;
-      const history = editHistory[key];
-      
-      // 편집 기록이 있으면 기록 삭제
-      if (history) {
-        const newEditHistory = { ...editHistory };
-        delete newEditHistory[key];
-        setEditHistory(newEditHistory);
-      }
-      
-      // 기본값으로 초기화
+    const resetImage = () => {
       setScale(1);
+      setPinchScale(1);
       setRotate(0);
       setImgPosition({ x: 0, y: 0 });
-    }, [editingImageIndex, editHistory, setEditHistory]);
+      console.log('Reset image');
+    };
 
-    // 터치 이벤트 핸들러 수정
-    const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      setIsDragging(true);
-      const touch = e.touches[0];
-      setDragStart({
-        x: touch.clientX - imgPosition.x,
-        y: touch.clientY - imgPosition.y
-      });
-    }, [imgPosition, setIsDragging, setDragStart]);
+    // 터치 이벤트 핸들러 개선
+    const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+      // 버튼에서의 터치는 무시
+      if ((e.target as HTMLElement).tagName === 'BUTTON') return;
 
-    const handleTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
-      if (!isDragging) return;
-      
-      e.preventDefault();
-      e.stopPropagation();
-      
-      const touch = e.touches[0];
-      const newX = touch.clientX - dragStart.x;
-      const newY = touch.clientY - dragStart.y;
-      
-      setImgPosition({
-        x: newX,
-        y: newY
-      });
-    }, [isDragging, dragStart, setImgPosition]);
+      if (e.touches.length === 1) {
+        // passive 이벤트용 최적화: preventDefault 제거
+        setIsDragging(true);
+        const touch = e.touches[0];
+        setDragStart({
+          x: touch.clientX - imgPosition.x,
+          y: touch.clientY - imgPosition.y
+        });
+      } else if (e.touches.length === 2) {
+        // passive 이벤트용 최적화: preventDefault 제거
+        // 두 손가락 사이의 거리 계산
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const distance = Math.hypot(
+          touch2.clientX - touch1.clientX,
+          touch2.clientY - touch1.clientY
+        );
+        setPinchStart(distance);
+        setPinchScale(scale);
+      }
+    };
 
-    const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
+    const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+      if (e.touches.length === 1 && isDragging) {
+        // passive 이벤트 문제 해결: preventDefault 호출 제거
+        const touch = e.touches[0];
+        setImgPosition({
+          x: touch.clientX - dragStart.x,
+          y: touch.clientY - dragStart.y
+        });
+      } else if (e.touches.length === 2) {
+        // passive 이벤트 문제 해결: preventDefault 호출 제거
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const distance = Math.hypot(
+          touch2.clientX - touch1.clientX,
+          touch2.clientY - touch1.clientY
+        );
+        
+        // 핀치 줌 계산 - 부드러운 변화를 위해 개선된 damping factor 적용
+        const damping = 0.4; // 더 부드러운 변화를 위해 damping 감소
+        const pinchRatio = distance / pinchStart;
+        const newScale = Math.max(0.1, Math.min(5, (pinchRatio * damping + (1 - damping)) * pinchScale));
+        setScale(parseFloat(newScale.toFixed(2))); // 소수점 2자리까지만 유지하여 안정성 향상
+      }
+    };
+
+    const handleTouchEnd = () => {
+      // passive 이벤트 문제 해결: preventDefault 호출 제거
       setIsDragging(false);
-    }, []);
+      // 현재 scale 값을 유지
+      console.log('Touch end:', { finalScale: scale });
+    };
 
-    // 이미지 크롭 및 저장
-    const saveCroppedImage = async () => {
-      if (!imageRef.current) return;
+    // 버튼 클릭 핸들러 수정
+    const handleButtonClick = (e: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>) => {
+      // preventDefault 제거, stopPropagation만 유지
+      e.stopPropagation();
+    };
+
+    // 이미지 크롭 및 저장 함수 - 완전히 새로운 접근 방식
+    const handleSave = useCallback(() => {
+      if (!imageRef.current || !containerRef.current) return;
 
       try {
         setIsSaving(true);
-        
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        // 캔버스 크기 설정
+        console.log('이미지 저장 시작');
+
+        // 타겟 크기 설정 - 옵션 타입에 따라 다름
+        let targetWidth, targetHeight;
         if (editingImageIndex === -1) {
-          // 질문 이미지는 항상 600x300
-          canvas.width = 600;
-          canvas.height = 300;
+          // 질문 이미지는 항상 2:1 비율
+          targetWidth = 600;
+          targetHeight = 300;
         } else {
-          // 옵션 이미지는 유형에 따라 다름
           if (optionType === 'text') {
-            canvas.width = 100;  // 정확히 100x100
-            canvas.height = 100;
+            // 텍스트 옵션 이미지는 1:1 비율
+            targetWidth = 100;
+            targetHeight = 100;
           } else {
-            canvas.width = 400;  // 정확히 400x400
-            canvas.height = 400;
+            // 이미지 옵션은 1:1 비율
+            targetWidth = 400;
+            targetHeight = 400;
           }
         }
-        
-        if (!ctx) return;
-        
-        // 캔버스 초기화 (배경 투명하게)
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // 배경색 설정 (검정 배경)
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // 중앙 정렬 및 회전
-        ctx.save();
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate((rotate * Math.PI) / 180);
-        
-        // 이미지 그리기
+
         const img = imageRef.current;
-        const scaledWidth = img.naturalWidth * scale;
-        const scaledHeight = img.naturalHeight * scale;
+        const container = containerRef.current;
+        const cropFrame = container.querySelector(`.${styles['crop-frame']}`);
         
-        ctx.drawImage(
-          img,
-          -scaledWidth / 2 + imgPosition.x,
-          -scaledHeight / 2 + imgPosition.y,
-          scaledWidth,
-          scaledHeight
+        if (!cropFrame) {
+          console.error('크롭 프레임을 찾을 수 없습니다.');
+          setIsSaving(false);
+          return;
+        }
+
+        // 1. 작업 캔버스 생성 (원본 이미지 크기)
+        const workCanvas = document.createElement('canvas');
+        const workCtx = workCanvas.getContext('2d', { willReadFrequently: true });
+        
+        if (!workCtx) {
+          console.error('작업 캔버스 컨텍스트를 가져올 수 없습니다.');
+          setIsSaving(false);
+          return;
+        }
+
+        // 2. 현재 상태 정보 수집
+        const cropRect = cropFrame.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+
+        // 3. 작업 캔버스 크기 설정
+        // 회전을 고려하여 충분히 큰 캔버스 사용
+        const diagonal = Math.ceil(Math.sqrt(
+          img.naturalWidth * img.naturalWidth + 
+          img.naturalHeight * img.naturalHeight
+        ));
+        const padding = 100; // 여유 공간
+        workCanvas.width = diagonal + padding;
+        workCanvas.height = diagonal + padding;
+
+        // 4. 이미지 그리기에 필요한 변환 수행
+        workCtx.save();
+        
+        // 캔버스 중앙으로 이동
+        workCtx.translate(workCanvas.width / 2, workCanvas.height / 2);
+        
+        // 회전 적용
+        workCtx.rotate((rotate * Math.PI) / 180);
+        
+        // 이미지 그리기 (중앙 정렬)
+        workCtx.drawImage(
+          img, 
+          -img.naturalWidth / 2, 
+          -img.naturalHeight / 2,
+          img.naturalWidth,
+          img.naturalHeight
         );
         
-        ctx.restore();
+        workCtx.restore();
+
+        // 5. 변환된 이미지에서 크롭 영역 찾기
+        // 크롭 영역과 이미지의 비율 계산
+        const displayScale = scale;
         
-        // 결과 이미지 생성
-        const resultImage = canvas.toDataURL('image/png', 0.9);
+        // 화면에 표시된 이미지 크기
+        const displayedWidth = img.naturalWidth * displayScale;
+        const displayedHeight = img.naturalHeight * displayScale;
         
-        // 디버깅 정보
-        console.log('이미지 저장 시작');
-        console.log(`크롭된 이미지 크기: ${canvas.width}x${canvas.height}`);
+        // 화면 상 크롭 프레임의 상대적 위치 (이미지 중심 기준)
+        const cropCenterX = cropRect.left + cropRect.width / 2 - (containerRect.left + containerRect.width / 2);
+        const cropCenterY = cropRect.top + cropRect.height / 2 - (containerRect.top + containerRect.height / 2);
         
-        // 이미지 저장 함수 호출
-        onSave(resultImage);
+        // 이미지 중심 기준 위치 보정
+        const adjustedCenterX = cropCenterX - imgPosition.x;
+        const adjustedCenterY = cropCenterY - imgPosition.y;
+        
+        // 이미지 원본 크기 기준으로 변환
+        const sourceScale = img.naturalWidth / displayedWidth;
+        
+        // 원본 이미지에서의 크롭 중심 좌표
+        const sourceCenterX = adjustedCenterX * sourceScale;
+        const sourceCenterY = adjustedCenterY * sourceScale;
+        
+        // 회전이 적용된 작업 캔버스 상의 중심 좌표
+        const workCenterX = workCanvas.width / 2 + sourceCenterX;
+        const workCenterY = workCanvas.height / 2 + sourceCenterY;
+        
+        // 크롭 영역 크기 (원본 이미지 기준)
+        const cropWidthInSource = cropRect.width * sourceScale;
+        const cropHeightInSource = cropRect.height * sourceScale;
+        
+        // 작업 캔버스에서 크롭할 좌표
+        const cropX = workCenterX - cropWidthInSource / 2;
+        const cropY = workCenterY - cropHeightInSource / 2;
+
+        // 6. 결과 캔버스 생성 및 크롭된 이미지 그리기
+        const resultCanvas = document.createElement('canvas');
+        const resultCtx = resultCanvas.getContext('2d');
+        
+        if (!resultCtx) {
+          console.error('결과 캔버스 컨텍스트를 가져올 수 없습니다.');
+          setIsSaving(false);
+          return;
+        }
+        
+        // 결과 캔버스 크기 설정
+        resultCanvas.width = targetWidth;
+        resultCanvas.height = targetHeight;
+        
+        // 배경색 설정
+        resultCtx.fillStyle = '#1a1a1a';
+        resultCtx.fillRect(0, 0, targetWidth, targetHeight);
+        
+        // 작업 캔버스에서 크롭한 영역을 결과 캔버스에 그리기
+        resultCtx.drawImage(
+          workCanvas,
+          cropX, cropY, 
+          cropWidthInSource, cropHeightInSource,
+          0, 0,
+          targetWidth, targetHeight
+        );
+        
+        // 7. 결과 이미지 생성 및 저장
+        const croppedImage = resultCanvas.toDataURL('image/png', 0.95);
+        console.log('이미지 생성 완료', {
+          crop: {
+            x: cropX, y: cropY, 
+            width: cropWidthInSource, height: cropHeightInSource
+          },
+          target: {
+            width: targetWidth, height: targetHeight
+          },
+          imageInfo: {
+            natural: { width: img.naturalWidth, height: img.naturalHeight },
+            display: { width: displayedWidth, height: displayedHeight },
+            position: imgPosition,
+            scale: scale,
+            rotate: rotate
+          }
+        });
+        
+        // 편집 기록 업데이트
+        onSave(croppedImage);
+        
+        // 편집 상태 종료
         onClose();
-        
       } catch (error) {
         console.error('이미지 저장 중 오류:', error);
       } finally {
         setIsSaving(false);
       }
-    };
+    }, [containerRef, imageRef, editingImageIndex, onSave, onClose, scale, rotate, imgPosition, optionType, setIsSaving]);
 
     // 모달이 열릴 때 body 스크롤 막기
     useEffect(() => {
@@ -672,9 +867,12 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
       <div 
         className={styles['modal-overlay']}
         onTouchStart={(e) => e.stopPropagation()}
-        onTouchMove={(e) => e.preventDefault()}
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className={styles['modal-content']}>
+        <div 
+          className={styles['modal-content']}
+          onClick={(e) => e.stopPropagation()}
+        >
           <div 
             className={styles['crop-container']} 
             ref={containerRef}
@@ -684,11 +882,7 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            style={{ 
-              height: '500px', 
-              maxHeight: '90vh',
-              backgroundColor: '#121212' 
-            }}
+            style={{ touchAction: 'none' }}
           >
             {isLoading && <div className={styles.loading}>이미지 로딩 중...</div>}
             <div className={styles['crop-preview']}>
@@ -698,14 +892,10 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
                 onLoad={handleImageLoad}
                 onMouseDown={handleMouseDown}
                 onTouchStart={() => setIsDragging(true)}
+                className={styles['preview-image']}
                 style={{
                   transform: `translate(${imgPosition.x}px, ${imgPosition.y}px) scale(${scale}) rotate(${rotate}deg)`,
-                  transformOrigin: 'center',
-                  cursor: isDragging ? 'grabbing' : 'grab',
-                  userSelect: 'none',
-                  touchAction: 'none',
-                  WebkitUserSelect: 'none',
-                  objectFit: 'none'
+                  cursor: isDragging ? 'grabbing' : 'grab'
                 }}
                 alt="Crop preview"
                 draggable={false}
@@ -718,12 +908,9 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
                 style={{
                   width: editingImageIndex === -1 ? '600px' : (optionType === 'text' ? '100px' : '400px'),
                   height: editingImageIndex === -1 ? '300px' : (optionType === 'text' ? '100px' : '400px'),
-                  aspectRatio: editingImageIndex === -1 ? '2/1' : '1', // 질문 이미지는 2:1 비율, 옵션은 1:1
-                  maxWidth: editingImageIndex === -1 ? '90%' : (optionType === 'text' ? '100px' : '400px'),
-                  maxHeight: editingImageIndex === -1 ? '300px' : (optionType === 'text' ? '100px' : '400px'),
-                  margin: 0,
-                  padding: 0,
-                  border: '2px dashed #3a8eff'
+                  aspectRatio: editingImageIndex === -1 ? '2/1' : '1/1',
+                  maxWidth: '90vw',
+                  maxHeight: editingImageIndex === -1 ? '45vw' : (optionType === 'text' ? '100px' : '400px')
                 }}
               ></div>
             </div>}
@@ -733,25 +920,43 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
             <div className={styles['crop-control-group']}>
               <button 
                 className={styles['crop-control-button']} 
-                onClick={rotateLeft} 
+                onClick={handleButtonClick}
+                onTouchStart={handleButtonClick}
+                onTouchEnd={(e) => {
+                  // preventDefault 제거, stopPropagation만 유지
+                  e.stopPropagation();
+                  rotateLeft();
+                }}
                 disabled={isLoading}
-                title="왼쪽으로 회전"
+                type="button"
               >
                 <FaUndo />
               </button>
               <button 
                 className={styles['crop-control-button']} 
-                onClick={rotateRight} 
+                onClick={handleButtonClick}
+                onTouchStart={handleButtonClick}
+                onTouchEnd={(e) => {
+                  // preventDefault 제거, stopPropagation만 유지
+                  e.stopPropagation();
+                  rotateRight();
+                }}
                 disabled={isLoading}
-                title="오른쪽으로 회전"
+                type="button"
               >
                 <FaRedo />
               </button>
               <button 
                 className={styles['crop-control-button']} 
-                onClick={resetImage} 
+                onClick={handleButtonClick}
+                onTouchStart={handleButtonClick}
+                onTouchEnd={(e) => {
+                  // preventDefault 제거, stopPropagation만 유지
+                  e.stopPropagation();
+                  resetImage();
+                }}
                 disabled={isLoading}
-                title="초기화"
+                type="button"
               >
                 <FaSyncAlt />
               </button>
@@ -760,9 +965,15 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
             <div className={styles['crop-control-group']}>
               <button 
                 className={styles['crop-control-button']} 
-                onClick={decreaseZoom}
+                onClick={handleButtonClick}
+                onTouchStart={handleButtonClick}
+                onTouchEnd={(e) => {
+                  // preventDefault 제거, stopPropagation만 유지
+                  e.stopPropagation();
+                  decreaseZoom();
+                }}
                 disabled={isLoading || scale <= 0.05}
-                title="축소"
+                type="button"
               >
                 <FaSearchMinus />
               </button>
@@ -770,9 +981,9 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
               <input
                 type="range"
                 value={scale}
-                min={0.05}
+                min={0.1}
                 max={5}
-                step={0.01}
+                step={0.01} // 더 세밀한 단계 조절을 위해 0.01로 설정
                 className={styles['zoom-slider']}
                 disabled={isLoading}
                 onChange={handleZoomChange}
@@ -780,9 +991,15 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
               
               <button 
                 className={styles['crop-control-button']} 
-                onClick={increaseZoom}
+                onClick={handleButtonClick}
+                onTouchStart={handleButtonClick}
+                onTouchEnd={(e) => {
+                  // preventDefault 제거, stopPropagation만 유지
+                  e.stopPropagation();
+                  increaseZoom();
+                }}
                 disabled={isLoading || scale >= 5}
-                title="확대"
+                type="button"
               >
                 <FaSearchPlus />
               </button>
@@ -791,9 +1008,8 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
 
           <div className={styles['modal-buttons']}>
             <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                console.log('취소 버튼 클릭됨');
+              onClick={() => {
+                console.log('취소 버튼 클릭');
                 onClose();
               }} 
               className={styles['cancel-button']}
@@ -802,12 +1018,10 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
               취소
             </button>
             <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                console.log('적용 버튼 클릭됨');
-                saveCroppedImage();
-              }} 
+              onClick={() => {
+                console.log('적용 버튼 클릭');
+                handleSave();
+              }}
               className={styles['save-button']}
               disabled={isLoading || isSaving}
               type="button"
@@ -836,13 +1050,23 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // user 체크만 수행
+    if (!user?.id) {
+      setError('로그인이 필요합니다. 다시 로그인해주세요.');
+      navigate('/login', { 
+        state: { from: location.pathname },
+        replace: true
+      });
+      return;
+    }
+    
+    if (loading) return;
+    
     // 폼 제출 시 네비게이션 타이머 초기화
     if (navigationTimeoutRef.current) {
       clearTimeout(navigationTimeoutRef.current);
       navigationTimeoutRef.current = null;
     }
-    
-    if (loading) return;
     
     // 필수 필드 검증
     if (!question.trim()) {
@@ -874,11 +1098,8 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
       
       // 만료 시간 설정
       const expiryDate = new Date();
-      // 현재 시간을 00:00:00으로 설정
       expiryDate.setHours(0, 0, 0, 0);
-      // 일수를 더함
       expiryDate.setDate(expiryDate.getDate() + expiryDays);
-      // 23:59:59로 설정
       expiryDate.setHours(23, 59, 59, 999);
       
       // vote_period 설정 - 특정일인 경우 날짜 포맷팅
@@ -890,21 +1111,35 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
         votePeriod = `~${year}/${month}/${day}`;
       }
 
-      // 이미지 업로드 처리
-      let questionImageUrl = questionImage;
+      // 미디어 업로드 처리
+      let questionMediaUrl = questionImage; // 상태를 다시 확인하여 반영
       
       setProgress(10);
-      setProgressStatus("질문 이미지 업로드 중...");
+      setProgressStatus("질문 미디어 업로드 중...");
       
-      // 수정된 이미지가 Base64 데이터인 경우 Storage에 업로드
-      if (questionImage && questionImage.startsWith('data:')) {
-        try {
-          questionImageUrl = await uploadImageToStorage(questionImage);
-          console.log('질문 이미지 업로드 완료:', questionImageUrl);
-        } catch (uploadError) {
-          console.error('질문 이미지 업로드 실패:', uploadError);
-          // 이미지 업로드 실패 시 빈 문자열 사용
-          questionImageUrl = '';
+      // 이미지 또는 동영상 업로드
+      if (questionImage) {
+        if (questionImage.startsWith('data:')) {
+          // 이미지 업로드
+          try {
+            questionMediaUrl = await uploadImageToStorage(questionImage);
+            console.log('질문 이미지 업로드 완료:', questionMediaUrl);
+          } catch (uploadError) {
+            console.error('질문 이미지 업로드 실패:', uploadError);
+            questionMediaUrl = '';
+          }
+        } else if (questionImage.startsWith('blob:')) {
+          // 동영상 업로드
+          try {
+            const response = await fetch(questionImage);
+            const blob = await response.blob();
+            const videoFile = new File([blob], "video.mp4", { type: "video/mp4" });
+            questionMediaUrl = await uploadVideoToStorage(videoFile);
+            console.log('질문 동영상 업로드 완료:', questionMediaUrl);
+          } catch (uploadError) {
+            console.error('질문 동영상 업로드 실패:', uploadError);
+            questionMediaUrl = '';
+          }
         }
       }
       
@@ -929,7 +1164,6 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
               console.log(`옵션 ${index+1} 이미지 업로드 완료:`, image_url);
             } catch (uploadError) {
               console.error(`옵션 ${index+1} 이미지 업로드 실패:`, uploadError);
-              // 이미지 업로드 실패 시 빈 문자열 사용
               image_url = '';
             }
           }
@@ -958,9 +1192,9 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
             link: formattedSourceLink,
             display_type: optionType === 'image' ? 'image' : 'text',
             expires_at: selectedDate ? selectedDate.toISOString() : expiryDate.toISOString(),
-            vote_period: votePeriod, // 수정된 vote_period 사용
+            vote_period: votePeriod,
             visible: originalVote.visible,
-            related_image: questionImageUrl || undefined,
+            related_image: questionMediaUrl || undefined,
             options: processedOptions.map(opt => ({
               id: opt.id || 0,
               text: opt.text,
@@ -978,34 +1212,51 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
           const result = await updateVoteTopic(updateData);
           console.log('투표 업데이트 결과:', result);
           
-          // 새 옵션 추가 처리 (API 지원 시)
           if (processedOptions.length > originalVote.options.length) {
-            // 새로 추가된 옵션들
             const newOptions = processedOptions.slice(originalVote.options.length);
             
             for (const newOption of newOptions) {
-              // 옵션 텍스트만 API로 추가 (이미지는 아직 지원되지 않음)
               await addVoteOption(currentVoteId, newOption.text);
-              
-              if (newOption.image_url) {
-                console.log('옵션 이미지 별도 처리 필요:', newOption.image_url);
-                // 여기서는 addVoteOption이 이미지를 지원하지 않으므로 이미지는 별도로 처리 필요
-                // 이 부분은 API 기능 확장이 필요함
-              }
             }
           }
-          
-          // 성공 메시지 표시
-          setSuccessMessage('투표가 성공적으로 수정되었습니다!');
-          
-          // 내 투표 페이지로 즉시 이동
+                    
+          // 투표 생성 후 weekly_created 값 증가
+          const { data, error: fetchError } = await supabase
+            .from('users')
+            .select('weekly_created')
+            .eq('id', user?.id)
+            .single();
+
+          if (fetchError) {
+            console.error('weekly_created 가져오기 중 오류 발생:', fetchError);
+            return;
+          }
+
+          // 배열의 마지막 요소 증가
+          const updatedWeeklyCreated = [...data.weekly_created];
+          updatedWeeklyCreated[updatedWeeklyCreated.length - 1] += 1;
+
+          // 업데이트된 배열을 DB에 저장
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({ weekly_created: updatedWeeklyCreated })
+            .eq('id', user?.id);
+
+          if (updateError) {
+            console.error('weekly_created 업데이트 중 오류 발생:', updateError);
+          }
+          setModalTitle('투표 수정 완료');
+          setModalMessage('투표가 성공적으로 수정되었습니다!');
+          setShowSuccessModal(true);
           navigate('/my-votes');
+          
         } catch (error) {
           console.error('투표 수정 중 오류 발생:', error);
-          setError('투표를 수정하는 중 오류가 발생했습니다.');
+          setModalTitle('오류 발생');
+          setModalMessage('투표를 수정하는 중 오류가 발생했습니다.');
+          setShowErrorModal(true);
         }
       } else {
-        // 투표 생성 모드
         setProgress(80);
         
         console.log('투표 생성 데이터:', {
@@ -1018,14 +1269,13 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
             topic_id: 0,
             votes: 0
           })),
-          related_image: questionImageUrl || undefined,
+          related_image: questionMediaUrl || undefined,
           display_type: optionType === 'image' ? 'image' : 'text',
           expires_at: selectedDate ? selectedDate.toISOString() : expiryDate.toISOString(),
           visible: true,
-          vote_period: votePeriod // 수정된 vote_period 사용
+          vote_period: votePeriod
         });
         
-        // 투표 생성 API 호출
         const result = await addVote({
           user_id: user?.id,
           question,
@@ -1036,36 +1286,71 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
             topic_id: 0,
             votes: 0
           })),
-          related_image: questionImageUrl || undefined,
+          related_image: questionMediaUrl || undefined,
           display_type: optionType === 'image' ? 'image' : 'text',
           expires_at: selectedDate ? selectedDate.toISOString() : expiryDate.toISOString(),
           visible: true,
-          vote_period: votePeriod, // 수정된 vote_period 사용 (selectedPeriod 대신)
+          vote_period: votePeriod,
         });
         console.log('투표 생성 결과:', result);
         
         if (result) {
           setProgress(100);
+          setModalTitle('투표 생성 완료');
+          setModalMessage('투표가 성공적으로 생성되었습니다!');
+          setShowSuccessModal(true);
           
-          // 성공 메시지 표시
-          setSuccessMessage('투표가 성공적으로 생성되었습니다!');
-          
-          // 폼 초기화
+          // 투표 생성 후 weekly_created 값 증가
+          const { data, error: fetchError } = await supabase
+            .from('users')
+            .select('weekly_created')
+            .eq('id', user?.id)
+            .single();
+
+          if (fetchError) {
+            console.error('weekly_created 가져오기 중 오류 발생:', fetchError);
+            return;
+          }
+
+          // 배열의 마지막 요소 증가
+          const updatedWeeklyCreated = [...data.weekly_created];
+          updatedWeeklyCreated[updatedWeeklyCreated.length - 1] += 1;
+
+          // 업데이트된 배열을 DB에 저장
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({ weekly_created: updatedWeeklyCreated })
+            .eq('id', user?.id);
+
+          if (updateError) {
+            console.error('weekly_created 업데이트 중 오류 발생:', updateError);
+          }
+
+          // Reset form state
           setQuestion('');
           setSourceLink('');
           setOptions([{ text: '', image_url: '' }, { text: '', image_url: '' }]);
           setExpiryDays(7);
           setSelectedPeriod('1주일');
           setSelectedDate(null);
-          setQuestionImage(null); // 질문 이미지 초기화
-          
-          // 내 투표 페이지로 즉시 이동
+          setQuestionImage(null);
           navigate('/my-votes');
         }
       }
     } catch (err: any) {
-      console.error(isEditMode ? '투표 수정 중 오류 발생:' : '투표 생성 중 오류 발생:', err);
-      setError(err.message || (isEditMode ? '투표를 수정하는 중 오류가 발생했습니다.' : '투표를 생성하는 중 오류가 발생했습니다.'));
+      console.error('투표 생성 중 오류 발생:', err);
+      
+      // 세션 관련 에러 처리 추가
+      if (err.message?.includes('JWT') || err.message?.includes('session') || err.message?.includes('authentication')) {
+        setError('로그인이 필요합니다. 다시 로그인해주세요.');
+        navigate('/login', { state: { from: location.pathname } });
+        return;
+      }
+      
+      setError(err.message || '투표를 생성하는 중 오류가 발생했습니다.');
+      setModalTitle('오류 발생');
+      setModalMessage(err.message || '투표를 생성하는 중 오류가 발생했습니다.');
+      setShowErrorModal(true);
       setProgress(0);
     } finally {
       setLoading(false);
@@ -1081,64 +1366,74 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
     };
   }, []);
 
-  // 컴포넌트 마운트 시 스타일 주입
-  useEffect(() => {
-    // 기존에 주입된 스타일 제거 (중복 방지)
-    const existingStyle = document.getElementById('question-image-style');
-    if (existingStyle) {
-      existingStyle.remove();
-    }
+  // 질문 이미지/비디오 프리뷰 렌더링
+  const renderQuestionMediaPreview = () => {
+    if (!questionImage) return null;
     
-    // 컴포넌트 언마운트 시 정리
-    return () => {
-      const styleEl = document.getElementById('question-image-style');
-      if (styleEl) {
-        styleEl.remove();
-      }
-    };
-  }, []);
+    // 이미지/동영상 타입 확인
+    const isImage = typeof questionImage === 'string' && 
+      (questionImage.startsWith('data:image') || 
+       !questionImage.match(/\.(mp4|webm|ogg)$/) && !questionImage.startsWith('blob:'));
+    
+    const isVideo = typeof questionImage === 'string' && 
+      (questionImage.startsWith('data:video') || 
+       questionImage.match(/\.(mp4|webm|ogg)$/) || 
+       questionImage.startsWith('blob:'));
 
-  // 질문 이미지 프리뷰 렌더링 부분 수정
-  const renderQuestionImagePreview = () => {
-    if (questionImage) {
+    if (isImage) {
+      // 이미지인 경우
       return (
-        <div className={styles['question-image-container']} style={{marginBottom: '20px', width: '100%'}}>
-          <div 
-            className={styles['question-image-preview']} 
-          >
-            <img 
-              src={questionImage} 
-              alt="질문 이미지" 
-              className={styles['question-image']}
-            />
-            <div className={styles['image-editor-controls']}>
-              <button
-                type="button"
-                className={styles['image-editor-button']}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openImageEditor(-1, questionImage);
-                }}
-                title="이미지 편집"
-              >
-                ✏️
-              </button>
-              <button
-                type="button"
-                className={styles['image-editor-button']}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setQuestionImage(null);
-                }}
-                title="이미지 삭제"
-              >
-                ❌
-              </button>
-            </div>
+        <div className={styles['question-image-preview']}>
+          <img 
+            src={questionImage} 
+            alt="질문 이미지" 
+            className={styles['question-image']} 
+            crossOrigin={questionImage.startsWith('http') ? "anonymous" : undefined}
+          />
+          <div className={styles['image-editor-controls']}>
+            <button
+              type="button"
+              className={styles['image-editor-button']}
+              onClick={() => openImageEditor(-1, questionImage)}
+              title="이미지 편집"
+            >
+              ✏️
+            </button>
+            <button
+              type="button"
+              className={styles['image-editor-button']}
+              onClick={() => handleImageDelete(questionImage)}
+              title="이미지 삭제"
+            >
+              ❌
+            </button>
+          </div>
+        </div>
+      );
+    } else if (isVideo) {
+      // 비디오인 경우
+      return (
+        <div className={styles['question-image-preview']}>
+          <video 
+            controls 
+            src={questionImage} 
+            className={styles['question-video']} 
+            crossOrigin={questionImage.startsWith('http') ? "anonymous" : undefined}
+          />
+          <div className={styles['image-editor-controls']}>
+            <button
+              type="button"
+              className={styles['image-editor-button']}
+              onClick={() => handleImageDelete(questionImage)}
+              title="비디오 삭제"
+            >
+              ❌
+            </button>
           </div>
         </div>
       );
     }
+    
     return null;
   };
 
@@ -1146,17 +1441,14 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
   const renderTextOptions = () => {
     return options.map((option, index) => (
       <div key={index} className={styles['vote-option']}>
-        <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-          {/* 옵션 이미지 부분 */}
+        <div style={{ display: 'flex', width: '100%' }}>
           <div style={{ flexShrink: 0, marginRight: '10px', width: '100px' }}>
             <input
               type="file"
               accept="image/*"
               style={{ display: 'none' }}
               id={`file-input-${index}`}
-              onChange={(e) => {
-                handleImageSelect(e, index);
-              }}
+              onChange={(e) => handleMediaSelect(e, index)}
             />
             
             {!option.image_url ? (
@@ -1201,11 +1493,10 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
                   <button
                     type="button"
                     className={styles['image-editor-button']}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const newOptions = [...options];
-                      newOptions[index].image_url = '';
-                      setOptions(newOptions);
+                    onClick={async () => {
+                      if (option.image_url) {
+                        await handleImageDelete(option.image_url, index);
+                      }
                     }}
                     title="이미지 삭제"
                   >
@@ -1216,20 +1507,17 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
             )}
           </div>
           
-          {/* 옵션 텍스트 입력 부분 */}
           <div className={styles['option-content']}>
-            <textarea
-              value={option.text}
-              onChange={(e) => {
-                const newOptions = [...options];
-                newOptions[index].text = e.target.value;
-                setOptions(newOptions);
-              }}
-              placeholder={`선택지 ${index + 1}`}
-              className={styles['option-input']}
-              required
-            />
-            {/* 옵션 삭제 버튼 수정 */}
+            <div className={styles['option-input']}>
+              <textarea
+                value={option.text}
+                onChange={(e) => handleOptionChange(index, e.target.value)}
+                placeholder={`선택지 ${index + 1}`}
+                className={styles['cover-text-input']}
+                onClick={(e) => e.stopPropagation()}
+                rows={2}
+              ></textarea>
+            </div>
             {options.length > 2 && (
               <button 
                 type="button" 
@@ -1246,56 +1534,90 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
               </button>
             )}
           </div>
-                    
-
         </div>
       </div>
     ));
   };
 
+  const [showSizeWarningModal, setShowSizeWarningModal] = useState(false);
+
+  // 이미지 편집 상태를 저장하는 함수 개선
+  const saveEditHistory = (index: number, image: string, state: {
+    scale: number;
+    rotate: number;
+    imgPosition: { x: number, y: number };
+  }) => {
+    const key = index === -1 ? 'question' : `option-${index}`;
+    setEditHistory(prev => ({
+      ...prev,
+      [key]: {
+        ...state,
+        originalImage: image
+      }
+    }));
+  };
+
+  // 새로운 상태 변수 추가
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
+  const [modalTitle, setModalTitle] = useState('');
+
   return (
     <div className={styles['create-vote-container']}>
       <h2>{isEditMode ? '투표 수정' : '투표 생성'}</h2>
       
+      {isGuest && (
+        <div className={styles['warning-message']}>
+          로그인 후 투표를 생성할 수 있습니다.
+        </div>
+      )}
+
       <LoadingOverlay 
         isLoading={loading}
         progress={progress}
         progressStatus={progressStatus}
-        defaultMessage="투표 카드 생성 중..."
+        defaultMessage="투표 카드 생성 준비 중..."
       />
       
       {error && <div className={styles['error']}>{error}</div>}
       
-      {successMessage && <div className={styles['success']}>{successMessage}</div>}
-      
-      {/* 이미지 에디터 모달 */}
       <ImageEditorModal
         isOpen={showImageEditor}
-        onClose={closeImageEditor}
+        onClose={() => {
+          setShowImageEditor(false);
+          setEditingImageIndex(null);
+          setImageSrc(null);
+        }}
         image={imageSrc}
         onSave={(croppedImage) => {
-          // 조건을 체크하여 안전하게 처리
-          if (editingImageIndex === null) {
-            console.error('편집 중인 이미지 인덱스가 없습니다.');
-            return;
-          }
-          
-          // 저장 전에 마지막 편집 상태 확인
-          const key = editingImageIndex === -1 ? 'question' : `option-${editingImageIndex}`;
-          console.log('이미지 저장 전 편집 상태 확인:', key, editHistory[key]);
-          
+          if (editingImageIndex === null) return;
+
+          // 편집 상태 저장
+          saveEditHistory(editingImageIndex, originalImageSrc || '', {
+            scale: 1,
+            rotate: 0, 
+            imgPosition: { x: 0, y: 0 }
+          });
+
+          // 이미지 업데이트 - 크롭된 이미지를 직접 사용
           if (editingImageIndex === -1) {
-            // 질문 이미지인 경우
             setQuestionImage(croppedImage);
           } else {
-            // 옵션 이미지인 경우
-            const newOptions = [...options];
-            newOptions[editingImageIndex].image_url = croppedImage;
-            setOptions(newOptions);
+            setOptions(prev => {
+              const newOptions = [...prev];
+              newOptions[editingImageIndex] = {
+                ...newOptions[editingImageIndex],
+                image_url: croppedImage
+              };
+              return newOptions;
+            });
           }
-          
-          // 에디터 닫기
-          closeImageEditor();
+
+          // 에디터 상태 초기화
+          setShowImageEditor(false);
+          setEditingImageIndex(null);
+          setImageSrc(null);
         }}
         editingImageIndex={editingImageIndex !== null ? editingImageIndex : -1}
         optionType={optionType}
@@ -1305,62 +1627,27 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
         <div className={styles['form-group']}>
           <label htmlFor="question" className={styles['required-label']}>질문</label>
           
-          {/* 질문 이미지 버튼을 텍스트 필드 위로 이동 - 선택사항으로 표시 */}
           <div className={styles['question-image-container']}>
-            {/* 질문 이미지 입력 부분 */}
             <div style={{ width: '100%' }}>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/*,video/*"
                 style={{ display: 'none' }}
-                id="question-image-input"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    // 로딩 상태 설정
-                    setLoading(true);
-                    setError(null);
-                    
-                    // 파일을 Base64로 변환
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                      try {
-                        if (typeof reader.result === 'string') {
-                          // 이미지 데이터 저장
-                          setQuestionImage(reader.result);
-                          // 이미지 에디터 열기
-                          setEditingImageIndex(-1);
-                          setOriginalImageSrc(reader.result);
-                          setImageSrc(reader.result);
-                          setShowImageEditor(true);
-                        }
-                        setLoading(false);
-                      } catch (err) {
-                        console.error('이미지 로드 중 오류:', err);
-                        setError('이미지를 로드하는 중 오류가 발생했습니다.');
-                        setLoading(false);
-                      }
-                    };
-                    
-                    reader.onerror = () => {
-                      setError('파일을 읽는 중 오류가 발생했습니다.');
-                      setLoading(false);
-                    };
-                    
-                    reader.readAsDataURL(file);
-                  }
-                }}
+                id="question-media-input"
+                onChange={(e) => handleMediaSelect(e)}
               />
-              
+
               {!questionImage ? (
-                <label htmlFor="question-image-input" className={styles['question-image-button']}>
-                  🖼️ 질문 이미지 (선택사항)
+                <label htmlFor="question-media-input" className={styles['question-image-button']}>
+                  🖼️ 질문 이미지/동영상 (선택사항)
                 </label>
-                
               ) : (
-                renderQuestionImagePreview()
+                renderQuestionMediaPreview()
               )}
-            <small className={styles['form-hint']}>브라우저에서 이미지를 길게 눌러 이미지 다운로드 후 앨범에서 불러오세요</small>
+
+              <small className={styles['form-hint']}>브라우저에서 이미지를 길게 눌러 이미지 다운로드 후 앨범에서 불러오세요</small>
+              <small className={styles['form-hint']}>동영상은 50MB 이하로 업로드 가능합니다</small>
+
             </div>
           </div>
           
@@ -1370,11 +1657,10 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="투표 질문을 입력하세요"              
-              //autoFocus
               required
               onClick={(e) => e.stopPropagation()}
               rows={2}
-              className={styles['required-field']}
+              className={styles['cover-text-input']}
             ></textarea>
           </div>
         </div>
@@ -1388,6 +1674,7 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
             onChange={(e) => setSourceLink(e.target.value)}
             placeholder="example.com"
             onClick={(e) => e.stopPropagation()}
+            className={styles['source-link-input']}
           />
           <small className={styles['form-hint']}>브라우저에서 제목을 길게 눌러 URL 복사하여 붙여넣기 하세요</small>
         </div>
@@ -1433,7 +1720,7 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
                       accept={optionType === 'image' ? "image/*" : "video/*"}
                       style={{ display: 'none' }}
                       id={`file-input-${index}`}
-                      onChange={(e) => handleImageSelect(e, index)}
+                      onChange={(e) => handleMediaSelect(e, index)}
                     />
                     {!option.image_url ? (
                       <button
@@ -1482,11 +1769,10 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
                           <button
                             type="button"
                             className={styles['image-editor-button']}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const newOptions = [...options];
-                              newOptions[index].image_url = '';
-                              setOptions(newOptions);
+                            onClick={async () => {
+                              if (option.image_url) {
+                                await handleImageDelete(option.image_url, index);
+                              }
                             }}
                             title="이미지 삭제"
                           >
@@ -1587,11 +1873,50 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
         
         <div className={styles['form-actions']}>
           <button type="button" className={styles['cancel-btn']} onClick={() => navigate('/my-votes')}>취소</button>
-          <button type="submit" className={styles['submit-btn']} disabled={loading}>
+          <button type="submit" className={styles['submit-btn']} disabled={loading || isGuest}>
             {isEditMode ? '수정하기' : '내투표에 추가'}
           </button>
         </div>
       </form>
+
+      <ConfirmModal
+        isOpen={showSizeWarningModal}
+        onClose={() => setShowSizeWarningModal(false)}
+        onConfirm={() => setShowSizeWarningModal(false)}
+        title="동영상 크기 초과"
+        message="동영상 크기는 50MB를 초과할 수 없습니다. 더 작은 크기의 동영상을 선택해주세요."
+        confirmButtonText="확인"
+        confirmButtonVariant="danger"
+        cancelButtonText={undefined}  // 취소 버튼 자체를 제거
+      />
+
+      <ConfirmModal
+        isOpen={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false);
+          navigate('/my-votes');
+        }}
+        onConfirm={() => {
+          setShowSuccessModal(false);
+          navigate('/my-votes');
+        }}
+        title={modalTitle}
+        message={modalMessage}
+        confirmButtonText="확인"
+        confirmButtonVariant="primary"
+        cancelButtonText=""
+      />
+
+      <ConfirmModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        onConfirm={() => setShowErrorModal(false)}
+        title={modalTitle}
+        message={modalMessage}
+        confirmButtonText="확인"
+        confirmButtonVariant="danger"
+        cancelButtonText={undefined}
+      />
     </div>
   );
 };

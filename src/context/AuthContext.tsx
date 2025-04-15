@@ -229,15 +229,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           profile_Image: '',
           gender: '',
           region: '',
-          interests: '',
+          interests: [],
           birthyear: 0,
           votesCreated: 0,
           votesParticipated: 0,
           total_points: 0,
           monthly_points: 0,
           user_grade: 1,
+          weekly_created: [],
+          weekly_voted: [],
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          updated_at: [new Date().toISOString()]
         };
         
         // users 테이블에 사용자 정보 저장

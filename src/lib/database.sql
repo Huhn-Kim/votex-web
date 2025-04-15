@@ -210,3 +210,69 @@ USING (true);
 
 -- 참고: 이 정책들은 보안상 상당히 개방적입니다. 실제 프로덕션 환경에서는 
 -- 필요에 따라 더 제한적인 정책을 사용하는 것이 좋습니다.
+
+
+-- 모든 사용자의 weekly 데이터를 업데이트하는 함수
+CREATE OR REPLACE FUNCTION update_weekly_data()
+RETURNS void AS $$
+BEGIN
+  -- weekly_created 업데이트
+  UPDATE users
+  SET weekly_created = ARRAY(
+    SELECT CASE 
+      WHEN generate_series = 7 THEN 0  -- 마지막 위치에 0 추가
+      ELSE (weekly_created)[generate_series + 1]  -- 나머지는 한 칸씩 앞으로
+    END
+    FROM generate_series(1, 7)
+    ORDER BY generate_series
+  )
+  WHERE id != 'guest';
+
+  -- weekly_voted 업데이트
+  UPDATE users
+  SET weekly_voted = ARRAY(
+    SELECT CASE 
+      WHEN generate_series = 7 THEN 0  -- 마지막 위치에 0 추가
+      ELSE (weekly_voted)[generate_series + 1]  -- 나머지는 한 칸씩 앞으로
+    END
+    FROM generate_series(1, 7)
+    ORDER BY generate_series
+  )
+  WHERE id != 'guest';
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- 투표 생성 카운트 증가
+CREATE OR REPLACE FUNCTION increment_weekly_created(user_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE users
+  SET weekly_created = ARRAY(
+    SELECT CASE 
+      WHEN generate_series = 7 THEN (weekly_created)[7] + 1  -- 마지막 요소만 증가
+      ELSE (weekly_created)[generate_series]
+    END
+    FROM generate_series(1, 7)
+    ORDER BY generate_series
+  )
+  WHERE id = user_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 투표 참여 카운트 증가
+CREATE OR REPLACE FUNCTION increment_weekly_voted(user_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE users
+  SET weekly_voted = ARRAY(
+    SELECT CASE 
+      WHEN generate_series = 7 THEN (weekly_voted)[7] + 1  -- 마지막 요소만 증가
+      ELSE (weekly_voted)[generate_series]
+    END
+    FROM generate_series(1, 7)
+    ORDER BY generate_series
+  )
+  WHERE id = user_id;
+END;
+$$ LANGUAGE plpgsql;

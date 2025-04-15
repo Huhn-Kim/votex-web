@@ -444,25 +444,64 @@
 }
 
 /* 게스트 사용자 정보 스타일 */
-.guestSubscribersInfo {
+.guestInfo {
   text-align: center;
-  padding: 12px;
+  padding: 16px;
   background-color: #2a2a2a;
   border-radius: 10px;
   border: 1px solid #444;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
-.guestSubscribersInfo h3 {
+.guestInfoHeader {
+  margin-bottom: 16px;
+}
+
+.guestInfoHeader h3 {
   font-size: 18px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   color: #fff;
 }
 
-.guestSubscribersInfo p {
+.guestInfoSubtitle {
   color: #aaa;
   font-size: 14px;
+  margin: 0;
+}
+
+.guestFeatureGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.guestFeatureItem {
+  background-color: #252525;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #333;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.featureIcon {
+  font-size: 24px;
+  margin-bottom: 8px;
+  color: #3a8eff;
+}
+
+.guestFeatureItem h4 {
+  font-size: 16px;
+  margin: 0 0 8px 0;
+  color: #fff;
+}
+
+.guestFeatureItem p {
+  font-size: 14px;
+  color: #ccc;
+  margin: 0;
+  line-height: 1.4;
 }
 
 /* 등급 탭 스타일 */
@@ -473,7 +512,7 @@
 .badgesList {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
+  gap: 5px;
 }
 
 .badgeItem {
@@ -950,21 +989,6 @@
   margin-bottom: 4px;
 }
 
-/* 칭호 뱃지 스타일 */
-.titleBadge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(58, 142, 255, 0.15);
-  border: 1px solid rgba(58, 142, 255, 0.3);
-  border-radius: 20px;
-  padding: 3px 10px;
-  font-size: 11px;
-  color: #3a8eff;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
 .titleIcon {
   margin-right: 4px;
   display: flex;
@@ -973,8 +997,8 @@
 }
 
 .titleIcon svg {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
@@ -986,6 +1010,7 @@
 .levelInfo {
   background-color: #1a1a1a;
   border-radius: 8px;
+  font-size: 1.5em;
   padding: 0.3rem 0.6rem;
   border: 1px solid #333;
   align-self: stretch;
@@ -999,13 +1024,6 @@
   align-items: center;
   margin-bottom: 0.3rem;
   flex-wrap: nowrap;
-}
-
-.levelLabel {
-  font-weight: 600;
-  color: #fff;
-  font-size: 0.8rem;
-  white-space: nowrap;
 }
 
 .pointsInfoRow {
@@ -1023,12 +1041,6 @@
   white-space: nowrap;
 }
 
-.pointsValue {
-  font-size: 0.75rem;
-  color: #aaa;
-  white-space: nowrap;
-  text-align: right;
-}
 
 .pointsProgressContainer {
   height: 6px;
@@ -1064,16 +1076,11 @@
   color: #fff;
 }
 
-.pointsValue {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #3a8eff;
-  margin-bottom: 0.5rem;
-}
 
 .pointsDescription {
   font-size: 0.8rem;
   color: #aaa;
+  text-align: center;
 }
 
 .pointsRate {
@@ -1105,7 +1112,7 @@
 }
 
 .recentBadges .badgesList {
-  margin-bottom: 12px;
+  margin-bottom: 5px;
 }
 
 .recentBadges .badgeItem {
@@ -1118,6 +1125,8 @@
 
 .recentBadgeContent {
   display: flex;
+  margin-top: 10px;
+  margin-bottom: 10px;
   align-items: center;
   gap: 10px;
 }
@@ -1427,8 +1436,8 @@
 .userHeader {
   background-color: #252525;
   border-radius: 12px;
-  padding: 0.5rem;
-  margin-bottom: 0.6rem;
+  padding: 0.3rem;
+  margin-bottom: 0.5rem;
   border: 1px solid #333;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   position: relative;
@@ -1445,7 +1454,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   width: 100%;
 }
 
@@ -1467,15 +1476,15 @@
 
 .userInfoRight {
   display: flex;
-  padding: 10px;
+  padding: 5px;
   flex-direction: column;
   flex: 1; /* 좌측 요소에 따라 가변적인 크기 적용 */
   min-width: 0; /* 내용이 넘치지 않도록 */
 }
 
 .userAvatar {
-  width: 40px;
-  height: 40px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
@@ -1496,14 +1505,15 @@
   display: flex;
   padding: 10px;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.5rem;
   min-width: 0; /* 내용이 넘치지 않도록 */
   overflow: hidden;
 }
 
 .userName {
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 1.1rem;
+  padding-top: 0px;
+  font-weight: 500;
   margin: 0;
   color: #fff;
   white-space: nowrap;
@@ -1511,48 +1521,35 @@
   text-overflow: ellipsis;
 }
 
-/* 레벨 정보 스타일 */
-.levelInfo {
-  background-color: #1a1a1a;
-  border-radius: 8px;
-  padding: 0.3rem 0.5rem;
-  border: 1px solid #333;
-  width: 100%;
-}
-
-.levelHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.2rem;
-}
-
 .levelLabel {
   font-weight: 600;
   color: #fff;
-  font-size: 0.8rem;
+  font-size: 1.0rem;
   white-space: nowrap;
 }
 
 .pointsInfoRow {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: flex-end;
+  align-items: right;
   margin-bottom: 0.2rem;
 }
 
-.pointsLabel {
-  font-weight: 500;
-  color: #aaa;
-  font-size: 0.7rem;
-  white-space: nowrap;
-}
-
 .pointsValue {
-  font-size: 0.7rem;
-  color: #aaa;
+  font-size: 1.0rem;
+  font-weight: 500;
+  color: #3a8eff;
   white-space: nowrap;
   text-align: right;
+  margin-right: 10px;
+}
+.pointsPrice {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #3a8eff;
+  white-space: nowrap;
+  text-align: center;
+  padding-top: 10px;
 }
 
 .pointsProgressContainer {
@@ -1577,8 +1574,8 @@
   padding-right: 10px;
   justify-content: space-between;
   align-items: center;
-  margin-top: 0.3rem;
-  gap: 0.5rem;
+  margin-top: 0.1rem;
+  gap: 0.2rem;
 }
 
 /* 사용자 연락처 섹션 (이메일, 가입일) */
@@ -1594,7 +1591,7 @@
 }
 
 .userEmail {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: #aaa;
   margin: 0;
   white-space: nowrap;
@@ -1616,25 +1613,12 @@
   background-color: rgba(58, 142, 255, 0.15);
   border: 1px solid rgba(58, 142, 255, 0.3);
   border-radius: 20px;
-  padding: 2px 8px;
-  font-size: 0.65rem;
+  padding: 3px 8px;
+  font-size: 0.8rem;
   color: #3a8eff;
   transition: all 0.3s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   max-width: fit-content;
-}
-
-.titleIcon {
-  margin-right: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.titleIcon svg {
-  width: 12px;
-  height: 12px;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
 .titleText {
@@ -1683,7 +1667,7 @@
 /* 반응형 모바일 스타일 */
 @media (max-width: 480px) {
   .userHeader {
-    padding: 0.4rem;
+    padding: 0.3rem;
   }
   
   .userProfileRow {
@@ -1691,43 +1675,93 @@
   }
   
   .userProfileSection {
-    min-width: 60%;
-    margin-bottom: 0.3rem;
+    min-width: 20%;
+    margin-bottom: 0.2rem;
   }
-  
-  .userInfoRight {
-    min-width: 35%;
-  }
-  
+    
   .userAvatar {
-    width: 36px;
-    height: 36px;
+    width: 50px;
+    height: 50px;
   }
   
   .userName {
-    font-size: 0.85rem;
+    font-size: 1.2rem;
+    padding-top: 0px;
+
   }
   
   .titleBadge {
     padding: 1px 6px;
-    font-size: 0.6rem;
+    font-size: 0.8rem;
   }
   
-  .levelInfo {
-    padding: 0.25rem 0.4rem;
-  }
-  
-  .levelLabel, .pointsLabel, .pointsValue {
-    font-size: 0.65rem;
+  .levelLabel, .pointsLabel {
+    font-size: 1.0rem;
   }
   
   .userEmail, .userJoinDate {
-    font-size: 0.65rem;
+    font-size: 0.8rem;
   }
   
   .logoutButton, .loginButton, .signupButton {
     font-size: 0.65rem;
     padding: 0.2rem 0.4rem;
   }
+}
+
+/* 모바일 환경에 맞춘 스타일 */
+@media (max-width: 768px) {
+  .userInfoRight {
+    width: 100%; /* 폭을 100%로 설정하여 자동 조절 */
+    padding: 10px; /* 여백 추가 */
+  }
+
+  .levelInfo {
+    font-size: 1.5em; /* 폰트 크기 증가 */
+  }
+
+  .pointsInfoRow {
+    font-size: 1.2em;/* 폰트 크기 증가 */
+  }
+
+  .pointsProgressContainer {
+    margin-top: 10px; /* 여백 추가 */
+  }
+
+  .userNameContainer {
+    max-width: 80%; /* 최대 폭을 80%로 설정하여 줄어들도록 함 */
+    overflow: hidden; /* 내용이 넘칠 경우 숨김 */
+    text-overflow: ellipsis; /* 넘치는 텍스트에 말줄임표 추가 */
+    white-space: nowrap; /* 텍스트를 한 줄로 유지 */
+  }
+}
+
+/* 기존 스켈레톤 스타일에 추가 */
+.skeletonBarLabel {
+  width: 30px;
+  height: 16px;
+  margin-top: 8px;
+}
+
+.skeletonBadgeName {
+  width: 120px;
+  height: 20px;
+}
+
+.skeletonBadgeDate {
+  width: 140px;
+  height: 16px;
+}
+
+.barChartColumn .skeleton {
+  height: 100px;
+  width: 30px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.badgeIcon.skeleton {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
 }
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styles from '../../styles/AuthPage.module.css';
 import { useAuth } from '../../context/AuthContext';
 import supabase from '../../lib/supabase';
@@ -380,19 +380,25 @@ const interestOptions = [
 ];
 
 const SignupPage: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const location = useLocation();
+  const { userInfo } = location.state || {};
+
+  // isEditMode 상태 추가
+  const isEditMode = !!userInfo;
+
+  const [email, setEmail] = useState(userInfo?.email || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(userInfo?.username || '');
   const [usernameError, setUsernameError] = useState<string | null>(null);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [gender, setGender] = useState('');
-  const [birthYear, setBirthYear] = useState('');
-  const [region, setRegion] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [interests, setInterests] = useState<string[]>([]);
+  const [profileImage, setProfileImage] = useState(userInfo?.profile_Image || '');
+  const [gender, setGender] = useState(userInfo?.gender || '');
+  const [birthYear, setBirthYear] = useState(userInfo?.birthyear?.toString() || '');
+  const [region, setRegion] = useState(userInfo?.region || '');
+  const [phoneNumber, setPhoneNumber] = useState(userInfo?.phone_number || '');
+  const [interests, setInterests] = useState<string[]>(userInfo?.interests?.split(',') || []);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showImageEditor, setShowImageEditor] = useState(false);
@@ -513,7 +519,7 @@ const SignupPage: React.FC = () => {
 
   // 이미 로그인된 경우 메인 페이지로 리다이렉트
   useEffect(() => {
-    if (user) {
+    if (user && !isEditMode) {
       console.log('SignupPage: 이미 로그인된 사용자, 메인 페이지로 리다이렉트', user);
       try {
         navigate('/');
@@ -521,7 +527,7 @@ const SignupPage: React.FC = () => {
         console.error('SignupPage: 리다이렉트 오류', error);
       }
     }
-  }, [user, navigate]);
+  }, [user, navigate, isEditMode]);
 
   // 관심분야 토글 핸들러
   const toggleInterest = (interestId: string) => {
@@ -541,9 +547,15 @@ const SignupPage: React.FC = () => {
     
     // 모든 필수 필드 검증
     const isEmailValid = validateEmail(email);
-    const isPasswordValid = validatePassword(password);
-    const isConfirmPasswordValid = validateConfirmPassword(confirmPassword);
     const isUsernameValid = validateUsername(username);
+    
+    // 편집 모드가 아닐 때만 비밀번호 유효성 검사 수행
+    let isPasswordValid = true;
+    let isConfirmPasswordValid = true;
+    if (!isEditMode) {
+      isPasswordValid = validatePassword(password);
+      isConfirmPasswordValid = validateConfirmPassword(confirmPassword);
+    }
     
     console.log('유효성 검사 결과:', {
       isEmailValid,
@@ -609,151 +621,183 @@ const SignupPage: React.FC = () => {
     try {
       console.log('SignupPage: 회원가입 시도 중...');
       
-      // 1. 이메일 중복 체크
-      const { data: existingUser, error: checkError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .single();
-      
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('SignupPage: 이메일 중복 체크 오류', checkError);
-        setError('이메일 중복 확인 중 오류가 발생했습니다.');
-        setLoading(false);
-        return;
-      }
-      
-      if (existingUser) {
-        console.error('SignupPage: 이메일 중복', existingUser);
-        setEmailError('이미 사용 중인 이메일 주소입니다.');
-        setLoading(false);
-        return;
-      }
-      
-      // 2. Supabase Auth로 회원가입
-      console.log('signUp 함수 호출 전:', { email, password });
-      
-      // 직접 signUp 함수 호출
-      const { error: signUpError, data: authData } = await signUp(email, password);
-      
-      console.log('signUp 함수 호출 후:', { signUpError, authData });
-      
-      if (signUpError) {
-        console.error('SignupPage: 회원가입 에러', signUpError);
-        
-        // Supabase 오류 메시지 처리
-        if (signUpError.message?.includes('이미 사용 중인 이메일')) {
-          setEmailError('이미 사용 중인 이메일 주소입니다.');
-        } else if (signUpError.message?.includes('Password')) {
-          setPasswordError('비밀번호 형식이 올바르지 않습니다.');
-        } else if (signUpError.message?.includes('email rate limit exceeded')) {
-          setError('이메일 인증 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.');
-        } else {
-          setError(signUpError.message || '회원가입에 실패했습니다.');
+      if (isEditMode) {
+        // 프로필 편집 모드
+        const updateData: any = {
+          email,
+          username,
+          profile_Image: profileImage,
+          gender,
+          birthyear: parseInt(birthYear),
+          region,
+          phone_number: phoneNumber || null,
+          interests: interests.join(',')
+        };
+
+        // 새 비밀번호가 입력된 경우에만 업데이트
+        if (password) {
+          updateData.password = password;
         }
-        
-        setLoading(false);
-        return;
-      }
-      
-      console.log('SignupPage: 회원가입 성공', authData);
-      
-      // 2. 프로필 이미지 업로드 (있는 경우)
-      let profileImageUrl = null;
-      if (profileImage) {
-        try {
-          profileImageUrl = await uploadImageToStorage(profileImage);
-          console.log('SignupPage: 프로필 이미지 업로드 성공', profileImageUrl);
-        } catch (uploadError) {
-          console.error('SignupPage: 프로필 이미지 업로드 실패', uploadError);
-          // 이미지 업로드 실패해도 계속 진행
-        }
-      }
-      
-      // 3. users 테이블에 사용자 정보 저장 전에 이메일 중복 확인
-      const { data: existingUserInDB, error: checkErrorInDB } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .single();
-      
-      if (checkErrorInDB && checkErrorInDB.code !== 'PGRST116') {
-        console.error('SignupPage: users 테이블 이메일 중복 체크 오류', checkErrorInDB);
-        setError('이메일 중복 확인 중 오류가 발생했습니다.');
-        setLoading(false);
-        return;
-      }
-      
-      if (existingUserInDB) {
-        console.log('SignupPage: 이미 users 테이블에 존재하는 이메일', existingUserInDB);
-        // 이미 존재하는 경우 업데이트 수행
-        const now = new Date().toISOString();
+
         const { error: updateError } = await supabase
           .from('users')
-          .update({
-            username: username,
-            profile_Image: profileImageUrl,
-            gender: gender,
-            password: password,
-            birthyear: parseInt(birthYear),
-            region: region,
-            phone_number: phoneNumber || null,
-            interests: interests.join(','),
-            updated_at: now
-          })
-          .eq('id', existingUserInDB.id);
-        
+          .update(updateData)
+          .eq('id', userInfo.id);
+
         if (updateError) {
-          console.error('SignupPage: 사용자 정보 업데이트 실패', updateError);
           setError('사용자 정보 업데이트에 실패했습니다.');
-          setLoading(false);
           return;
         }
-        
-        console.log('SignupPage: 사용자 정보 업데이트 성공');
+
+        setError('사용자 정보가 성공적으로 업데이트되었습니다.');
+        navigate('/mypage'); // 업데이트 후 MyPage로 리다이렉트
       } else {
-        // 4. users 테이블에 사용자 정보 저장
-        const now = new Date().toISOString();
-        const { error: insertError } = await supabase
+        // 1. 이메일 중복 체크
+        const { data: existingUser, error: checkError } = await supabase
           .from('users')
-          .insert({
-            id: authData.user?.id || crypto.randomUUID(),
-            email: email,
-            username: username,
-            password: password,
-            profile_Image: profileImageUrl,
-            gender: gender,
-            birthyear: parseInt(birthYear),
-            region: region,
-            phone_number: phoneNumber || null,
-            interests: interests.join(','),
-            user_grade: 1,
-            total_points: 0,
-            monthly_points: 0,
-            votesCreated: 0,
-            votesParticipated: 0,
-            created_at: now,
-            updated_at: now
-          });
+          .select('id')
+          .eq('email', email)
+          .single();
         
-        if (insertError) {
-          console.error('SignupPage: 사용자 정보 저장 실패', insertError);
-          setError('사용자 정보 저장에 실패했습니다.');
+        if (checkError && checkError.code !== 'PGRST116') {
+          console.error('SignupPage: 이메일 중복 체크 오류', checkError);
+          setError('이메일 중복 확인 중 오류가 발생했습니다.');
           setLoading(false);
           return;
         }
         
-        console.log('SignupPage: 사용자 정보 저장 성공');
-      }
-      
-      setError('회원가입이 완료되었습니다. 로그인해주세요.');
-      
-      // 4. 로그인 페이지로 리다이렉트
-      try {
-        console.log('SignupPage: 로그인 페이지로 리다이렉트 시도');
-        navigate('/auth');
-      } catch (error) {
-        console.error('SignupPage: 리다이렉트 오류', error);
+        if (existingUser) {
+          console.error('SignupPage: 이메일 중복', existingUser);
+          setEmailError('이미 사용 중인 이메일 주소입니다.');
+          setLoading(false);
+          return;
+        }
+        
+        // 2. Supabase Auth로 회원가입
+        console.log('signUp 함수 호출 전:', { email, password });
+        
+        // 직접 signUp 함수 호출
+        const { error: signUpError, data: authData } = await signUp(email, password);
+        
+        console.log('signUp 함수 호출 후:', { signUpError, authData });
+        
+        if (signUpError) {
+          console.error('SignupPage: 회원가입 에러', signUpError);
+          
+          // Supabase 오류 메시지 처리
+          if (signUpError.message?.includes('이미 사용 중인 이메일')) {
+            setEmailError('이미 사용 중인 이메일 주소입니다.');
+          } else if (signUpError.message?.includes('Password')) {
+            setPasswordError('비밀번호 형식이 올바르지 않습니다.');
+          } else if (signUpError.message?.includes('email rate limit exceeded')) {
+            setError('이메일 인증 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.');
+          } else {
+            setError(signUpError.message || '회원가입에 실패했습니다.');
+          }
+          
+          setLoading(false);
+          return;
+        }
+        
+        console.log('SignupPage: 회원가입 성공', authData);
+        
+        // 2. 프로필 이미지 업로드 (있는 경우)
+        let profileImageUrl = null;
+        if (profileImage) {
+          try {
+            profileImageUrl = await uploadImageToStorage(profileImage);
+            console.log('SignupPage: 프로필 이미지 업로드 성공', profileImageUrl);
+          } catch (uploadError) {
+            console.error('SignupPage: 프로필 이미지 업로드 실패', uploadError);
+            // 이미지 업로드 실패해도 계속 진행
+          }
+        }
+        
+        // 3. users 테이블에 사용자 정보 저장 전에 이메일 중복 확인
+        const { data: existingUserInDB, error: checkErrorInDB } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', email)
+          .single();
+        
+        if (checkErrorInDB && checkErrorInDB.code !== 'PGRST116') {
+          console.error('SignupPage: users 테이블 이메일 중복 체크 오류', checkErrorInDB);
+          setError('이메일 중복 확인 중 오류가 발생했습니다.');
+          setLoading(false);
+          return;
+        }
+        
+        if (existingUserInDB) {
+          console.log('SignupPage: 이미 users 테이블에 존재하는 이메일', existingUserInDB);
+          // 이미 존재하는 경우 업데이트 수행
+          const now = new Date().toISOString();
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({
+              username: username,
+              profile_Image: profileImageUrl,
+              gender: gender,
+              password: password,
+              birthyear: parseInt(birthYear),
+              region: region,
+              phone_number: phoneNumber || null,
+              interests: interests.join(','),
+              updated_at: now
+            })
+            .eq('id', existingUserInDB.id);
+          
+          if (updateError) {
+            console.error('SignupPage: 사용자 정보 업데이트 실패', updateError);
+            setError('사용자 정보 업데이트에 실패했습니다.');
+            setLoading(false);
+            return;
+          }
+          
+          console.log('SignupPage: 사용자 정보 업데이트 성공');
+        } else {
+          // 4. users 테이블에 사용자 정보 저장
+          const now = new Date().toISOString();
+          const { error: insertError } = await supabase
+            .from('users')
+            .insert({
+              id: authData.user?.id || crypto.randomUUID(),
+              email: email,
+              username: username,
+              password: password,
+              profile_Image: profileImageUrl,
+              gender: gender,
+              birthyear: parseInt(birthYear),
+              region: region,
+              phone_number: phoneNumber || null,
+              interests: interests.join(','),
+              user_grade: 1,
+              total_points: 0,
+              monthly_points: 0,
+              votesCreated: 0,
+              votesParticipated: 0,
+              created_at: now,
+              updated_at: now
+            });
+          
+          if (insertError) {
+            console.error('SignupPage: 사용자 정보 저장 실패', insertError);
+            setError('사용자 정보 저장에 실패했습니다.');
+            setLoading(false);
+            return;
+          }
+          
+          console.log('SignupPage: 사용자 정보 저장 성공');
+        }
+        
+        setError('회원가입이 완료되었습니다. 로그인해주세요.');
+        
+        // 4. 로그인 페이지로 리다이렉트
+        try {
+          console.log('SignupPage: 로그인 페이지로 리다이렉트 시도');
+          navigate('/auth');
+        } catch (error) {
+          console.error('SignupPage: 리다이렉트 오류', error);
+        }
       }
     } catch (err) {
       console.error('SignupPage: 예외 발생', err);
@@ -766,6 +810,7 @@ const SignupPage: React.FC = () => {
   return (
     <div className={styles.authContainer}>
       <div className={styles.authBox}>
+        <h2>{isEditMode ? '프로필 편집' : '회원 가입'}</h2>
 
         {error && <div className={styles.errorMessage}>{error}</div>}
         {loading && <div className={styles.loading}>처리 중...</div>}
@@ -792,7 +837,9 @@ const SignupPage: React.FC = () => {
           </div>
           
           <div className={styles.inputGroup}>
-            <label htmlFor="password">비밀번호 *</label>
+            <label htmlFor="password">
+              {isEditMode ? '새 비밀번호' : '비밀번호 *'}
+            </label>
             <input
               type="password"
               id="password"
@@ -800,14 +847,22 @@ const SignupPage: React.FC = () => {
               onChange={(e) => setPassword(e.target.value)}
               onBlur={() => validatePassword(password)}
               onFocus={() => setPasswordError(null)}
-              required
+              required={!isEditMode}
               className={`${styles.input} ${passwordError ? styles.inputError : ''}`}
-              placeholder="비밀번호를 입력하세요"
+              placeholder={isEditMode ? '새 비밀번호를 입력하세요' : '비밀번호를 입력하세요'}
             />
+            {passwordError && <div className={styles.errorMessage}>{passwordError}</div>}
+            {isEditMode && (
+              <div className={styles.infoMessage}>
+                비밀번호 변경을 원하면 새 비밀번호를 입력하세요.
+              </div>
+            )}
           </div>
           
           <div className={styles.inputGroup}>
-            <label htmlFor="confirmPassword">비밀번호 확인 *</label>
+            <label htmlFor="confirmPassword">
+              {isEditMode ? '새 비밀번호 확인' : '비밀번호 확인 *'} 
+            </label>
             <input
               type="password"
               id="confirmPassword"
@@ -815,9 +870,9 @@ const SignupPage: React.FC = () => {
               onChange={(e) => setConfirmPassword(e.target.value)}
               onBlur={() => validateConfirmPassword(confirmPassword)}
               onFocus={() => setPasswordError(null)}
-              required
+              required={!isEditMode}
               className={`${styles.input} ${passwordError ? styles.inputError : ''}`}
-              placeholder="비밀번호를 다시 입력하세요"
+              placeholder={isEditMode ? '새 비밀번호를 다시 입력하세요' : '비밀번호를 다시 입력하세요'}
             />
             {passwordError && <div className={styles.errorMessage}>{passwordError}</div>}
           </div>
@@ -841,6 +896,13 @@ const SignupPage: React.FC = () => {
           <div className={styles.inputGroup}>
             <label htmlFor="profileImage">프로필 이미지</label>
             <div className={styles.profileImageContainer}>
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                id="profile-image-input"
+                onChange={handleImageSelect}
+              />
               {profileImage ? (
                 <div className={styles.profileImagePreview}>
                   <img 
@@ -870,13 +932,6 @@ const SignupPage: React.FC = () => {
                 </div>
               ) : (
                 <div className={styles.profileImagePlaceholder}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                    id="profile-image-input"
-                    onChange={handleImageSelect}
-                  />
                   <button
                     type="button"
                     className={styles.imageButton}
@@ -992,28 +1047,38 @@ const SignupPage: React.FC = () => {
           
           <div className={styles.divider}></div>
           
-          <button 
-            type="submit" 
-            className={styles.submitButton}
-            disabled={loading}
-            onClick={(e) => {
-              console.log('회원가입 버튼 클릭 이벤트 발생');
-              handleSubmit(e);
-            }}
-          >
-            {loading ? '처리 중...' : '회원가입'}
-          </button>
+          <div className={styles.buttonGroup}>
+            {isEditMode && (
+              <button 
+                type="button" 
+                className={styles.cancelButton}
+                onClick={() => navigate('/mypage')}
+              >
+                취소
+              </button>
+            )}
+            <button 
+              type="submit" 
+              className={styles.submitButton}
+              disabled={loading}
+            >
+              {loading ? '처리 중...' : isEditMode ? '프로필 업데이트' : '회원가입'}
+            </button>
+          </div>
         </form>
         
-        <div className={styles.switchMode}>
-          <p className={styles.switchText}>이미 계정이 있으신가요?</p>
-          <button 
-            onClick={() => navigate('/auth')}
-            className={styles.switchButton}
-          >
-            로그인
-          </button>
-        </div>
+        {/* 회원가입 모드일 때만 보이는 전환 버튼 */}
+        {!isEditMode && (
+          <div className={styles.switchMode}>
+            <p className={styles.switchText}>이미 계정이 있으신가요?</p>
+            <button 
+              onClick={() => navigate('/auth')}
+              className={styles.switchButton}
+            >
+              로그인
+            </button>
+          </div>
+        )}
       </div>
       
       {/* 이미지 에디터 모달 */}

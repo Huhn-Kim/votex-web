@@ -14,7 +14,7 @@ const getDefaultUserInfo = (): UserInfo => {
     profile_Image: '',
     gender: '',
     region: '',
-    interests: '',
+    interests: [],
     birthyear: 0,
     votesCreated: 0,
     votesParticipated: 0,
@@ -22,7 +22,9 @@ const getDefaultUserInfo = (): UserInfo => {
     monthly_points: 0,
     user_grade: 1,
     created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    updated_at: [new Date().toISOString()],
+    weekly_created: [],
+    weekly_voted: [],
   };
 };
 
@@ -125,7 +127,9 @@ export const mapToVoteTopic = (topic: any, selectedOption?: number | null): Vote
         profile_Image,
         user_grade,
         created_at,
-        updated_at
+        updated_at,
+        weekly_created: topic.users.weekly_created || [],
+        weekly_voted: topic.users.weekly_voted || [],
       },
       options: options,
       selected_option: selectedOption,
@@ -250,56 +254,90 @@ export const getVoteTopicById = async (topicId: number, userId?: string) => {
   }
 };
 
-// URL에서 파일 경로 추출 함수
-const extractFilePathFromUrl = (url: string): string | null => {
-  if (!url) return null;
-  
-  try {
-    if (url.startsWith('data:')) return null;
-    
-    const urlObj = new URL(url);
-    const pathSegments = urlObj.pathname.split('/');
-    
-    if (pathSegments.length >= 2) {
-      const bucket = pathSegments[pathSegments.length - 2];
-      const fileName = pathSegments[pathSegments.length - 1];
-      return `${bucket}/${fileName}`;
-    }
-    return null;
-  } catch (error) {
-    console.error('URL 파싱 오류:', error);
+// 이미지 URL로부터 스토리지 파일 경로 추출 (기존 함수 활용)
+const getStoragePathFromUrl = (url: string, bucketName: string): string | null => {
+  if (!url || !url.includes(`/storage/v1/object/public/${bucketName}/`)) {
+    console.warn(`유효한 ${bucketName} 스토리지 URL이 아닙니다:`, url);
     return null;
   }
+  try {
+    const urlObject = new URL(url);
+    const pathParts = urlObject.pathname.split('/');
+    const bucketIndex = pathParts.findIndex(part => part === bucketName);
+    if (bucketIndex !== -1 && bucketIndex + 1 < pathParts.length) {
+      // URL 디코딩 추가 (파일 이름에 한글 등 포함 시)
+      return decodeURIComponent(pathParts.slice(bucketIndex + 1).join('/'));
+    }
+  } catch (e) {
+    console.error(`${bucketName} URL 파싱 오류:`, e);
+  }
+  return null;
 };
 
 // 스토리지에서 이미지 삭제 함수
 export const deleteImageFromStorage = async (imageUrl: string): Promise<boolean> => {
-  if (!imageUrl || imageUrl.startsWith('data:')) return true;
-  
+  const filePath = getStoragePathFromUrl(imageUrl, 'voteimages'); // 이미지 버킷 이름 확인
+  if (!filePath) {
+    console.log('이미지 삭제 건너뜀: 유효한 경로 없음', imageUrl);
+    return false; // 삭제 안 함
+  }
+
+  console.log(`이미지 스토리지 삭제 시도: voteimages/${filePath}`);
   try {
-    const filePath = extractFilePathFromUrl(imageUrl);
-    if (!filePath) {
-      console.log('유효한 파일 경로를 추출할 수 없습니다:', imageUrl);
-      return false;
-    }
-    
-    const [bucket, fileName] = filePath.split('/');
-    
     const { error } = await supabase
       .storage
-      .from(bucket)
-      .remove([fileName]);
-    
+      .from('voteimages') // 이미지 버킷 이름 확인
+      .remove([filePath]);
+
     if (error) {
-      console.error('이미지 삭제 오류:', error);
-      return false;
+      console.error(`이미지 삭제 오류 (voteimages/${filePath}):`, error);
+      // 파일을 찾지 못한 경우는 성공으로 간주할 수 있음
+      return error.message.includes('Not found');
     }
-    
-    console.log('이미지 삭제 성공:', fileName);
+    console.log(`이미지 삭제 성공: voteimages/${filePath}`);
     return true;
-  } catch (error) {
-    console.error('이미지 삭제 중 오류 발생:', error);
+  } catch (err) {
+    console.error(`deleteImageFromStorage 함수 오류 (${filePath}):`, err);
     return false;
+  }
+};
+
+/**
+ * 동영상 URL을 받아 Supabase 스토리지 ('votevideos' 버킷)에서 해당 파일을 삭제합니다.
+ * @param videoUrl 삭제할 동영상의 전체 URL
+ * @returns 삭제 성공 또는 파일이 원래 없었으면 true, 실패하면 false
+ */
+export const deleteVideoFromStorage = async (videoUrl: string): Promise<boolean> => {
+  // videoUrl에서 'votevideos' 버킷 내의 파일 경로 추출
+  const filePath = getStoragePathFromUrl(videoUrl, 'votevideos');
+  if (!filePath) {
+    console.log('비디오 삭제 건너뜀: 유효한 경로 없음', videoUrl);
+    return false; // 삭제 안 함
+  }
+
+  console.log(`비디오 스토리지 삭제 시도: votevideos/${filePath}`);
+  try {
+    // Supabase 스토리지에서 파일 삭제 실행
+    const { error } = await supabase
+      .storage
+      .from('votevideos') // 비디오 버킷 이름 명시
+      .remove([filePath]); // 파일 경로 배열 전달
+
+    if (error) {
+      console.error(`비디오 삭제 오류 (votevideos/${filePath}):`, error);
+      // 파일을 찾지 못한 경우는 오류가 아닐 수 있으므로 true 반환 고려
+      if (error.message.includes('Not found')) {
+         console.warn(`삭제할 비디오(${filePath})를 스토리지에서 찾을 수 없음. 이미 삭제되었을 수 있습니다.`);
+         return true; // 파일을 못 찾은 경우도 성공으로 처리
+      }
+      return false; // 그 외 오류는 실패로 처리
+    }
+
+    console.log(`비디오 삭제 성공: votevideos/${filePath}`);
+    return true; // 삭제 성공
+  } catch (err) {
+    console.error(`deleteVideoFromStorage 함수 오류 (${filePath}):`, err);
+    return false; // 예외 발생 시 실패
   }
 };
 
@@ -371,7 +409,7 @@ export const updateVoteTopic = async (topicData: VoteTopicUpdateData): Promise<V
   }
 };
 
-// Supabase에 이미지를 업로드하고 URL을 반환하는 함수
+// Supabase voteimages 폴더에 이미지를 업로드하고 URL을 반환하는 함수
 export const uploadImageToStorage = async (imageBase64: string, folderName: string = 'voteimages'): Promise<string> => {
   if (!imageBase64 || !imageBase64.startsWith('data:')) {
     throw new Error('유효한 이미지 데이터가 아닙니다.');
@@ -447,6 +485,54 @@ export const uploadImageToStorage = async (imageBase64: string, folderName: stri
     return urlData.publicUrl;
   } catch (error) {
     console.error('이미지 업로드 처리 중 오류:', error);
+    throw error;
+  }
+};
+
+// Supabase votevideos 폴더에 동영상을 업로드하고 URL을 반환하는 함수
+export const uploadVideoToStorage = async (videoFile: File, folderName: string = 'votevideos'): Promise<string> => {
+  try {
+    // 현재 로그인 상태 확인
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session) {
+      console.error('세션 확인 중 오류 발생 또는 세션 없음:', sessionError || '세션 없음');
+      throw new Error('로그인이 필요합니다. 동영상을 업로드할 수 없습니다.');
+    }
+
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}.${videoFile.type.split('/')[1]}`;
+    
+    console.log(`동영상 업로드 시도: ${fileName}, 크기: ${videoFile.size} bytes, 타입: ${videoFile.type}`);
+    console.log('현재 세션 사용자:', session.user.email);
+    
+    // 스토리지에 업로드 - 명시적 contentType 설정
+    const { error: uploadError } = await supabase
+      .storage
+      .from(folderName)
+      .upload(fileName, videoFile, {
+        contentType: videoFile.type,
+        upsert: true
+      });
+    
+    if (uploadError) {
+      console.error('스토리지 업로드 오류:', uploadError);
+      throw new Error(`동영상 업로드 실패: ${uploadError.message}`);
+    }
+    
+    // 업로드된 동영상의 공개 URL 가져오기
+    const { data: urlData } = supabase
+      .storage
+      .from(folderName)
+      .getPublicUrl(fileName);
+    
+    if (!urlData || !urlData.publicUrl) {
+      throw new Error('동영상 URL을 가져올 수 없습니다.');
+    }
+    
+    console.log(`동영상 업로드 성공: ${urlData.publicUrl}`);
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error('동영상 업로드 처리 중 오류:', error);
     throw error;
   }
 };
@@ -822,12 +908,43 @@ export const getRankedVotes = async (criteria: string) => {
   }
 };
 
+//vote_ranks 테이블 업데이트
 export const updateRankings = async (): Promise<void> => {
   try {
     const { error } = await supabase.rpc('update_vote_rankings');
     if (error) throw error;
   } catch (error) {
     console.error('순위 업데이트 중 오류:', error);
+    throw error;
+  }
+};
+
+// vote_topics의 related_image 필드를 업데이트하는 함수
+export const updateRelatedImage = async (topicId: number, imageUrl: string | null): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('vote_topics')
+      .update({ related_image: imageUrl })
+      .eq('id', topicId);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('updateRelatedImage 함수 오류:', error);
+    throw error;
+  }
+};
+
+// vote_options의 image_url 필드를 업데이트하는 함수
+export const updateOptionImageUrl = async (optionId: number, imageUrl: string | null): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('vote_options')
+      .update({ image_url: imageUrl })
+      .eq('id', optionId);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('updateOptionImageUrl 함수 오류:', error);
     throw error;
   }
 }; 

@@ -56,7 +56,11 @@ const VoteAnalysisPage: React.FC = () => {
   const [topic, setTopic] = useState<VoteTopic | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'gender' | 'age' | 'region'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'gender' | 'age' | 'region'>(() => {
+    // 컴포넌트 초기화 시 세션스토리지에서 탭 상태 가져오기
+    const savedTabState = sessionStorage.getItem('voteAnalysisActiveTab');
+    return (savedTabState as 'overview' | 'gender' | 'age' | 'region') || 'overview';
+  });
   
   // 더미 데이터 생성 (실제로는 API에서 가져와야 함)
   const [demographicData, setDemographicData] = useState<DemographicData>({
@@ -77,6 +81,46 @@ const VoteAnalysisPage: React.FC = () => {
     region: {},
     optionDemographics: {}
   });
+  
+  // 옵션 색상 배열 추가
+  const optionColors = [
+    '#FF6B6B',  // 빨간색
+    '#4ECDC4',  // 청록색
+    '#45B7D1',  // 하늘색
+    '#96CEB4',  // 민트색
+    '#FFEEAD'   // 노란색
+  ];
+  
+  // 저장된 탭 상태 복원
+  useEffect(() => {
+    const savedTabState = sessionStorage.getItem(`voteAnalysis_${id}_tab`);
+    if (savedTabState) {
+      setActiveTab(savedTabState as 'overview' | 'gender' | 'age' | 'region');
+    }
+    
+    // 스크롤 위치도 복원
+    const savedScrollPosition = sessionStorage.getItem(`voteAnalysis_${id}_scrollPosition`);
+    if (savedScrollPosition) {
+      setTimeout(() => {
+        window.scrollTo({
+          top: parseInt(savedScrollPosition),
+          behavior: 'instant'
+        });
+      }, 200); // 컴포넌트가 렌더링된 후 스크롤 위치를 복원
+    }
+  }, [id]);
+  
+  // 스크롤 위치 저장 효과 추가
+  useEffect(() => {
+    const handleScroll = () => {
+      if (id) {
+        sessionStorage.setItem(`voteAnalysis_${id}_scrollPosition`, window.scrollY.toString());
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [id]);
   
   // 투표 주제 데이터 로드
   useEffect(() => {
@@ -254,7 +298,34 @@ const VoteAnalysisPage: React.FC = () => {
   // 탭 변경 핸들러
   const handleTabChange = (tab: 'overview' | 'gender' | 'age' | 'region') => {
     setActiveTab(tab);
+    // 전역 세션스토리지에 탭 상태 저장 (특정 ID에 종속되지 않게)
+    sessionStorage.setItem('voteAnalysisActiveTab', tab);
+    // 기존 ID별 저장도 유지
+    if (id) {
+      sessionStorage.setItem(`voteAnalysis_${id}_tab`, tab);
+    }
   };
+  
+  // 뒤로가기 핸들러
+  const handleBackClick = () => {
+    // 현재 탭 상태를 전역 세션스토리지에 저장
+    sessionStorage.setItem('voteAnalysisActiveTab', activeTab);
+    // 기존 ID별 저장도 유지
+    if (id) {
+      sessionStorage.setItem(`voteAnalysis_${id}_tab`, activeTab);
+      sessionStorage.setItem('lastViewedVoteAnalysisId', id);
+    }
+    // 이전 페이지로 이동
+    navigate(-1);
+  };
+  
+  // 컴포넌트 언마운트 시 탭 상태 유지
+  useEffect(() => {
+    return () => {
+      // 컴포넌트가 언마운트될 때 현재 탭 상태 저장
+      sessionStorage.setItem('voteAnalysisActiveTab', activeTab);
+    };
+  }, [activeTab]);
   
   // 투표 핸들러
   const handleVote = async (topicId: number, optionId: number) => {
@@ -313,6 +384,67 @@ const VoteAnalysisPage: React.FC = () => {
     // VoteCard에서 필수 prop이지만 이 화면에서는 실제 구현 필요 없음
   };
     
+  // 개요 차트 렌더링
+  const renderOverviewCharts = () => {
+    return (
+      <div className="overview-charts">
+        <div className="overview-section">
+          <h3>성별 투표 분포</h3>
+          <div className="overview-chart-container">
+            {renderGenderChart()}
+          </div>
+        </div>
+        
+        <div className="overview-section">
+          <h3>연령별 투표 분포</h3>
+          <div className="overview-chart-container">
+            {renderAgeChart()}
+          </div>
+        </div>
+        
+        <div className="overview-section">
+          <h3>지역별 투표 분포</h3>
+          <div className="overview-chart-container">
+            {renderRegionChart()}
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
+  // 옵션 레전드 컴포넌트 추가
+  const renderOptionLegend = (isCompact = false) => {
+    // 옵션 목록 생성
+    const optionsList = topic?.options?.map((opt, index) => ({
+      id: opt.id,
+      text: opt.text,
+      color: optionColors[index % optionColors.length]
+    })) || [];
+    
+    console.log('옵션 목록:', optionsList); // 디버깅용 로그
+    
+    if (optionsList.length === 0) {
+      console.warn('옵션 목록이 비어 있습니다.');
+      return <div className="no-options">옵션 정보가 없습니다.</div>;
+    }
+    
+    return (
+      <div className={`demographic-option-legend ${isCompact ? 'compact-legend' : ''}`}>
+        {optionsList.map((option: { id: number; text: string; color: string }) => (
+          <div key={option.id} className="legend-item">
+            <div 
+              className="legend-color" 
+              style={{ backgroundColor: option.color }}
+            ></div>
+            <div className="legend-text">
+              <span className="legend-label">{option.text}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+  
   // 성별 차트 렌더링
   const renderGenderChart = () => {
     const { gender, optionDemographics } = demographicData;
@@ -323,10 +455,10 @@ const VoteAnalysisPage: React.FC = () => {
     const malePercentage = (gender.male / total * 100).toFixed(1);
     const femalePercentage = (gender.female / total * 100).toFixed(1);
     
-    const optionsList = topic ? topic.options.map(opt => ({
+    const optionsList = topic ? topic.options.map((opt, index) => ({
       id: opt.id,
       text: opt.text,
-      color: `hsl(${opt.id * 50}, 70%, 60%)`
+      color: optionColors[index % optionColors.length]
     })) : [];
     
     const calculateGenderOptionPercentages = (genderType: 'male' | 'female') => {
@@ -350,24 +482,63 @@ const VoteAnalysisPage: React.FC = () => {
     const maleOptions = calculateGenderOptionPercentages('male');
     const femaleOptions = calculateGenderOptionPercentages('female');
     
+    // 전체 개요 탭에서는 간단한 차트만 표시
+    if (activeTab === 'overview') {
+      return (
+        <div className="demographic-chart">
+          <div className="bar-chart-container">
+            {gender.male > 0 && (
+              <div className="bar-chart-item">
+                <div className="bar-label">남성</div>
+                <div className="bar-container">
+                  <div className="bar male-bar" style={{ width: `${malePercentage}%` }}></div>
+                  <span className="bar-value">{malePercentage}% ({gender.male}명)</span>
+                </div>
+              </div>
+            )}
+            {gender.female > 0 && (
+              <div className="bar-chart-item">
+                <div className="bar-label">여성</div>
+                <div className="bar-container">
+                  <div className="bar female-bar" style={{ width: `${femalePercentage}%` }}></div>
+                  <span className="bar-value">{femalePercentage}% ({gender.female}명)</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="chart-analysis">
+            <p className="analysis-title">AI 분석 결과</p>
+            <p>이 투표에서는 {gender.male > gender.female ? '남성' : '여성'}의 참여율이 더 높게 나타났습니다. 
+            {Math.abs(gender.male - gender.female) > total * 0.2 
+              ? '두 성별 간의 큰 차이는 주제에 대한 관심도나 의견 성향의 차이를 시사할 수 있습니다.' 
+              : '두 성별 간의 참여율은 비교적 균등하게 분포되어 있습니다.'}</p>
+          </div>
+        </div>
+      );
+    }
+    
+    // 성별 탭에서는 상세 정보 표시
     return (
       <div className="demographic-chart">
-        <h3>성별 투표 분포</h3>
         <div className="bar-chart-container">
-          <div className="bar-chart-item">
-            <div className="bar-label">남성</div>
-            <div className="bar-container">
-              <div className="bar male-bar" style={{ width: `${malePercentage}%` }}></div>
-              <span className="bar-value">{malePercentage}% ({gender.male}명)</span>
+          {gender.male > 0 && (
+            <div className="bar-chart-item">
+              <div className="bar-label">남성</div>
+              <div className="bar-container">
+                <div className="bar male-bar" style={{ width: `${malePercentage}%` }}></div>
+                <span className="bar-value">{malePercentage}% ({gender.male}명)</span>
+              </div>
             </div>
-          </div>
-          <div className="bar-chart-item">
-            <div className="bar-label">여성</div>
-            <div className="bar-container">
-              <div className="bar female-bar" style={{ width: `${femalePercentage}%` }}></div>
-              <span className="bar-value">{femalePercentage}% ({gender.female}명)</span>
+          )}
+          {gender.female > 0 && (
+            <div className="bar-chart-item">
+              <div className="bar-label">여성</div>
+              <div className="bar-container">
+                <div className="bar female-bar" style={{ width: `${femalePercentage}%` }}></div>
+                <span className="bar-value">{femalePercentage}% ({gender.female}명)</span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
         <div className="chart-analysis">
           <p className="analysis-title">AI 분석 결과</p>
@@ -378,9 +549,12 @@ const VoteAnalysisPage: React.FC = () => {
         </div>
 
         <div className="option-demographics">
-          <h4 className="option-demographics-title">성별 옵션 선택 현황</h4>
+          <div className="option-demographics-header">
+            <h4 className="option-demographics-title">성별 옵션 선택 현황</h4>
+            {renderOptionLegend(true)}
+          </div>
           
-          {gender.male > 0 && (
+          {gender.male > 0 && maleOptions.length > 0 && (
             <div className="demographic-option-group">
               <div className="demographic-name">
                 <div className="demographic-icon male-icon"></div>
@@ -393,37 +567,23 @@ const VoteAnalysisPage: React.FC = () => {
                     className="stacked-bar-segment"
                     style={{ 
                       width: `${option.percentage}%`,
-                      backgroundColor: optionsList.find(opt => opt.id === option.id)?.color || `hsl(${index * 60}, 70%, 60%)`,
+                      backgroundColor: optionsList.find(opt => opt.id === option.id)?.color || optionColors[index % optionColors.length],
                       left: `${maleOptions.slice(0, index).reduce((sum, opt) => sum + opt.percentage, 0)}%`
                     }}
                     title={`${option.text}: ${option.percentage.toFixed(1)}% (${option.votes}명)`}
                   >
-                    {option.percentage >= 10 && (
-                      <span className="stacked-bar-label">{option.percentage.toFixed(1)}%</span>
+                    {option.percentage >= 5 && (
+                      <span className="stacked-bar-label">
+                        {option.percentage.toFixed(1)}% ({option.votes}명)
+                      </span>
                     )}
-                  </div>
-                ))}
-              </div>
-              <div className="demographic-option-legend">
-                {maleOptions.map((option, index) => (
-                  <div key={option.id} className="legend-item">
-                    <div 
-                      className="legend-color" 
-                      style={{ 
-                        backgroundColor: optionsList.find(opt => opt.id === option.id)?.color || `hsl(${index * 60}, 70%, 60%)`
-                      }}
-                    ></div>
-                    <div className="legend-text">
-                      <span className="legend-label">{option.text}</span>
-                      <span className="legend-value">{option.percentage.toFixed(1)}% ({option.votes}명)</span>
-                    </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
           
-          {gender.female > 0 && (
+          {gender.female > 0 && femaleOptions.length > 0 && (
             <div className="demographic-option-group">
               <div className="demographic-name">
                 <div className="demographic-icon female-icon"></div>
@@ -436,30 +596,16 @@ const VoteAnalysisPage: React.FC = () => {
                     className="stacked-bar-segment"
                     style={{ 
                       width: `${option.percentage}%`,
-                      backgroundColor: optionsList.find(opt => opt.id === option.id)?.color || `hsl(${index * 60}, 70%, 60%)`,
+                      backgroundColor: optionsList.find(opt => opt.id === option.id)?.color || optionColors[index % optionColors.length],
                       left: `${femaleOptions.slice(0, index).reduce((sum, opt) => sum + opt.percentage, 0)}%`
                     }}
                     title={`${option.text}: ${option.percentage.toFixed(1)}% (${option.votes}명)`}
                   >
-                    {option.percentage >= 10 && (
-                      <span className="stacked-bar-label">{option.percentage.toFixed(1)}%</span>
+                    {option.percentage >= 5 && (
+                      <span className="stacked-bar-label">
+                        {option.percentage.toFixed(1)}% ({option.votes}명)
+                      </span>
                     )}
-                  </div>
-                ))}
-              </div>
-              <div className="demographic-option-legend">
-                {femaleOptions.map((option, index) => (
-                  <div key={option.id} className="legend-item">
-                    <div 
-                      className="legend-color" 
-                      style={{ 
-                        backgroundColor: optionsList.find(opt => opt.id === option.id)?.color || `hsl(${index * 60}, 70%, 60%)`
-                      }}
-                    ></div>
-                    <div className="legend-text">
-                      <span className="legend-label">{option.text}</span>
-                      <span className="legend-value">{option.percentage.toFixed(1)}% ({option.votes}명)</span>
-                    </div>
                   </div>
                 ))}
               </div>
@@ -477,6 +623,7 @@ const VoteAnalysisPage: React.FC = () => {
     
     if (total <= 0) return <div className="no-data">데이터가 없습니다.</div>;
     
+    // 타입을 명시적으로 지정하여 필터링 후에도 타입이 유지되도록 함
     const ageCategories: { key: keyof DemographicData['age']; label: string; count: number }[] = [
       { key: 'age10to19', label: '10-19세', count: age.age10to19 },
       { key: 'age20to29', label: '20-29세', count: age.age20to29 },
@@ -488,15 +635,20 @@ const VoteAnalysisPage: React.FC = () => {
       { key: 'age80plus', label: '80세 이상', count: age.age80plus }
     ];
     
+    // 필터링된 배열에 타입 단언을 사용하여 타입 오류 해결
+    const filteredAgeCategories = ageCategories.filter(category => category.count > 0) as { key: keyof DemographicData['age']; label: string; count: number }[];
+    
     // 가장 많은 투표를 한 연령대 찾기
-    const maxVoteAgeCategory = ageCategories.reduce((max, category) => 
-      category.count > max.count ? category : max, ageCategories[0]);
+    const maxVoteAgeCategory = filteredAgeCategories.length > 0 ? 
+      filteredAgeCategories.reduce((max, category) => 
+        category.count > max.count ? category : max, filteredAgeCategories[0]) : 
+      null;
     
     // 전체 옵션의 목록을 준비
-    const optionsList = topic ? topic.options.map(opt => ({
+    const optionsList = topic ? topic.options.map((opt, index) => ({
       id: opt.id,
       text: opt.text,
-      color: `hsl(${opt.id * 50}, 70%, 60%)`
+      color: optionColors[index % optionColors.length]
     })) : [];
     
     // 연령대에 따른 옵션 선택 비율 계산
@@ -518,18 +670,57 @@ const VoteAnalysisPage: React.FC = () => {
       }).sort((a, b) => b.percentage - a.percentage);
     };
     
+    // 전체 개요 탭에서는 간단한 차트만 표시
+    if (activeTab === 'overview') {
+      return (
+        <div className="demographic-chart">
+          <div className="bar-chart-container">
+            {filteredAgeCategories.map(category => {
+              const percentage = (category.count / total * 100).toFixed(1);
+              return (
+                <div className="bar-chart-item" key={category.key}>
+                  <div className="bar-label">{category.label}</div>
+                  <div className="bar-container">
+                    <div 
+                      className={`bar age-bar ${category.key === maxVoteAgeCategory?.key ? 'max-vote-bar' : ''}`} 
+                      style={{ width: `${percentage}%` }}
+                    ></div>
+                    <span className="bar-value">{percentage}% ({category.count}명)</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="chart-analysis">
+            <p className="analysis-title">AI 분석 결과</p>
+            {maxVoteAgeCategory ? (
+              <p>이 투표에서는 <strong>{maxVoteAgeCategory.label}</strong> 연령대가 가장 활발하게 참여했습니다. 
+              이는 이 연령대가 주제에 대해 높은 관심도를 보이거나, 투표 플랫폼 접근성이 높기 때문일 수 있습니다. 
+              {age.age10to19 + age.age20to29 > total * 0.5 
+                ? '전체적으로 젊은 연령대가 투표에 더 많이 참여했습니다.' 
+                : age.age40to49 + age.age50to59 > total * 0.5 
+                  ? '전체적으로 고연령대가 투표에 더 많이 참여했습니다.'
+                  : '투표 참여는 전체 연령대에 걸쳐 비교적 고르게 분포되어 있습니다.'}</p>
+            ) : (
+              <p>연령대별 데이터가 충분하지 않아 분석이 어렵습니다.</p>
+            )}
+          </div>
+        </div>
+      );
+    }
+    
+    // 연령 탭에서는 상세 정보 표시
     return (
       <div className="demographic-chart">
-        <h3>연령별 투표 분포</h3>
         <div className="bar-chart-container">
-          {ageCategories.map(category => {
+          {filteredAgeCategories.map(category => {
             const percentage = (category.count / total * 100).toFixed(1);
             return (
               <div className="bar-chart-item" key={category.key}>
                 <div className="bar-label">{category.label}</div>
                 <div className="bar-container">
                   <div 
-                    className={`bar age-bar ${category.key === maxVoteAgeCategory.key ? 'max-vote-bar' : ''}`} 
+                    className={`bar age-bar ${category.key === maxVoteAgeCategory?.key ? 'max-vote-bar' : ''}`} 
                     style={{ width: `${percentage}%` }}
                   ></div>
                   <span className="bar-value">{percentage}% ({category.count}명)</span>
@@ -540,30 +731,39 @@ const VoteAnalysisPage: React.FC = () => {
         </div>
         <div className="chart-analysis">
           <p className="analysis-title">AI 분석 결과</p>
-          <p>이 투표에서는 <strong>{maxVoteAgeCategory.label}</strong> 연령대가 가장 활발하게 참여했습니다. 
-          이는 이 연령대가 주제에 대해 높은 관심도를 보이거나, 투표 플랫폼 접근성이 높기 때문일 수 있습니다. 
-          {age.age10to19 + age.age20to29 > total * 0.5 
-            ? '전체적으로 젊은 연령대가 투표에 더 많이 참여했습니다.' 
-            : age.age40to49 + age.age50to59 > total * 0.5 
-              ? '전체적으로 고연령대가 투표에 더 많이 참여했습니다.'
-              : '투표 참여는 전체 연령대에 걸쳐 비교적 고르게 분포되어 있습니다.'}</p>
+          {maxVoteAgeCategory ? (
+            <p>이 투표에서는 <strong>{maxVoteAgeCategory.label}</strong> 연령대가 가장 활발하게 참여했습니다. 
+            이는 이 연령대가 주제에 대해 높은 관심도를 보이거나, 투표 플랫폼 접근성이 높기 때문일 수 있습니다. 
+            {age.age10to19 + age.age20to29 > total * 0.5 
+              ? '전체적으로 젊은 연령대가 투표에 더 많이 참여했습니다.' 
+              : age.age40to49 + age.age50to59 > total * 0.5 
+                ? '전체적으로 고연령대가 투표에 더 많이 참여했습니다.'
+                : '투표 참여는 전체 연령대에 걸쳐 비교적 고르게 분포되어 있습니다.'}</p>
+          ) : (
+            <p>연령대별 데이터가 충분하지 않아 분석이 어렵습니다.</p>
+          )}
         </div>
 
         {/* 연령대 기준으로 어떤 옵션을 선택했는지 보여줌 */}
         <div className="option-demographics">
-          <h4 className="option-demographics-title">연령대별 옵션 선택 현황</h4>
+          <div className="option-demographics-header">
+            <h4 className="option-demographics-title">연령대별 옵션 선택 현황</h4>
+            {renderOptionLegend(true)}
+          </div>
           
-          {ageCategories.map(category => {
+          {filteredAgeCategories.map(category => {
             const ageVotes = category.count;
             if (ageVotes <= 0) return null;
             
             const ageOptions = calculateAgeOptionPercentages(category.key);
             if (ageOptions.length === 0) return null;
             
+            const isMaxVoteCategory = category.key === maxVoteAgeCategory?.key;
+            
             return (
               <div key={category.key} className="demographic-option-group">
                 <div className="demographic-name">
-                  <div className={`demographic-icon age-${category.key}-icon`}></div>
+                  <div className={`demographic-icon age-${category.key}-icon ${isMaxVoteCategory ? 'max-vote-age-icon' : ''}`}></div>
                   <h5>{category.label} 연령대가 선택한 옵션</h5>
                 </div>
                 <div className="stacked-bar-container">
@@ -573,30 +773,16 @@ const VoteAnalysisPage: React.FC = () => {
                       className="stacked-bar-segment"
                       style={{ 
                         width: `${option.percentage}%`,
-                        backgroundColor: optionsList.find(opt => opt.id === option.id)?.color || `hsl(${index * 60}, 70%, 60%)`,
+                        backgroundColor: optionsList.find(opt => opt.id === option.id)?.color || optionColors[index % optionColors.length],
                         left: `${ageOptions.slice(0, index).reduce((sum, opt) => sum + opt.percentage, 0)}%`
                       }}
                       title={`${option.text}: ${option.percentage.toFixed(1)}% (${option.votes}명)`}
                     >
-                      {option.percentage >= 10 && (
-                        <span className="stacked-bar-label">{option.percentage.toFixed(1)}%</span>
+                      {option.percentage >= 5 && (
+                        <span className="stacked-bar-label">
+                          {option.percentage.toFixed(1)}% ({option.votes}명)
+                        </span>
                       )}
-                    </div>
-                  ))}
-                </div>
-                <div className="demographic-option-legend">
-                  {ageOptions.map((option, index) => (
-                    <div key={option.id} className="legend-item">
-                      <div 
-                        className="legend-color" 
-                        style={{ 
-                          backgroundColor: optionsList.find(opt => opt.id === option.id)?.color || `hsl(${index * 60}, 70%, 60%)`
-                        }}
-                      ></div>
-                      <div className="legend-text">
-                        <span className="legend-label">{option.text}</span>
-                        <span className="legend-value">{option.percentage.toFixed(1)}% ({option.votes}명)</span>
-                      </div>
                     </div>
                   ))}
                 </div>
@@ -635,19 +821,19 @@ const VoteAnalysisPage: React.FC = () => {
       { key: 'gyeongnam', label: '경남', count: region.gyeongnam },
       { key: 'jeolla', label: '전라', count: region.jeolla },
       { key: 'jeju', label: '제주', count: region.jeju }
-    ];
+    ].filter(category => category.count > 0); // 값이 있는 지역만 필터링
 
     // 지역 데이터를 배열로 변환하고 투표수 기준으로 정렬
     const sortedRegions = regionCategories.sort((a, b) => b.count - a.count);
 
     // 가장 많은 투표를 한 지역 찾기
-    const maxVoteRegion = sortedRegions[0];
+    const maxVoteRegion = sortedRegions.length > 0 ? sortedRegions[0] : null;
 
     // 전체 옵션의 목록을 준비
-    const optionsList = topic ? topic.options.map(opt => ({
+    const optionsList = topic ? topic.options.map((opt, index) => ({
       id: opt.id,
       text: opt.text,
-      color: `hsl(${opt.id * 50}, 70%, 60%)`
+      color: optionColors[index % optionColors.length]
     })) : [];
 
     // 지역에 따른 옵션 선택 비율 계산
@@ -669,9 +855,46 @@ const VoteAnalysisPage: React.FC = () => {
       }).sort((a, b) => b.percentage - a.percentage);
     };
 
+    // 전체 개요 탭에서는 간단한 차트만 표시
+    if (activeTab === 'overview') {
+      return (
+        <div className="demographic-chart">
+          <div className="bar-chart-container">
+            {sortedRegions.map(({ key, label, count }) => {
+              const percentage = (count / total * 100).toFixed(1);
+              return (
+                <div className="bar-chart-item" key={key}>
+                  <div className="bar-label">{label}</div>
+                  <div className="bar-container">
+                    <div 
+                      className={`bar region-bar ${key === maxVoteRegion?.key ? 'max-vote-bar' : ''}`} 
+                      style={{ width: `${percentage}%` }}
+                    ></div>
+                    <span className="bar-value">{percentage}% ({count}명)</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="chart-analysis">
+            <p className="analysis-title">AI 분석 결과</p>
+            {maxVoteRegion ? (
+              <p>이 투표에서는 <strong>{maxVoteRegion.label}</strong> 지역에서 가장 높은 참여율을 보였습니다. 
+              이는 투표 주제가 해당 지역과 관련이 있거나, 이 지역의 사용자가 플랫폼을 더 많이 이용하기 때문일 수 있습니다.
+              {sortedRegions[0].count > total * 0.3 
+                ? '특정 지역의 참여율이 매우 높게 나타났습니다.' 
+                : '전반적으로 투표는 여러 지역에 고르게 분포되어 있습니다.'}</p>
+            ) : (
+              <p>지역별 데이터가 충분하지 않아 분석이 어렵습니다.</p>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // 지역 탭에서는 상세 정보 표시
     return (
       <div className="demographic-chart">
-        <h3>지역별 투표 분포</h3>
         <div className="bar-chart-container">
           {sortedRegions.map(({ key, label, count }) => {
             const percentage = (count / total * 100).toFixed(1);
@@ -680,7 +903,7 @@ const VoteAnalysisPage: React.FC = () => {
                 <div className="bar-label">{label}</div>
                 <div className="bar-container">
                   <div 
-                    className={`bar region-bar ${key === maxVoteRegion.key ? 'max-vote-bar' : ''}`} 
+                    className={`bar region-bar ${key === maxVoteRegion?.key ? 'max-vote-bar' : ''}`} 
                     style={{ width: `${percentage}%` }}
                   ></div>
                   <span className="bar-value">{percentage}% ({count}명)</span>
@@ -691,16 +914,23 @@ const VoteAnalysisPage: React.FC = () => {
         </div>
         <div className="chart-analysis">
           <p className="analysis-title">AI 분석 결과</p>
-          <p>이 투표에서는 <strong>{maxVoteRegion.label}</strong> 지역에서 가장 높은 참여율을 보였습니다. 
-          이는 투표 주제가 해당 지역과 관련이 있거나, 이 지역의 사용자가 플랫폼을 더 많이 이용하기 때문일 수 있습니다.
-          {sortedRegions[0].count > total * 0.3 
-            ? '특정 지역의 참여율이 매우 높게 나타났습니다.' 
-            : '전반적으로 투표는 여러 지역에 고르게 분포되어 있습니다.'}</p>
+          {maxVoteRegion ? (
+            <p>이 투표에서는 <strong>{maxVoteRegion.label}</strong> 지역에서 가장 높은 참여율을 보였습니다. 
+            이는 투표 주제가 해당 지역과 관련이 있거나, 이 지역의 사용자가 플랫폼을 더 많이 이용하기 때문일 수 있습니다.
+            {sortedRegions[0].count > total * 0.3 
+              ? '특정 지역의 참여율이 매우 높게 나타났습니다.' 
+              : '전반적으로 투표는 여러 지역에 고르게 분포되어 있습니다.'}</p>
+          ) : (
+            <p>지역별 데이터가 충분하지 않아 분석이 어렵습니다.</p>
+          )}
         </div>
 
         {/* 지역 기준으로 어떤 옵션을 선택했는지 보여줌 */}
         <div className="option-demographics">
-          <h4 className="option-demographics-title">지역별 옵션 선택 현황</h4>
+          <div className="option-demographics-header">
+            <h4 className="option-demographics-title">지역별 옵션 선택 현황</h4>
+            {renderOptionLegend(true)}
+          </div>
           
           {/* 상위 5개 지역만 보여줌 */}
           {sortedRegions.slice(0, 5).map(({ key, label, count }) => {
@@ -709,10 +939,12 @@ const VoteAnalysisPage: React.FC = () => {
             const regionOptions = calculateRegionOptionPercentages(key);
             if (regionOptions.length === 0) return null;
             
+            const isMaxVoteRegion = key === maxVoteRegion?.key;
+            
             return (
               <div key={key} className="demographic-option-group">
                 <div className="demographic-name">
-                  <div className="demographic-icon region-icon"></div>
+                  <div className={`demographic-icon region-icon ${isMaxVoteRegion ? 'max-vote-region-icon' : ''}`}></div>
                   <h5>{label} 지역에서 선택한 옵션</h5>
                 </div>
                 <div className="stacked-bar-container">
@@ -722,30 +954,16 @@ const VoteAnalysisPage: React.FC = () => {
                       className="stacked-bar-segment"
                       style={{ 
                         width: `${option.percentage}%`,
-                        backgroundColor: optionsList.find(opt => opt.id === option.id)?.color || `hsl(${index * 60}, 70%, 60%)`,
+                        backgroundColor: optionsList.find(opt => opt.id === option.id)?.color || optionColors[index % optionColors.length],
                         left: `${regionOptions.slice(0, index).reduce((sum, opt) => sum + opt.percentage, 0)}%`
                       }}
                       title={`${option.text}: ${option.percentage.toFixed(1)}% (${option.votes}명)`}
                     >
-                      {option.percentage >= 10 && (
-                        <span className="stacked-bar-label">{option.percentage.toFixed(1)}%</span>
+                      {option.percentage >= 5 && (
+                        <span className="stacked-bar-label">
+                          {option.percentage.toFixed(1)}% ({option.votes}명)
+                        </span>
                       )}
-                    </div>
-                  ))}
-                </div>
-                <div className="demographic-option-legend">
-                  {regionOptions.map((option, index) => (
-                    <div key={option.id} className="legend-item">
-                      <div 
-                        className="legend-color" 
-                        style={{ 
-                          backgroundColor: optionsList.find(opt => opt.id === option.id)?.color || `hsl(${index * 60}, 70%, 60%)`
-                        }}
-                      ></div>
-                      <div className="legend-text">
-                        <span className="legend-label">{option.text}</span>
-                        <span className="legend-value">{option.percentage.toFixed(1)}% ({option.votes}명)</span>
-                      </div>
                     </div>
                   ))}
                 </div>
@@ -753,17 +971,6 @@ const VoteAnalysisPage: React.FC = () => {
             );
           })}
         </div>
-      </div>
-    );
-  };
-  
-  // 개요 차트 렌더링
-  const renderOverviewCharts = () => {
-    return (
-      <div className="overview-charts">
-        {renderGenderChart()}
-        {renderAgeChart()}
-        {renderRegionChart()}
       </div>
     );
   };
@@ -792,7 +999,7 @@ const VoteAnalysisPage: React.FC = () => {
   return (
     <div className="vote-analysis-page">
       <div className="analysis-header">
-        <button className="back-button" onClick={() => navigate(-1)}>
+        <button className="back-button" onClick={handleBackClick}>
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
@@ -839,6 +1046,7 @@ const VoteAnalysisPage: React.FC = () => {
         </div>
         
         <div className="tab-content">
+          {/* 전체 개요 탭에서는 레전드 표시하지 않음 */}
           {activeTab === 'overview' && renderOverviewCharts()}
           {activeTab === 'gender' && renderGenderChart()}
           {activeTab === 'age' && renderAgeChart()}
