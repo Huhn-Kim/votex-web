@@ -3,7 +3,6 @@ import { useVoteContext } from "../context/VoteContext";
 import { VoteTopic, VoteRank } from "../lib/types";
 import styles from "../styles/ViewRank.module.css";
 import "../styles/TabStyles.css";
-import { updateRankings } from "../lib/api";
 import VoteCard from './VoteCard';
 import supabase from '../lib/supabase';
 import { formatNumber } from '../utils/numberFormat';
@@ -114,14 +113,14 @@ export default function ViewRank() {
     }
   }, [selectedTopicId]);
 
-  // 데이터 가져오기
+  // 마운트 될 때 데이터 가져오기
   useEffect(() => {
     let isMounted = true;
 
-    const fetchAndUpdateRanks = async () => {
+    const fetchVoteRankData = async () => {
       try {
         setInitialLoading(true);
-        await updateRankings();
+        // updateRankings() 호출 제거 - 이제 서버 측 cron job으로 처리됨
         const data = await getRankedVotes(sortCriteria);
         
         if (isMounted && Array.isArray(data) && data.length > 0) {
@@ -130,7 +129,7 @@ export default function ViewRank() {
           preloadImages(data);
         }
       } catch (error) {
-        console.error('순위 업데이트 중 오류:', error);
+        console.error('순위 데이터 로드 중 오류:', error);
       } finally {
         if (isMounted) {
           setInitialLoading(false);
@@ -138,12 +137,11 @@ export default function ViewRank() {
       }
     };
 
-    fetchAndUpdateRanks();
-    const interval = setInterval(fetchAndUpdateRanks, 3600000);
+    // 컴포넌트 마운트 시 한 번만 데이터 로드
+    fetchVoteRankData();
 
     return () => {
       isMounted = false;
-      clearInterval(interval);
     };
   }, [sortCriteria]);
 

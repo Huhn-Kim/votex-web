@@ -12,6 +12,24 @@ import LoadingOverlay from '../components/LoadingOverlay';
 import ConfirmModal from '../components/ConfirmModal';
 import supabase from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import html2canvas from 'html2canvas';
+import { Helmet } from 'react-helmet-async';
+
+// 카카오 SDK의 타입 선언
+declare global {
+  interface Window {
+    Kakao?: {
+      init: (appKey: string) => void;
+      isInitialized: () => boolean;
+      Share?: {
+        sendDefault: (options: any) => void;
+      };
+      Link?: {
+        sendDefault: (options: any) => void;
+      };
+    };
+  }
+}
 
 interface VoteCardProps {
   topic: VoteTopic;
@@ -303,22 +321,65 @@ const isVideoUrl = (url: string): boolean => {
          lowerCaseUrl.endsWith('.ogg'); // 필요에 따라 다른 비디오 확장자 추가
 };
 
-// ShareModal 컴포넌트 추가
+// ShareModal 컴포넌트 수정
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
   url: string;
   title: string;
   description: string;
+  cardRef?: React.RefObject<HTMLDivElement> | null;
 }
 
-const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, url, title, description }) => {
+const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, url, title, description, cardRef }) => {
   const [copyStatus, setCopyStatus] = useState<string>('');
+  const [cardImage, setCardImage] = useState<string | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [kakaoInitialized, setKakaoInitialized] = useState(false);
+  
+  // 카카오톡 SDK 초기화
+  useEffect(() => {
+    if (isOpen && !kakaoInitialized && window.Kakao) {
+      try {
+        if (!window.Kakao.isInitialized()) {
+          window.Kakao.init('713c95bab7e3a87150f162188af5cb8f');
+        }
+        setKakaoInitialized(true);
+        console.log('카카오 SDK 초기화 성공');
+      } catch (error) {
+        console.error('카카오 SDK 초기화 실패:', error);
+      }
+    }
+  }, [isOpen, kakaoInitialized]);
   
   // 공유 모달이 닫힐 때 복사 상태 초기화
   useEffect(() => {
     if (!isOpen) {
       setCopyStatus('');
+      setCardImage(null);
+    }
+    
+    // 카카오 SDK 스크립트 로드
+    if (isOpen && !window.Kakao) {
+      const script = document.createElement('script');
+      script.src = 'https://developers.kakao.com/sdk/js/kakao.js';
+      script.async = true;
+      script.onload = () => {
+        try {
+          if (window.Kakao && !window.Kakao.isInitialized()) {
+            window.Kakao.init('713c95bab7e3a87150f162188af5cb8f');
+          }
+          setKakaoInitialized(true);
+          console.log('카카오 SDK 스크립트 로드 성공');
+        } catch (error) {
+          console.error('카카오 SDK 초기화 실패:', error);
+        }
+      };
+      document.head.appendChild(script);
+      
+      return () => {
+        document.head.removeChild(script);
+      };
     }
   }, [isOpen]);
 
@@ -335,8 +396,99 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, url, title, de
       });
   };
 
-  // 소셜 미디어로 공유
-  const shareToSocial = (platform: string) => {
+  // 소셜 미디어로 공유 함수 수정
+  const shareToSocial = async (platform: string) => {
+    try {
+      // 이미지가 필요한 플랫폼이고 아직 이미지가 없는 경우 먼저 이미지 생성
+      if (!cardImage && platform !== 'link') {
+        setIsGeneratingImage(true);
+        
+        // cardRef를 통해 직접 카드 요소에 접근
+        const cardElement = cardRef?.current;
+        
+        if (!cardElement) {
+          console.error('카드 요소를 찾을 수 없습니다.');
+          // 이미지 없이 공유 진행
+          setIsGeneratingImage(false);
+          performShare(platform);
+          return;
+        }
+
+        // 결과 바와 투표 수 등은 제외하고 캡처하기 위해 임시 클래스 추가
+        cardElement.classList.add('capture-mode');
+        
+        try {
+          // 이미지 생성 - 타입 안전성 보장을 위해 타입 단언 사용
+          const canvas = await html2canvas(cardElement as HTMLElement, {
+            scale: 2, // 고해상도
+            backgroundColor: "#1e1e1e", // 배경색
+            logging: true, // 디버깅을 위해 로깅 활성화
+            allowTaint: true,
+            useCORS: true
+          });
+          
+          // Canvas를 이미지로 변환
+          const imageData = canvas.toDataURL('image/png');
+          setCardImage(imageData);
+          
+          // 임시 클래스 제거
+          cardElement.classList.remove('capture-mode');
+          
+          // 이미지 생성 후 실제 공유 로직 호출
+          performShare(platform, imageData);
+        } catch (error) {
+          console.error('이미지 생성 오류:', error);
+          // 이미지 생성 실패 시에도 일반 공유 시도
+          performShare(platform);
+        } finally {
+          setIsGeneratingImage(false);
+        }
+      } else {
+        // 이미지가 이미 있거나 필요 없는 경우 바로 공유
+        performShare(platform, cardImage);
+      }
+    } catch (error) {
+      console.error('공유 처리 중 오류:', error);
+      // 오류 발생 시에도 일반 공유는 시도
+      performShare(platform);
+    }
+  };
+
+  // base64 이미지를 ImgBB API를 통해 호스팅 이미지로 변환하는 함수
+  const uploadImageToHost = async (base64Image: string): Promise<string | null> => {
+    // 실제 프로덕션에서는 환경 변수나 안전한 방법으로 API 키를 관리해야 합니다
+    const API_KEY = '7606e0b797f3cbc08fd94e3a8bb87972'; // ImgBB 무료 API 키
+    
+    // base64 이미지에서 헤더 제거 (data:image/png;base64, 부분)
+    const base64Data = base64Image.split(',')[1];
+    
+    try {
+      const formData = new FormData();
+      formData.append('key', API_KEY);
+      formData.append('image', base64Data);
+      
+      const response = await fetch('https://api.imgbb.com/1/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        console.log('이미지 업로드 성공:', data.data.url);
+        return data.data.url;
+      } else {
+        console.error('이미지 업로드 실패:', data);
+        return null;
+      }
+    } catch (error) {
+      console.error('이미지 업로드 중 오류:', error);
+      return null;
+    }
+  };
+
+  // 실제 공유 수행 함수
+  const performShare = async (platform: string, image?: string | null) => {
     let shareUrl = '';
     
     switch(platform) {
@@ -344,18 +496,104 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, url, title, de
         shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(description)}`;
         break;
       case 'twitter':
+        // 이제는 X이지만, URL은 아직 twitter.com을 사용
         shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`;
         break;
       case 'gmail':
         shareUrl = `https://mail.google.com/mail/?view=cm&to=&su=${encodeURIComponent(title)}&body=${encodeURIComponent(description)}%0A%0A${encodeURIComponent(url)}`;
         break;
-      case 'linkedin':
-        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
-        break;
+      case 'kakao':
+        if (window.Kakao) {
+          try {
+            // 추가 디버깅 로그
+            console.log('카카오 공유 시작 - Kakao SDK 상태:', {
+              initialized: window.Kakao.isInitialized(),
+              hasShareAPI: !!window.Kakao.Share,
+              hasLinkAPI: !!window.Kakao.Link
+            });
+
+            // 이미지가 있는 경우 업로드 시도
+            let imageUrl = '';
+            
+            if (image) {
+              console.log('생성된 이미지를 카카오톡 공유에 사용합니다');
+              // ImgBB 서비스에 이미지 업로드 시도
+              const hostedImageUrl = await uploadImageToHost(image);
+              
+              if (hostedImageUrl) {
+                imageUrl = hostedImageUrl;
+                console.log('업로드된 이미지 URL:', imageUrl);
+              } else {
+                // 업로드 실패 시 기본 이미지 사용
+                imageUrl = window.location.origin + '/votey_icon2.png';
+                console.log('이미지 업로드 실패, 기본 이미지 사용:', imageUrl);
+              }
+            } else {
+              // 이미지가 없는 경우 기본 이미지 사용
+              imageUrl = window.location.origin + '/votey_icon2.png';
+              console.log('이미지 없음, 기본 이미지 사용:', imageUrl);
+            }
+            
+            // 카카오 공유 데이터 구성
+            const kakaoShareData = {
+              objectType: 'feed',
+              content: {
+                title: title.length > 40 ? title.substring(0, 40) + '...' : title,
+                description: description.length > 45 ? description.substring(0, 45) + '...' : description,
+                imageUrl: imageUrl,
+                link: {
+                  mobileWebUrl: url,
+                  webUrl: url
+                }
+              },
+              buttons: [
+                {
+                  title: '투표하기',
+                  link: {
+                    mobileWebUrl: url,
+                    webUrl: url
+                  }
+                }
+              ]
+            };
+            
+            console.log('카카오톡 공유 데이터:', kakaoShareData);
+            
+            // SDK 버전에 따라 다른 API 사용
+            if (window.Kakao.Share) {
+              window.Kakao.Share.sendDefault(kakaoShareData);
+            } else if (window.Kakao.Link) {
+              window.Kakao.Link.sendDefault(kakaoShareData);
+            } else {
+              console.error('카카오톡 공유 API를 찾을 수 없습니다');
+              alert('카카오톡 공유 기능을 사용할 수 없습니다.');
+            }
+          } catch (error) {
+            console.error('카카오톡 공유 실패:', error);
+            alert('카카오톡 공유 중 오류가 발생했습니다.');
+          }
+        } else {
+          alert('카카오톡 SDK가 로드되지 않았습니다.');
+        }
+        return;
+      case 'download':
+        if (image) {
+          const link = document.createElement('a');
+          link.href = image;
+          link.download = `vote-${title.replace(/\s+/g, '-').toLowerCase()}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+        return;
+      case 'link':
+        copyToClipboard();
+        return;
       default:
         return;
     }
     
+    // 새 창으로 공유 URL 열기
     window.open(shareUrl, '_blank', 'width=600,height=400');
     onClose();
   };
@@ -363,76 +601,138 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, url, title, de
   if (!isOpen) return null;
 
   return (
-    <div className="share-modal-overlay" onClick={onClose}>
-      <div className="share-modal" onClick={e => e.stopPropagation()}>
-        <div className="share-modal-header">
-          <h3>공유하기</h3>
-          <button className="close-btn" onClick={onClose}>&times;</button>
-        </div>
-        
-        <div className="share-modal-content">
-          <div className="share-url-container">
-            <input 
-              type="text" 
-              value={url} 
-              readOnly 
-              className="share-url-input"
-            />
-            <button 
-              className="copy-button" 
-              onClick={copyToClipboard}
-              title="링크 복사"
-            >
-              <FaCopy />
-            </button>
+    <>
+      {/* Helmet을 사용하여 동적 메타 태그 추가 */}
+      {cardImage && (
+        <Helmet>
+          <meta property="og:title" content={title} />
+          <meta property="og:description" content={description} />
+          <meta property="og:image" content={cardImage} />
+          <meta property="og:url" content={url} />
+          <meta property="og:type" content="website" />
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={title} />
+          <meta name="twitter:description" content={description} />
+          <meta name="twitter:image" content={cardImage} />
+        </Helmet>
+      )}
+      
+      <div className="share-modal-overlay" onClick={onClose}>
+        <div className="share-modal" onClick={e => e.stopPropagation()}>
+          <div className="share-modal-header">
+            <h3>공유하기</h3>
+            <button className="close-btn" onClick={onClose}>&times;</button>
           </div>
           
-          {copyStatus && (
-            <div className="copy-status">
-              {copyStatus}
+          <div className="share-modal-content">
+            {isGeneratingImage ? (
+              <div className="generating-image">
+                <p>이미지 생성 중...</p>
+                {/* 여기에 로딩 스피너를 추가할 수 있습니다 */}
+              </div>
+            ) : cardImage ? (
+              <div className="card-image-preview">
+                <img src={cardImage} alt="Vote card" className="share-card-image" />
+                <div className="image-actions">
+                  <button 
+                    className="image-action-btn download"
+                    onClick={() => performShare('download', cardImage)}
+                    title="이미지 다운로드"
+                  >
+                    다운로드
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="share-url-container">
+                <input 
+                  type="text" 
+                  value={url} 
+                  readOnly 
+                  className="share-url-input"
+                />
+                <button 
+                  className="copy-button" 
+                  onClick={copyToClipboard}
+                  title="링크 복사"
+                >
+                  <FaCopy />
+                </button>
+                {copyStatus && (
+                  <div className="copy-status">
+                    {copyStatus}
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <div className="share-options">
+              <button 
+                className="share-option-btn facebook"
+                onClick={() => shareToSocial('facebook')}
+                title="페이스북으로 공유"
+                disabled={isGeneratingImage}
+              >
+                <FaFacebook />
+                <span>페이스북</span>
+              </button>
+              
+              <button 
+                className="share-option-btn twitter"
+                onClick={() => shareToSocial('twitter')}
+                title="트위터로 공유"
+                disabled={isGeneratingImage}
+              >
+                <FaTwitter />
+                <span>트위터</span>
+              </button>
+              
+              <button 
+                className="share-option-btn gmail"
+                onClick={() => shareToSocial('gmail')}
+                title="Gmail로 공유"
+                disabled={isGeneratingImage}
+              >
+                <FaEnvelope />
+                <span>Gmail</span>
+              </button>
+              
+              <button 
+                className="share-option-btn kakao"
+                onClick={() => shareToSocial('kakao')}
+                title="카카오톡으로 공유"
+                disabled={isGeneratingImage || !kakaoInitialized}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 3C6.48 3 2 6.48 2 10.8C2 13.8 3.8 16.4 6.6 17.8L5.2 22.2C5.1 22.5 5.3 22.8 5.6 22.9C5.7 22.9 5.8 22.9 5.9 22.9C6.1 22.9 6.2 22.8 6.3 22.7L11.4 19.2C11.6 19.2 11.8 19.2 12 19.2C17.52 19.2 22 15.72 22 11.4C22 7.08 17.52 3 12 3Z" fill="#FEE500"/>
+                </svg>
+                <span>카카오톡</span>
+              </button>
+              
+              <button 
+                className="share-option-btn link"
+                onClick={() => shareToSocial('link')}
+                title="링크 복사"
+                disabled={isGeneratingImage}
+              >
+                <FaLink />
+                <span>링크 복사</span>
+              </button>
+              
+              <button 
+                className="share-option-btn download"
+                onClick={() => shareToSocial('download')}
+                title="이미지 다운로드"
+                disabled={isGeneratingImage || !cardImage}
+              >
+                <FaShare />
+                <span>다운로드</span>
+              </button>
             </div>
-          )}
-          
-          <div className="share-options">
-            <button 
-              className="share-option-btn facebook"
-              onClick={() => shareToSocial('facebook')}
-              title="페이스북으로 공유"
-            >
-              <FaFacebook />
-              <span>페이스북</span>
-            </button>
-            
-            <button 
-              className="share-option-btn twitter"
-              onClick={() => shareToSocial('twitter')}
-              title="트위터로 공유"
-            >
-              <FaTwitter />
-              <span>트위터</span>
-            </button>
-            
-            <button 
-              className="share-option-btn gmail"
-              onClick={() => shareToSocial('gmail')}
-              title="Gmail로 공유"
-            >
-              <FaEnvelope />
-              <span>Gmail</span>
-            </button>
-            
-            <button 
-              className="share-option-btn link"
-              onClick={copyToClipboard}
-              title="링크 복사"
-            >
-              <FaLink />
-              <span>링크 복사</span>
-            </button>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -1114,8 +1414,11 @@ const VoteCard: React.FC<VoteCardProps> = ({
     }
   };
 
+  // 카드 참조 추가
+  const cardRef = useRef<HTMLDivElement>(null);
+
   return (
-    <div className={`vote-card modern-card ${topicState.is_expired ? 'expired' : ''}`} id={id}>
+    <div className={`vote-card modern-card ${topicState.is_expired ? 'expired' : ''}`} id={id} ref={cardRef}>
       <div className="vote-card-header">
         <div className="user-info">          
           <img 
@@ -1300,6 +1603,7 @@ const VoteCard: React.FC<VoteCardProps> = ({
         url={`${window.location.origin}/vote/${topicState.id}`}
         title={`${topicState.question} - VoteY 투표`}
         description={`${topicState.question}에 대한 투표에 참여해보세요!`}
+        cardRef={cardRef as React.RefObject<HTMLDivElement>}
       />
 
       <LoadingOverlay 

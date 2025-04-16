@@ -215,8 +215,8 @@
   font-weight: 500;
   text-shadow: 0 0 2px rgba(0, 0, 0, 0.7);
   white-space: nowrap;
-  z-index: 20;
-  background-color: transparent;
+  z-index: 50;
+  background-color: rgba(0, 0, 0, 0); /* 배경을 투명하게 설정 */
   pointer-events: none; /* 클릭을 방지하여 하위 요소와 상호작용 가능하게 함 */
 }
 
@@ -344,11 +344,11 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0);
     border-radius: 3px;
     padding: 1px 4px;
     white-space: nowrap;
-    z-index: 20;
+    z-index: 50;
     text-align: center;
     width: auto;
     max-width: none;
@@ -383,6 +383,7 @@
     position: absolute;
     top: 50%;
     left: 50%;
+    z-index: 100;
     transform: translate(-50%, -50%);
     background-color: transparent;
     border-radius: 3px;
@@ -436,10 +437,10 @@
     left: 50%;
     transform: translate(-50%, -50%);
     padding: 1px 3px;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0);
     border-radius: 3px;
     white-space: nowrap;
-    z-index: 20;
+    z-index: 50;
   }
   
   .demographic-chart {
@@ -471,6 +472,7 @@
     left: 50%;
     transform: translate(-50%, -50%);
     padding: 2px 5px;
+    z-index: 100;
     background-color: transparent;
   }
 }
@@ -578,7 +580,7 @@
 
 /* 스택 바 차트 스타일 */
 .demographic-option-group {
-  margin-bottom: 2rem;
+  margin-bottom: 25px; /* 각 그룹 사이의 간격 증가 */
   padding: 1rem;
   background-color: #2a2a2a;
   border-radius: 8px;
@@ -617,44 +619,38 @@
 }
 
 .stacked-bar-container {
-  position: relative;
-  height: 40px;
-  background-color: #2a2a2a;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-  overflow: visible;
+  width: 100%;
+  height: 30px;
+  margin: 10px 0;
+  display: flex;
+  border-radius: 8px;
+  overflow: visible; /* 내용이 넘쳐도 보이게 */
 }
 
 .stacked-bar-segment {
-  position: absolute;
-  height: 100%;
-  top: 0;
+  position: relative;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: visible;
-  transition: width 0.5s ease;
-  box-shadow: 1px 0 3px rgba(0, 0, 0, 0.3);
-  min-width: 20px;
+  color: white;
+  font-size: 14px;
+  transition: width 0.3s ease;
+  overflow: visible; /* 바 영역 밖으로 콘텐츠가 나갈 수 있도록 설정 */
+  min-width: 1%; /* 매우 작은 퍼센티지에도 최소한의 시각적 너비 확보 */
+  white-space: nowrap; /* 내용이 줄바꿈되지 않도록 설정 */
+  position: relative; /* 자식 요소의 absolute 위치 지정을 위한 기준점 */
 }
 
 .stacked-bar-label {
-  font-size: 0.75rem;
-  padding: 3px 6px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: transparent;
-  border-radius: 3px;
-  box-shadow: none;
-  color: #fff;
-  font-weight: 600;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-  pointer-events: none;
-  width: 100%;
-  text-align: center;
-  z-index: 11;
+  display: inline-block;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 0 5px;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.7); /* 텍스트 가시성 향상 */
+  z-index: 10; /* 다른 요소보다 앞에 표시 */
+  pointer-events: none; /* 마우스 이벤트 무시 */
 }
 
 .demographic-option-legend {
@@ -823,22 +819,17 @@
   }
   
   .stacked-bar-container {
-    height: 35px;
+    height: 30px;
+  }
+  
+  .stacked-bar-segment {
+    font-size: 10px;
+    z-index: 99;
   }
   
   .stacked-bar-label {
-    font-size: 0.75rem;
-    padding: 3px 6px;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: transparent;
-    border-radius: 3px;
-    box-shadow: none;
-    color: #fff;
-    font-weight: 600;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    font-size: 9px;
+    z-index: 100;
   }
   
   .legend-item {
@@ -873,6 +864,7 @@
     transform: translate(-50%, -50%);
     padding: 2px 5px;
     background-color: transparent;
+    z-index: 100;
   }
   
   .legend-item {
@@ -914,4 +906,196 @@
     font-size: 1rem;
     margin-bottom: 0.8rem;
   }
+}
+
+/* 파이 차트 컨테이너 스타일 */
+.pie-chart-container {
+  width: 100%;
+  height: 300px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #2a2a2a;
+  border-radius: 8px;
+}
+
+.option-pie-chart {
+  height: 200px;
+  margin: 10px 0;
+  padding: 10px;
+}
+
+.chart-title {
+  text-align: center;
+  margin-bottom: 10px;
+  color: #fff;
+  font-size: 16px;
+}
+
+/* 모바일 스타일 조정 */
+@media (max-width: 768px) {
+  .pie-chart-container {
+    height: 250px;
+    padding: 0.5rem;
+  }
+  
+  .option-pie-chart {
+    height: 180px;
+  }
+  
+  .stacked-bar-container {
+    margin-right: 10%; /* 모바일에서는 여백 줄임 */
+  }
+  
+  .outside-label {
+    font-size: 10px; /* 모바일에서 텍스트 크기 줄임 */
+  }
+  
+  .chart-title {
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  
+  .demographic-option-group {
+    margin-bottom: 20px; /* 모바일에서 여백 줄임 */
+  }
+  
+  /* 스택 바 레이아웃 개선 */
+  .stacked-bar-segment {
+    height: 25px; /* 모바일에서 높이 줄임 */
+  }
+  
+  .demographic-name h5 {
+    font-size: 14px; /* 모바일에서 제목 크기 줄임 */
+  }
+}
+
+@media (max-width: 480px) {
+  .pie-chart-container {
+    height: 220px;
+  }
+  
+  .stacked-bar-container {
+    margin-right: 5%; /* 더 작은 화면에서 여백 더 줄임 */
+  }
+  
+  .outside-label {
+    font-size: 9px; /* 더 작은 화면에서 텍스트 크기 더 줄임 */
+  }
+  
+  .stacked-bar-label {
+    font-size: 9px;
+  }
+  
+  /* 차트 분석 텍스트 크기 조정 */
+  .chart-analysis p {
+    font-size: 12px;
+  }
+  
+  .analysis-title {
+    font-size: 14px;
+  }
+  
+  .stacked-bar-container {
+    height: 30px;
+  }
+  
+  .stacked-bar-label {
+    font-size: 0.7rem;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 2px 5px;
+    background-color: transparent;
+    z-index: 100;
+  }
+  
+  .legend-item {
+    flex: 1 0 100%;
+    min-width: 100%;
+  }
+  
+  .legend-color {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .legend-text {
+    font-size: 0.8rem;
+  }
+}
+
+/* 바깥에 표시되는 라벨을 위한 스타일 추가 */
+.outside-label {
+  position: absolute;
+  left: 100%; /* 바의 오른쪽 끝에 위치 */
+  color: #ddd; /* 바깥 라벨의 색상 */
+  margin-left: 5px; /* 바와의 간격 */
+  text-shadow: none; /* 외부 라벨은 텍스트 그림자 제거 */
+  z-index: 10; /* 다른 요소들보다 위에 표시 */
+  white-space: nowrap; /* 내용이 잘리지 않도록 */
+  overflow: visible; /* 내용이 넘쳐도 보이게 */
+  max-width: none; /* 최대 너비 제한 해제 */
+}
+
+/* 스택 바 컨테이너 여백 조정 */
+.stacked-bar-container {
+  margin-bottom: 15px; /* 각 스택 바 사이의 간격 증가 */
+  margin-right: 25%; /* 외부 라벨을 위한 여백 확보 */
+  position: relative;
+  display: flex;
+  width: 100%;
+  border-radius: 4px;
+  overflow: visible; /* 내용이 넘쳐도 보이게 */
+  height: 30px; /* 높이 고정 */
+}
+
+/* 연속된 스택 바 사이 간격 추가 */
+.demographic-option-group {
+  margin-bottom: 25px; /* 각 그룹 사이의 간격 증가 */
+}
+
+/* 맨 마지막 그룹은 여백 제거 */
+.demographic-option-group:last-child {
+  margin-bottom: 10px;
+}
+
+/* 차트 로딩 스타일 */
+.chart-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  width: 100%;
+  color: #aaa;
+  font-size: 14px;
+}
+
+/* 차트 에러 스타일 */
+.chart-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  width: 100%;
+  color: #ff6b6b;
+  font-size: 14px;
+  text-align: center;
+  background-color: rgba(255, 107, 107, 0.1);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+/* 차트 로딩 중 애니메이션 */
+@keyframes pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+.chart-loading {
+  animation: pulse 1.5s infinite;
 } 

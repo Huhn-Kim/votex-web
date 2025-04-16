@@ -908,16 +908,16 @@ export const getRankedVotes = async (criteria: string) => {
   }
 };
 
-//vote_ranks 테이블 업데이트
-export const updateRankings = async (): Promise<void> => {
-  try {
-    const { error } = await supabase.rpc('update_vote_rankings');
-    if (error) throw error;
-  } catch (error) {
-    console.error('순위 업데이트 중 오류:', error);
-    throw error;
-  }
-};
+//vote_ranks 테이블 업데이트  >> supabasecron_job으로 처리
+// export const updateRankings = async (): Promise<void> => {
+//   try {
+//     const { error } = await supabase.rpc('update_vote_rankings');
+//     if (error) throw error;
+//   } catch (error) {
+//     console.error('순위 업데이트 중 오류:', error);
+//     throw error;
+//   }
+// };
 
 // vote_topics의 related_image 필드를 업데이트하는 함수
 export const updateRelatedImage = async (topicId: number, imageUrl: string | null): Promise<void> => {

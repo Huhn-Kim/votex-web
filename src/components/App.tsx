@@ -11,6 +11,7 @@ import VoteAnalysisPage from './VoteAnalysisPage'
 import { VoteProvider } from '../context/VoteContext'
 import { AuthProvider, useAuth } from '../context/AuthContext'
 import { useEffect, useState, useRef } from 'react'
+import { HelmetProvider } from 'react-helmet-async'
 
 function App() {
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
@@ -55,52 +56,54 @@ function App() {
   }, []);
 
   return (
-    <AuthProvider>
-      <VoteProvider>
-        <Router>
-          <div className="app-container">
-            <header className={`app-header ${isHeaderVisible ? '' : 'header-hidden'}`}>
-              <div className="header-content">
-                <div className="logo-container">
-                  <img src="/votey_icon2.png" alt="VoteY Logo" className="app-logo" />
-                  <h1 className="app-title">VoteY</h1>
-                </div>
-                <div className="header-actions">
-                  <div className="notification-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                      <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                    </svg>
-                    <span className="notification-badge">3</span>
+    <HelmetProvider>
+      <AuthProvider>
+        <VoteProvider>
+          <Router>
+            <div className="app-container">
+              <header className={`app-header ${isHeaderVisible ? '' : 'header-hidden'}`}>
+                <div className="header-content">
+                  <div className="logo-container">
+                    <img src="/votey_icon2.png" alt="VoteY Logo" className="app-logo" />
+                    <h1 className="app-title">VoteY</h1>
                   </div>
-                  <div className="search-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="11" cy="11" r="8"></circle>
-                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
+                  <div className="header-actions">
+                    <div className="notification-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                      </svg>
+                      <span className="notification-badge">3</span>
+                    </div>
+                    <div className="search-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                      </svg>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </header>
-            <main className="content">
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/create" element={<CreateVotePage />} />
-                <Route path="/edit-vote/:id" element={<CreateVotePage isEditMode={true} />} />
-                <Route path="/my-votes" element={<MyVotesPage />} />
-                <Route path="/rank" element={<ViewRank />} />
-                <Route path="/mypage" element={<MyPage />} />
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="/signup" element={<SignupPage />} />
-                <Route path="/login" element={<AuthPage />} />
-                <Route path="/vote/:id/analysis" element={<VoteAnalysisPage />} />
-              </Routes>
-            </main>
-            <NavBar />
-          </div>
-        </Router>
-      </VoteProvider>
-    </AuthProvider>
+              </header>
+              <main className="content">
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/create" element={<CreateVotePage />} />
+                  <Route path="/edit-vote/:id" element={<CreateVotePage isEditMode={true} />} />
+                  <Route path="/my-votes" element={<MyVotesPage />} />
+                  <Route path="/rank" element={<ViewRank />} />
+                  <Route path="/mypage" element={<MyPage />} />
+                  <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/signup" element={<SignupPage />} />
+                  <Route path="/login" element={<AuthPage />} />
+                  <Route path="/vote/:id/analysis" element={<VoteAnalysisPage />} />
+                </Routes>
+              </main>
+              <NavBar />
+            </div>
+          </Router>
+        </VoteProvider>
+      </AuthProvider>
+    </HelmetProvider>
   )
 }
 

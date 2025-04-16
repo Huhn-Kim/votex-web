@@ -7,6 +7,11 @@ import '../styles/VoteAnalysisPage.css';
 import LoadingOverlay from './LoadingOverlay';
 import VoteCard from './VoteCard';
 import supabase from '../lib/supabase';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale } from 'chart.js';
+import { Pie } from 'react-chartjs-2';
+
+// Chart.js 등록 - 모든 필요한 요소 등록
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale);
 
 // 더미 데이터 인터페이스 정의
 interface DemographicData {
@@ -59,7 +64,7 @@ const VoteAnalysisPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'gender' | 'age' | 'region'>(() => {
     // 컴포넌트 초기화 시 세션스토리지에서 탭 상태 가져오기
     const savedTabState = sessionStorage.getItem('voteAnalysisActiveTab');
-    return (savedTabState as 'overview' | 'gender' | 'age' | 'region') || 'overview';
+    return (savedTabState as 'overview' | 'gender' | 'age' | 'region') || 'gender';
   });
   
   // 더미 데이터 생성 (실제로는 API에서 가져와야 함)
@@ -297,13 +302,18 @@ const VoteAnalysisPage: React.FC = () => {
   
   // 탭 변경 핸들러
   const handleTabChange = (tab: 'overview' | 'gender' | 'age' | 'region') => {
+    // 기존 탭 저장 로직
     setActiveTab(tab);
-    // 전역 세션스토리지에 탭 상태 저장 (특정 ID에 종속되지 않게)
     sessionStorage.setItem('voteAnalysisActiveTab', tab);
-    // 기존 ID별 저장도 유지
     if (id) {
       sessionStorage.setItem(`voteAnalysis_${id}_tab`, tab);
     }
+    
+    // 약간의 지연 후 차트 렌더링을 위해 상태 업데이트 트리거
+    setTimeout(() => {
+      // 차트 캔버스를 강제로 초기화하기 위한 상태 업데이트
+      setDemographicData(prev => ({...prev}));
+    }, 50);
   };
   
   // 뒤로가기 핸들러
@@ -383,35 +393,7 @@ const VoteAnalysisPage: React.FC = () => {
   const handleLike = async () => {
     // VoteCard에서 필수 prop이지만 이 화면에서는 실제 구현 필요 없음
   };
-    
-  // 개요 차트 렌더링
-  const renderOverviewCharts = () => {
-    return (
-      <div className="overview-charts">
-        <div className="overview-section">
-          <h3>성별 투표 분포</h3>
-          <div className="overview-chart-container">
-            {renderGenderChart()}
-          </div>
-        </div>
-        
-        <div className="overview-section">
-          <h3>연령별 투표 분포</h3>
-          <div className="overview-chart-container">
-            {renderAgeChart()}
-          </div>
-        </div>
-        
-        <div className="overview-section">
-          <h3>지역별 투표 분포</h3>
-          <div className="overview-chart-container">
-            {renderRegionChart()}
-          </div>
-        </div>
-      </div>
-    );
-  };
-  
+      
   // 옵션 레전드 컴포넌트 추가
   const renderOptionLegend = (isCompact = false) => {
     // 옵션 목록 생성
@@ -445,6 +427,66 @@ const VoteAnalysisPage: React.FC = () => {
     );
   };
   
+  // 파이 차트 옵션 생성 함수 수정
+  const createPieOptions = (total: number, customOptions = {}) => {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom' as const,
+          labels: {
+            color: '#fff',
+            font: {
+              size: 12
+            },
+            boxWidth: 12,
+            padding: 8
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context: any) {
+              const label = context.label || '';
+              const value = context.raw || 0;
+              const percentage = (value / total * 100).toFixed(1);
+              return `${label}: ${value}명 (${percentage}%)`;
+            }
+          }
+        }
+      },
+      animation: {
+        onComplete: function(animation: any) {
+          // 차트 렌더링이 완료되면 가장 큰 항목을 자동으로 선택
+          const chart = animation.chart;
+          if (chart && chart.data.datasets[0].data.length > 0) {
+            // 가장 큰 값을 가진 항목의 인덱스 찾기
+            const maxIndex = chart.data.datasets[0].data.reduce(
+              (maxIdx: number, value: number, idx: number, arr: number[]) => 
+                (value > arr[maxIdx] ? idx : maxIdx), 
+              0
+            );
+            
+            // 차트의 getDatasetMeta 메서드를 사용하여 해당 항목 선택
+            const activeElements = [{
+              datasetIndex: 0,
+              index: maxIndex
+            }];
+            
+            // 차트의 선택 이벤트 발생시키기
+            chart.setActiveElements(activeElements);
+            chart.tooltip?.setActiveElements(activeElements, {x: 0, y: 0});
+            chart.update();
+          }
+        }
+      },
+      ...customOptions
+    };
+  };
+  
+  // 지역별 차트 렌더링에서 regionLegendOptions 정의하기
+  // regionLegendOptions는 지역 차트 함수 내부에서 정의해야 함
+  
   // 성별 차트 렌더링
   const renderGenderChart = () => {
     const { gender, optionDemographics } = demographicData;
@@ -452,8 +494,8 @@ const VoteAnalysisPage: React.FC = () => {
     
     if (total <= 0) return <div className="no-data">데이터가 없습니다.</div>;
     
-    const malePercentage = (gender.male / total * 100).toFixed(1);
-    const femalePercentage = (gender.female / total * 100).toFixed(1);
+    // const malePercentage = (gender.male / total * 100).toFixed(1);
+    // const femalePercentage = (gender.female / total * 100).toFixed(1);
     
     const optionsList = topic ? topic.options.map((opt, index) => ({
       id: opt.id,
@@ -482,29 +524,26 @@ const VoteAnalysisPage: React.FC = () => {
     const maleOptions = calculateGenderOptionPercentages('male');
     const femaleOptions = calculateGenderOptionPercentages('female');
     
+    // 파이 차트 데이터 생성
+    const genderPieData = {
+      labels: ['남성', '여성'],
+      datasets: [
+        {
+          data: [gender.male, gender.female],
+          backgroundColor: ['#4169E1', '#FF69B4'],
+          hoverBackgroundColor: ['#5A7CE1', '#FF83C3'],
+          borderWidth: 1,
+          borderColor: '#333'
+        }
+      ]
+    };
+    
     // 전체 개요 탭에서는 간단한 차트만 표시
     if (activeTab === 'overview') {
       return (
         <div className="demographic-chart">
-          <div className="bar-chart-container">
-            {gender.male > 0 && (
-              <div className="bar-chart-item">
-                <div className="bar-label">남성</div>
-                <div className="bar-container">
-                  <div className="bar male-bar" style={{ width: `${malePercentage}%` }}></div>
-                  <span className="bar-value">{malePercentage}% ({gender.male}명)</span>
-                </div>
-              </div>
-            )}
-            {gender.female > 0 && (
-              <div className="bar-chart-item">
-                <div className="bar-label">여성</div>
-                <div className="bar-container">
-                  <div className="bar female-bar" style={{ width: `${femalePercentage}%` }}></div>
-                  <span className="bar-value">{femalePercentage}% ({gender.female}명)</span>
-                </div>
-              </div>
-            )}
+          <div className="pie-chart-container">
+            <Pie data={genderPieData} options={createPieOptions(total)} />
           </div>
           <div className="chart-analysis">
             <p className="analysis-title">AI 분석 결과</p>
@@ -520,24 +559,15 @@ const VoteAnalysisPage: React.FC = () => {
     // 성별 탭에서는 상세 정보 표시
     return (
       <div className="demographic-chart">
-        <div className="bar-chart-container">
-          {gender.male > 0 && (
-            <div className="bar-chart-item">
-              <div className="bar-label">남성</div>
-              <div className="bar-container">
-                <div className="bar male-bar" style={{ width: `${malePercentage}%` }}></div>
-                <span className="bar-value">{malePercentage}% ({gender.male}명)</span>
-              </div>
-            </div>
-          )}
-          {gender.female > 0 && (
-            <div className="bar-chart-item">
-              <div className="bar-label">여성</div>
-              <div className="bar-container">
-                <div className="bar female-bar" style={{ width: `${femalePercentage}%` }}></div>
-                <span className="bar-value">{femalePercentage}% ({gender.female}명)</span>
-              </div>
-            </div>
+        <div className="pie-chart-container">
+          <h4 className="chart-title">성별 투표 분포</h4>
+          {total > 0 && (
+            <Pie 
+              data={genderPieData} 
+              options={createPieOptions(total)}
+              key={`gender-chart-${activeTab}`}
+              id="gender-chart"
+            />
           )}
         </div>
         <div className="chart-analysis">
@@ -566,15 +596,15 @@ const VoteAnalysisPage: React.FC = () => {
                     key={option.id} 
                     className="stacked-bar-segment"
                     style={{ 
-                      width: `${option.percentage}%`,
+                      width: `${option.percentage > 0 ? option.percentage : 0.1}%`,
                       backgroundColor: optionsList.find(opt => opt.id === option.id)?.color || optionColors[index % optionColors.length],
-                      left: `${maleOptions.slice(0, index).reduce((sum, opt) => sum + opt.percentage, 0)}%`
+                      opacity: option.percentage === 0 ? 0.3 : 1
                     }}
                     title={`${option.text}: ${option.percentage.toFixed(1)}% (${option.votes}명)`}
                   >
-                    {option.percentage >= 5 && (
-                      <span className="stacked-bar-label">
-                        {option.percentage.toFixed(1)}% ({option.votes}명)
+                    {option.percentage > 0 && (
+                      <span className={option.percentage >= 8 ? "stacked-bar-label" : "stacked-bar-label outside-label"}>
+                        {option.percentage < 8 && `${option.text}: `}{option.percentage.toFixed(1)}% ({option.votes}명)
                       </span>
                     )}
                   </div>
@@ -595,15 +625,15 @@ const VoteAnalysisPage: React.FC = () => {
                     key={option.id} 
                     className="stacked-bar-segment"
                     style={{ 
-                      width: `${option.percentage}%`,
+                      width: `${option.percentage > 0 ? option.percentage : 0.1}%`,
                       backgroundColor: optionsList.find(opt => opt.id === option.id)?.color || optionColors[index % optionColors.length],
-                      left: `${femaleOptions.slice(0, index).reduce((sum, opt) => sum + opt.percentage, 0)}%`
+                      opacity: option.percentage === 0 ? 0.3 : 1
                     }}
                     title={`${option.text}: ${option.percentage.toFixed(1)}% (${option.votes}명)`}
                   >
-                    {option.percentage >= 5 && (
-                      <span className="stacked-bar-label">
-                        {option.percentage.toFixed(1)}% ({option.votes}명)
+                    {option.percentage > 0 && (
+                      <span className={option.percentage >= 8 ? "stacked-bar-label" : "stacked-bar-label outside-label"}>
+                        {option.percentage < 8 && `${option.text}: `}{option.percentage.toFixed(1)}% ({option.votes}명)
                       </span>
                     )}
                   </div>
@@ -669,41 +699,43 @@ const VoteAnalysisPage: React.FC = () => {
         };
       }).sort((a, b) => b.percentage - a.percentage);
     };
+
+    // 파이 차트 데이터 생성
+    const agePieData = {
+      labels: filteredAgeCategories.map(category => category.label),
+      datasets: [
+        {
+          data: filteredAgeCategories.map(category => category.count),
+          backgroundColor: [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', 
+            '#FF9A8B', '#88D8B0', '#9381FF', '#FFD447', '#70C1B3'
+          ],
+          hoverBackgroundColor: [
+            '#FF8A8A', '#6EDFD7', '#67C9E4', '#B4E2C9', '#FFF1CE',
+            '#FFBCB1', '#A6E4C5', '#B1A6FF', '#FFE169', '#8ED1C6'
+          ],
+          borderWidth: 1,
+          borderColor: '#333'
+        }
+      ]
+    };
     
     // 전체 개요 탭에서는 간단한 차트만 표시
     if (activeTab === 'overview') {
       return (
         <div className="demographic-chart">
-          <div className="bar-chart-container">
-            {filteredAgeCategories.map(category => {
-              const percentage = (category.count / total * 100).toFixed(1);
-              return (
-                <div className="bar-chart-item" key={category.key}>
-                  <div className="bar-label">{category.label}</div>
-                  <div className="bar-container">
-                    <div 
-                      className={`bar age-bar ${category.key === maxVoteAgeCategory?.key ? 'max-vote-bar' : ''}`} 
-                      style={{ width: `${percentage}%` }}
-                    ></div>
-                    <span className="bar-value">{percentage}% ({category.count}명)</span>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="pie-chart-container">
+            <Pie data={agePieData} options={createPieOptions(total)} />
           </div>
           <div className="chart-analysis">
             <p className="analysis-title">AI 분석 결과</p>
-            {maxVoteAgeCategory ? (
-              <p>이 투표에서는 <strong>{maxVoteAgeCategory.label}</strong> 연령대가 가장 활발하게 참여했습니다. 
-              이는 이 연령대가 주제에 대해 높은 관심도를 보이거나, 투표 플랫폼 접근성이 높기 때문일 수 있습니다. 
-              {age.age10to19 + age.age20to29 > total * 0.5 
-                ? '전체적으로 젊은 연령대가 투표에 더 많이 참여했습니다.' 
-                : age.age40to49 + age.age50to59 > total * 0.5 
-                  ? '전체적으로 고연령대가 투표에 더 많이 참여했습니다.'
-                  : '투표 참여는 전체 연령대에 걸쳐 비교적 고르게 분포되어 있습니다.'}</p>
-            ) : (
-              <p>연령대별 데이터가 충분하지 않아 분석이 어렵습니다.</p>
-            )}
+            <p>이 투표에서는 <strong>{maxVoteAgeCategory?.label}</strong> 연령대가 가장 활발하게 참여했습니다. 
+            이는 이 연령대가 주제에 대해 높은 관심도를 보이거나, 투표 플랫폼 접근성이 높기 때문일 수 있습니다. 
+            {age.age10to19 + age.age20to29 > total * 0.5 
+              ? '전체적으로 젊은 연령대가 투표에 더 많이 참여했습니다.' 
+              : age.age40to49 + age.age50to59 > total * 0.5 
+                ? '전체적으로 고연령대가 투표에 더 많이 참여했습니다.'
+                : '투표 참여는 전체 연령대에 걸쳐 비교적 고르게 분포되어 있습니다.'}</p>
           </div>
         </div>
       );
@@ -712,22 +744,16 @@ const VoteAnalysisPage: React.FC = () => {
     // 연령 탭에서는 상세 정보 표시
     return (
       <div className="demographic-chart">
-        <div className="bar-chart-container">
-          {filteredAgeCategories.map(category => {
-            const percentage = (category.count / total * 100).toFixed(1);
-            return (
-              <div className="bar-chart-item" key={category.key}>
-                <div className="bar-label">{category.label}</div>
-                <div className="bar-container">
-                  <div 
-                    className={`bar age-bar ${category.key === maxVoteAgeCategory?.key ? 'max-vote-bar' : ''}`} 
-                    style={{ width: `${percentage}%` }}
-                  ></div>
-                  <span className="bar-value">{percentage}% ({category.count}명)</span>
-                </div>
-              </div>
-            );
-          })}
+        <div className="pie-chart-container">
+          <h4 className="chart-title">연령별 투표 분포</h4>
+          {total > 0 && (
+            <Pie 
+              data={agePieData} 
+              options={createPieOptions(total)}
+              key={`age-chart-${activeTab}`}
+              id="age-chart"
+            />
+          )}
         </div>
         <div className="chart-analysis">
           <p className="analysis-title">AI 분석 결과</p>
@@ -772,15 +798,15 @@ const VoteAnalysisPage: React.FC = () => {
                       key={option.id} 
                       className="stacked-bar-segment"
                       style={{ 
-                        width: `${option.percentage}%`,
+                        width: `${option.percentage > 0 ? option.percentage : 0.1}%`,
                         backgroundColor: optionsList.find(opt => opt.id === option.id)?.color || optionColors[index % optionColors.length],
-                        left: `${ageOptions.slice(0, index).reduce((sum, opt) => sum + opt.percentage, 0)}%`
+                        opacity: option.percentage === 0 ? 0.3 : 1
                       }}
                       title={`${option.text}: ${option.percentage.toFixed(1)}% (${option.votes}명)`}
                     >
-                      {option.percentage >= 5 && (
-                        <span className="stacked-bar-label">
-                          {option.percentage.toFixed(1)}% ({option.votes}명)
+                      {option.percentage > 0 && (
+                        <span className={option.percentage >= 8 ? "stacked-bar-label" : "stacked-bar-label outside-label"}>
+                          {option.percentage < 8 && `${option.text}: `}{option.percentage.toFixed(1)}% ({option.votes}명)
                         </span>
                       )}
                     </div>
@@ -855,62 +881,80 @@ const VoteAnalysisPage: React.FC = () => {
       }).sort((a, b) => b.percentage - a.percentage);
     };
 
+    // 파이 차트 데이터 생성
+    const regionPieData = {
+      labels: sortedRegions.map(region => region.label),
+      datasets: [
+        {
+          data: sortedRegions.map(region => region.count),
+          backgroundColor: [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', 
+            '#FF9A8B', '#88D8B0', '#9381FF', '#FFD447', '#70C1B3',
+            '#FF5733', '#C70039', '#900C3F', '#581845', '#FFC300',
+            '#DAF7A6', '#FFC0CB', '#C39BD3'
+          ],
+          hoverBackgroundColor: [
+            '#FF8A8A', '#6EDFD7', '#67C9E4', '#B4E2C9', '#FFF1CE',
+            '#FFBCB1', '#A6E4C5', '#B1A6FF', '#FFE169', '#8ED1C6',
+            '#FF7B59', '#D72755', '#A52E5A', '#6E2E5A', '#FFD633',
+            '#E6FFBD', '#FFD6E0', '#D1B7DE'
+          ],
+          borderWidth: 1,
+          borderColor: '#333'
+        }
+      ]
+    };
+    
+    // 지역 차트에서 legend 옵션 추가
+    const regionLegendOptions = {
+      plugins: {
+        legend: {
+          position: 'bottom' as const,
+          display: sortedRegions.length <= 8, // 지역이 8개 이하일 때만 범례 표시
+          labels: {
+            color: '#fff',
+            font: {
+              size: 11
+            },
+            boxWidth: 10,
+            padding: 6
+          }
+        }
+      }
+    };
+    
     // 전체 개요 탭에서는 간단한 차트만 표시
     if (activeTab === 'overview') {
       return (
         <div className="demographic-chart">
-          <div className="bar-chart-container">
-            {sortedRegions.map(({ key, label, count }) => {
-              const percentage = (count / total * 100).toFixed(1);
-              return (
-                <div className="bar-chart-item" key={key}>
-                  <div className="bar-label">{label}</div>
-                  <div className="bar-container">
-                    <div 
-                      className={`bar region-bar ${key === maxVoteRegion?.key ? 'max-vote-bar' : ''}`} 
-                      style={{ width: `${percentage}%` }}
-                    ></div>
-                    <span className="bar-value">{percentage}% ({count}명)</span>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="pie-chart-container">
+            <Pie data={regionPieData} options={createPieOptions(total, regionLegendOptions)} />
           </div>
           <div className="chart-analysis">
             <p className="analysis-title">AI 분석 결과</p>
-            {maxVoteRegion ? (
-              <p>이 투표에서는 <strong>{maxVoteRegion.label}</strong> 지역에서 가장 높은 참여율을 보였습니다. 
-              이는 투표 주제가 해당 지역과 관련이 있거나, 이 지역의 사용자가 플랫폼을 더 많이 이용하기 때문일 수 있습니다.
-              {sortedRegions[0].count > total * 0.3 
-                ? '특정 지역의 참여율이 매우 높게 나타났습니다.' 
-                : '전반적으로 투표는 여러 지역에 고르게 분포되어 있습니다.'}</p>
-            ) : (
-              <p>지역별 데이터가 충분하지 않아 분석이 어렵습니다.</p>
-            )}
+            <p>이 투표에서는 <strong>{maxVoteRegion?.label}</strong> 지역에서 가장 높은 참여율을 보였습니다. 
+            이는 투표 주제가 해당 지역과 관련이 있거나, 이 지역의 사용자가 플랫폼을 더 많이 이용하기 때문일 수 있습니다.
+            {sortedRegions[0].count > total * 0.3 
+              ? ' 특정 지역의 참여율이 매우 높게 나타났습니다.' 
+              : ' 전반적으로 투표는 여러 지역에 고르게 분포되어 있습니다.'}</p>
           </div>
         </div>
       );
     }
-
+    
     // 지역 탭에서는 상세 정보 표시
     return (
       <div className="demographic-chart">
-        <div className="bar-chart-container">
-          {sortedRegions.map(({ key, label, count }) => {
-            const percentage = (count / total * 100).toFixed(1);
-            return (
-              <div className="bar-chart-item" key={key}>
-                <div className="bar-label">{label}</div>
-                <div className="bar-container">
-                  <div 
-                    className={`bar region-bar ${key === maxVoteRegion?.key ? 'max-vote-bar' : ''}`} 
-                    style={{ width: `${percentage}%` }}
-                  ></div>
-                  <span className="bar-value">{percentage}% ({count}명)</span>
-                </div>
-              </div>
-            );
-          })}
+        <div className="pie-chart-container">
+          <h4 className="chart-title">지역별 투표 분포</h4>
+          {total > 0 && (
+            <Pie 
+              data={regionPieData} 
+              options={createPieOptions(total, regionLegendOptions)}
+              key={`region-chart-${activeTab}`}
+              id="region-chart"
+            />
+          )}
         </div>
         <div className="chart-analysis">
           <p className="analysis-title">AI 분석 결과</p>
@@ -918,8 +962,8 @@ const VoteAnalysisPage: React.FC = () => {
             <p>이 투표에서는 <strong>{maxVoteRegion.label}</strong> 지역에서 가장 높은 참여율을 보였습니다. 
             이는 투표 주제가 해당 지역과 관련이 있거나, 이 지역의 사용자가 플랫폼을 더 많이 이용하기 때문일 수 있습니다.
             {sortedRegions[0].count > total * 0.3 
-              ? '특정 지역의 참여율이 매우 높게 나타났습니다.' 
-              : '전반적으로 투표는 여러 지역에 고르게 분포되어 있습니다.'}</p>
+              ? ' 특정 지역의 참여율이 매우 높게 나타났습니다.' 
+              : ' 전반적으로 투표는 여러 지역에 고르게 분포되어 있습니다.'}</p>
           ) : (
             <p>지역별 데이터가 충분하지 않아 분석이 어렵습니다.</p>
           )}
@@ -953,15 +997,15 @@ const VoteAnalysisPage: React.FC = () => {
                       key={option.id} 
                       className="stacked-bar-segment"
                       style={{ 
-                        width: `${option.percentage}%`,
+                        width: `${option.percentage > 0 ? option.percentage : 0.1}%`,
                         backgroundColor: optionsList.find(opt => opt.id === option.id)?.color || optionColors[index % optionColors.length],
-                        left: `${regionOptions.slice(0, index).reduce((sum, opt) => sum + opt.percentage, 0)}%`
+                        opacity: option.percentage === 0 ? 0.3 : 1
                       }}
                       title={`${option.text}: ${option.percentage.toFixed(1)}% (${option.votes}명)`}
                     >
-                      {option.percentage >= 5 && (
-                        <span className="stacked-bar-label">
-                          {option.percentage.toFixed(1)}% ({option.votes}명)
+                      {option.percentage > 0 && (
+                        <span className={option.percentage >= 8 ? "stacked-bar-label" : "stacked-bar-label outside-label"}>
+                          {option.percentage < 8 && `${option.text}: `}{option.percentage.toFixed(1)}% ({option.votes}명)
                         </span>
                       )}
                     </div>
@@ -1020,12 +1064,6 @@ const VoteAnalysisPage: React.FC = () => {
       <div className="analysis-container">
         <div className="analysis-tabs">
           <button 
-            className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
-            onClick={() => handleTabChange('overview')}
-          >
-            전체 개요
-          </button>
-          <button 
             className={`tab-button ${activeTab === 'gender' ? 'active' : ''}`}
             onClick={() => handleTabChange('gender')}
           >
@@ -1046,8 +1084,6 @@ const VoteAnalysisPage: React.FC = () => {
         </div>
         
         <div className="tab-content">
-          {/* 전체 개요 탭에서는 레전드 표시하지 않음 */}
-          {activeTab === 'overview' && renderOverviewCharts()}
           {activeTab === 'gender' && renderGenderChart()}
           {activeTab === 'age' && renderAgeChart()}
           {activeTab === 'region' && renderRegionChart()}
