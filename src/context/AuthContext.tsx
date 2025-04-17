@@ -8,6 +8,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any, data: any }>;
   signOut: () => Promise<void>;
+  updateProfileImage: (profileImage: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -286,12 +287,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // 프로필 이미지 업데이트 함수 추가
+  const updateProfileImage = (profileImage: string) => {
+    if (user) {
+      const updatedUser = { ...user, profile_Image: profileImage };
+      setUser(updatedUser);
+      // 로컬 스토리지 업데이트
+      localStorage.setItem('userInfo', JSON.stringify(updatedUser));
+      console.log('AuthContext: 프로필 이미지 업데이트 성공', updatedUser);
+    }
+  };
+
   const value = {
     user,
     loading,
     signIn,
     signUp,
     signOut,
+    updateProfileImage,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

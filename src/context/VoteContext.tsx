@@ -104,14 +104,7 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLoading(true);
       setError(null);
       
-      // userId가 비어있으면 API 호출 없이 빈 배열 반환
-      if (!userId) {
-        console.log('fetchVotes: userId가 비어있어 API 호출 취소');
-        setVotes([]);
-        setLoading(false);
-        return;
-      }
-      
+      // userId가 비어있어도 투표 데이터는 가져옴
       const data = await getVoteTopics(userId);
       
       if (Array.isArray(data)) {
@@ -210,14 +203,17 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   
   // 컴포넌트 마운트 시 데이터 가져오기
   useEffect(() => {
-    // 사용자 ID가 있을 때만 데이터 불러오기
+    console.log('VoteContext 마운트됨, 사용자 ID:', userId);
+    
+    // 투표 목록은 로그인 여부와 관계없이 항상 불러옴
+    fetchVotes();
+    
+    // 로그인한 경우에만 사용자 관련 데이터 불러오기
     if (userId) {
-      console.log('사용자 ID 확인됨, 데이터 로드 시작:', userId);
-      fetchVotes();
       fetchMyVotes();
       loadUserVotes(); // 사용자 투표 정보도 함께 로드
     } else {
-      console.log('사용자 ID가 없음, 로그인 대기 중...');
+      console.log('로그인하지 않은 상태, 사용자 관련 데이터는 로드하지 않음');
       // 로드 상태 종료
       setLoading(false);
     }

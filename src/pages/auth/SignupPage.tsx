@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styles from '../../styles/AuthPage.module.css';
 import { useAuth } from '../../context/AuthContext';
@@ -26,6 +26,8 @@ const ImageEditorModal = ({
   const [imgPosition, setImgPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [pinchStart, setPinchStart] = useState(0);
+  const [pinchScale, setPinchScale] = useState(1);
 
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -44,21 +46,21 @@ const ImageEditorModal = ({
   }, [image, isOpen]);
 
   // 이미지 로드 완료 시 처리
-  const handleImageLoad = () => {
+  const handleImageLoad = useCallback(() => {
     setIsLoading(false);
-  };
+  }, []);
 
   // 마우스/터치 이벤트 핸들러
-  const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLImageElement>) => {
     e.preventDefault();
     setIsDragging(true);
     setDragStart({
       x: e.clientX - imgPosition.x,
       y: e.clientY - imgPosition.y
     });
-  };
+  }, [imgPosition]);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging) return;
     e.preventDefault();
     
@@ -69,121 +71,237 @@ const ImageEditorModal = ({
       x: newX,
       y: newY
     });
-  };
+  }, [isDragging, dragStart]);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     setIsDragging(false);
-  };
+  }, []);
 
   // 줌 변경 핸들러
-  const handleZoomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setScale(parseFloat(e.target.value));
-  };
+  const handleZoomChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newScale = parseFloat(e.target.value);
+    setScale(newScale);
+    setPinchScale(newScale);
+  }, []);
 
   const decreaseZoom = () => {
-    setScale(prev => Math.max(0.05, prev - 0.01));
+    // 더 작은 단계로 줌 감소 (0.05 단위)
+    const newScale = Math.max(0.1, scale - 0.05);
+    setScale(newScale);
+    setPinchScale(newScale);
   };
 
   const increaseZoom = () => {
-    setScale(prev => Math.min(5, prev + 0.01));
+    // 더 작은 단계로 줌 증가 (0.05 단위)
+    const newScale = Math.min(5, scale + 0.05);
+    setScale(newScale);
+    setPinchScale(newScale);
   };
 
   // 회전 핸들러
-  const rotateLeft = () => {
+  const rotateLeft = useCallback(() => {
     setRotate(prev => prev - 90);
-  };
+  }, []);
 
-  const rotateRight = () => {
+  const rotateRight = useCallback(() => {
     setRotate(prev => prev + 90);
-  };
+  }, []);
 
   // 이미지 리셋
   const resetImage = () => {
     setScale(1);
+    setPinchScale(1);
     setRotate(0);
     setImgPosition({ x: 0, y: 0 });
   };
 
-  // 터치 이벤트 핸들러
+  // 터치 이벤트 핸들러 개선
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    setIsDragging(true);
-    const touch = e.touches[0];
-    setDragStart({
-      x: touch.clientX - imgPosition.x,
-      y: touch.clientY - imgPosition.y
-    });
+    // 버튼에서의 터치는 무시
+    if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+
+    if (e.touches.length === 1) {
+      // passive 이벤트용 최적화: preventDefault 제거
+      setIsDragging(true);
+      const touch = e.touches[0];
+      setDragStart({
+        x: touch.clientX - imgPosition.x,
+        y: touch.clientY - imgPosition.y
+      });
+    } else if (e.touches.length === 2) {
+      // 두 손가락 사이의 거리 계산
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+      setPinchStart(distance);
+      setPinchScale(scale);
+    }
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!isDragging) return;
-    
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const touch = e.touches[0];
-    const newX = touch.clientX - dragStart.x;
-    const newY = touch.clientY - dragStart.y;
-    
-    setImgPosition({
-      x: newX,
-      y: newY
-    });
+    if (e.touches.length === 1 && isDragging) {
+      const touch = e.touches[0];
+      setImgPosition({
+        x: touch.clientX - dragStart.x,
+        y: touch.clientY - dragStart.y
+      });
+    } else if (e.touches.length === 2) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+      
+      // 핀치 줌 계산 - 부드러운 변화를 위해 개선된 damping factor 적용
+      const damping = 0.4; // 더 부드러운 변화를 위해 damping 감소
+      const pinchRatio = distance / pinchStart;
+      const newScale = Math.max(0.1, Math.min(5, (pinchRatio * damping + (1 - damping)) * pinchScale));
+      setScale(parseFloat(newScale.toFixed(2))); // 소수점 2자리까지만 유지하여 안정성 향상
+    }
   };
 
-  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleTouchEnd = () => {
     setIsDragging(false);
+  };
+
+  // 버튼 클릭 핸들러
+  const handleButtonClick = (e: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
   };
 
   // 이미지 크롭 및 저장
   const saveCroppedImage = async () => {
-    if (!imageRef.current) return;
+    if (!imageRef.current || !containerRef.current) return;
 
     try {
       setIsSaving(true);
       
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      // 캔버스 크기 설정 (프로필 이미지는 200x200)
-      canvas.width = 200;
-      canvas.height = 200;
-      
-      if (!ctx) return;
-      
-      // 캔버스 초기화 (배경 투명하게)
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // 배경색 설정 (검정 배경)
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // 중앙 정렬 및 회전
-      ctx.save();
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate((rotate * Math.PI) / 180);
-      
-      // 이미지 그리기
       const img = imageRef.current;
-      const scaledWidth = img.naturalWidth * scale;
-      const scaledHeight = img.naturalHeight * scale;
+      const container = containerRef.current;
+      const cropFrame = container.querySelector(`.${styles['crop-frame']}`);
       
-      ctx.drawImage(
-        img,
-        -scaledWidth / 2 + imgPosition.x,
-        -scaledHeight / 2 + imgPosition.y,
-        scaledWidth,
-        scaledHeight
+      if (!cropFrame) {
+        console.error('크롭 프레임을 찾을 수 없습니다.');
+        setIsSaving(false);
+        return;
+      }
+
+      // 캔버스 크기 설정 (프로필 이미지는 200x200)
+      const targetWidth = 200;
+      const targetHeight = 200;
+
+      // 1. 작업 캔버스 생성 (원본 이미지 크기)
+      const workCanvas = document.createElement('canvas');
+      const workCtx = workCanvas.getContext('2d', { willReadFrequently: true });
+      
+      if (!workCtx) {
+        console.error('작업 캔버스 컨텍스트를 가져올 수 없습니다.');
+        setIsSaving(false);
+        return;
+      }
+
+      // 2. 현재 상태 정보 수집
+      const cropRect = cropFrame.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+
+      // 3. 작업 캔버스 크기 설정
+      // 회전을 고려하여 충분히 큰 캔버스 사용
+      const diagonal = Math.ceil(Math.sqrt(
+        img.naturalWidth * img.naturalWidth + 
+        img.naturalHeight * img.naturalHeight
+      ));
+      const padding = 100; // 여유 공간
+      workCanvas.width = diagonal + padding;
+      workCanvas.height = diagonal + padding;
+
+      // 4. 이미지 그리기에 필요한 변환 수행
+      workCtx.save();
+      
+      // 캔버스 중앙으로 이동
+      workCtx.translate(workCanvas.width / 2, workCanvas.height / 2);
+      
+      // 회전 적용
+      workCtx.rotate((rotate * Math.PI) / 180);
+      
+      // 이미지 그리기 (중앙 정렬)
+      workCtx.drawImage(
+        img, 
+        -img.naturalWidth / 2, 
+        -img.naturalHeight / 2,
+        img.naturalWidth,
+        img.naturalHeight
       );
       
-      ctx.restore();
+      workCtx.restore();
+
+      // 5. 변환된 이미지에서 크롭 영역 찾기
+      // 크롭 영역과 이미지의 비율 계산
+      const displayScale = scale;
       
-      // 결과 이미지 생성
-      const resultImage = canvas.toDataURL('image/png', 0.9);
+      // 화면에 표시된 이미지 크기
+      const displayedWidth = img.naturalWidth * displayScale;
+      // const displayedHeight = img.naturalHeight * displayScale;
+      
+      // 화면 상 크롭 프레임의 상대적 위치 (이미지 중심 기준)
+      const cropCenterX = cropRect.left + cropRect.width / 2 - (containerRect.left + containerRect.width / 2);
+      const cropCenterY = cropRect.top + cropRect.height / 2 - (containerRect.top + containerRect.height / 2);
+      
+      // 이미지 중심 기준 위치 보정
+      const adjustedCenterX = cropCenterX - imgPosition.x;
+      const adjustedCenterY = cropCenterY - imgPosition.y;
+      
+      // 이미지 원본 크기 기준으로 변환
+      const sourceScale = img.naturalWidth / displayedWidth;
+      
+      // 원본 이미지에서의 크롭 중심 좌표
+      const sourceCenterX = adjustedCenterX * sourceScale;
+      const sourceCenterY = adjustedCenterY * sourceScale;
+      
+      // 회전이 적용된 작업 캔버스 상의 중심 좌표
+      const workCenterX = workCanvas.width / 2 + sourceCenterX;
+      const workCenterY = workCanvas.height / 2 + sourceCenterY;
+      
+      // 크롭 영역 크기 (원본 이미지 기준)
+      const cropWidthInSource = cropRect.width * sourceScale;
+      const cropHeightInSource = cropRect.height * sourceScale;
+      
+      // 작업 캔버스에서 크롭할 좌표
+      const cropX = workCenterX - cropWidthInSource / 2;
+      const cropY = workCenterY - cropHeightInSource / 2;
+
+      // 6. 결과 캔버스 생성 및 크롭된 이미지 그리기
+      const resultCanvas = document.createElement('canvas');
+      const resultCtx = resultCanvas.getContext('2d');
+      
+      if (!resultCtx) {
+        console.error('결과 캔버스 컨텍스트를 가져올 수 없습니다.');
+        setIsSaving(false);
+        return;
+      }
+      
+      // 결과 캔버스 크기 설정
+      resultCanvas.width = targetWidth;
+      resultCanvas.height = targetHeight;
+      
+      // 배경색 설정
+      resultCtx.fillStyle = '#1a1a1a';
+      resultCtx.fillRect(0, 0, targetWidth, targetHeight);
+      
+      // 작업 캔버스에서 크롭한 영역을 결과 캔버스에 그리기
+      resultCtx.drawImage(
+        workCanvas,
+        cropX, cropY, 
+        cropWidthInSource, cropHeightInSource,
+        0, 0,
+        targetWidth, targetHeight
+      );
+      
+      // 7. 결과 이미지 생성 및 저장
+      const resultImage = resultCanvas.toDataURL('image/png', 0.95);
       
       // 이미지 저장 함수 호출
       onSave(resultImage);
@@ -218,9 +336,12 @@ const ImageEditorModal = ({
     <div 
       className={styles['modal-overlay']}
       onTouchStart={(e) => e.stopPropagation()}
-      onTouchMove={(e) => e.preventDefault()}
+      onClick={(e) => e.stopPropagation()}
     >
-      <div className={styles['modal-content']}>
+      <div 
+        className={styles['modal-content']}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div 
           className={styles['crop-container']} 
           ref={containerRef}
@@ -230,11 +351,7 @@ const ImageEditorModal = ({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          style={{ 
-            height: '500px', 
-            maxHeight: '90vh',
-            backgroundColor: '#121212' 
-          }}
+          style={{ touchAction: 'none' }}
         >
           {isLoading && <div className={styles.loading}>이미지 로딩 중...</div>}
           <div className={styles['crop-preview']}>
@@ -280,24 +397,42 @@ const ImageEditorModal = ({
             <button 
               className={styles['crop-control-button']} 
               onClick={rotateLeft} 
+              onTouchStart={handleButtonClick}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                rotateLeft();
+              }}
               disabled={isLoading}
               title="왼쪽으로 회전"
+              type="button"
             >
               ↺
             </button>
             <button 
               className={styles['crop-control-button']} 
               onClick={rotateRight} 
+              onTouchStart={handleButtonClick}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                rotateRight();
+              }}
               disabled={isLoading}
               title="오른쪽으로 회전"
+              type="button"
             >
               ↻
             </button>
             <button 
               className={styles['crop-control-button']} 
               onClick={resetImage} 
+              onTouchStart={handleButtonClick}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                resetImage();
+              }}
               disabled={isLoading}
               title="초기화"
+              type="button"
             >
               ↺↻
             </button>
@@ -307,8 +442,14 @@ const ImageEditorModal = ({
             <button 
               className={styles['crop-control-button']} 
               onClick={decreaseZoom}
-              disabled={isLoading || scale <= 0.05}
+              onTouchStart={handleButtonClick}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                decreaseZoom();
+              }}
+              disabled={isLoading || scale <= 0.1}
               title="축소"
+              type="button"
             >
               -
             </button>
@@ -316,7 +457,7 @@ const ImageEditorModal = ({
             <input
               type="range"
               value={scale}
-              min={0.05}
+              min={0.1}
               max={5}
               step={0.01}
               className={styles['zoom-slider']}
@@ -327,8 +468,14 @@ const ImageEditorModal = ({
             <button 
               className={styles['crop-control-button']} 
               onClick={increaseZoom}
+              onTouchStart={handleButtonClick}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                increaseZoom();
+              }}
               disabled={isLoading || scale >= 5}
               title="확대"
+              type="button"
             >
               +
             </button>
@@ -416,7 +563,7 @@ const SignupPage: React.FC = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   
-  const { signUp, user } = useAuth();
+  const { signUp, user, updateProfileImage } = useAuth();
   const navigate = useNavigate();
 
   // 편집 모드일 때 사용자 데이터 불러오기
@@ -437,6 +584,27 @@ const SignupPage: React.FC = () => {
       emailInputRef.current.focus();
     }
   }, [isEditMode, userInfo]);
+
+  // 성공 모달 확인 버튼 처리 함수
+  const handleSuccessConfirm = useCallback(() => {
+    setShowSuccessModal(false);
+    if (isEditMode) {
+      navigate('/mypage');
+    } else {
+      navigate('/auth');
+    }
+  }, [isEditMode, navigate]);
+
+  // 성공 모달이 표시되면 1.5초 후 자동으로 닫히도록 설정
+  useEffect(() => {
+    if (showSuccessModal) {
+      const timer = setTimeout(() => {
+        handleSuccessConfirm();
+      }, 1500); // 1.5초 후 자동으로 닫힘
+      
+      return () => clearTimeout(timer); // 컴포넌트 언마운트 시 타이머 제거
+    }
+  }, [showSuccessModal, handleSuccessConfirm]);
 
   // 이미지 선택 핸들러
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -630,6 +798,11 @@ const SignupPage: React.FC = () => {
           return;
         }
 
+        // 프로필 이미지가 변경된 경우 AuthContext 업데이트
+        if (profileImage !== userInfo.profile_Image) {
+          updateProfileImage(profileImage);
+        }
+
         // 성공 메시지 설정 및 모달 표시
         setSuccessMessage('프로필이 성공적으로 업데이트되었습니다.');
         setShowSuccessModal(true);
@@ -761,16 +934,6 @@ const SignupPage: React.FC = () => {
       setError('알 수 없는 오류가 발생했습니다. 개발자 도구의 콘솔을 확인해주세요.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  // 성공 모달 확인 버튼 처리 함수
-  const handleSuccessConfirm = () => {
-    setShowSuccessModal(false);
-    if (isEditMode) {
-      navigate('/mypage');
-    } else {
-      navigate('/auth');
     }
   };
 
