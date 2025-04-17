@@ -544,6 +544,8 @@ const SignupPage: React.FC = () => {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [username, setUsername] = useState('');
   const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [usernameSuccess, setUsernameSuccess] = useState<string | null>(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
   const [profileImage, setProfileImage] = useState('');
   const [gender, setGender] = useState('');
   const [birthYear, setBirthYear] = useState('');
@@ -558,6 +560,8 @@ const SignupPage: React.FC = () => {
   const [regionError, setRegionError] = useState<string | null>(null);
   const [phoneNumberError, setPhoneNumberError] = useState<string | null>(null);
   const [interestsError, setInterestsError] = useState<string | null>(null);
+  const [politicalView, setPoliticalView] = useState('');
+  const [politicalViewError, setPoliticalViewError] = useState<string | null>(null);
   
   // 성공 모달 상태 추가
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -577,6 +581,7 @@ const SignupPage: React.FC = () => {
       setRegion(userInfo.region || '');
       setPhoneNumber(userInfo.phone_number || '');
       setInterests(userInfo.interests?.split(',') || []);
+      setPoliticalView(userInfo.political_view || '');
     }
 
     // 컴포넌트가 마운트되면 이메일 입력 필드에 포커스
@@ -683,6 +688,44 @@ const SignupPage: React.FC = () => {
     });
   };
 
+  // 사용자 이름 중복 체크 함수 추가
+  const checkUsernameAvailability = async () => {
+    // 유효성 검사
+    if (username.length < 2) {
+      setUsernameError('사용자 이름은 최소 2자 이상이어야 합니다.');
+      setUsernameSuccess(null);
+      return;
+    }
+
+    setCheckingUsername(true);
+    setUsernameError(null);
+    setUsernameSuccess(null);
+    
+    try {
+      // 사용자 이름 중복 체크
+      const { data: existingUsername, error: usernameCheckError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('username', username)
+        .maybeSingle();
+        
+      if (usernameCheckError) {
+        console.error('SignupPage: 사용자 이름 중복 체크 오류', usernameCheckError);
+        setUsernameError('사용자 이름 중복 확인 중 오류가 발생했습니다.');
+      } else if (existingUsername) {
+        console.log('SignupPage: 사용자 이름 중복', existingUsername);
+        setUsernameError('이미 존재하는 사용자 이름입니다.');
+      } else {
+        setUsernameSuccess('사용 가능한 사용자 이름입니다.');
+      }
+    } catch (err) {
+      console.error('SignupPage: 사용자 이름 중복 체크 예외', err);
+      setUsernameError('사용자 이름 중복 확인 중 오류가 발생했습니다.');
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -696,6 +739,7 @@ const SignupPage: React.FC = () => {
     setRegionError(null);
     setPhoneNumberError(null);
     setInterestsError(null);
+    setPoliticalViewError(null);
     
     // 이메일 유효성 검사
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -753,6 +797,12 @@ const SignupPage: React.FC = () => {
       return;
     }
     
+    // 정치 성향 검증
+    if (!politicalView) {
+      setPoliticalViewError('정치 성향을 선택해주세요');
+      return;
+    }
+    
     // 회원가입 처리
     setLoading(true);
     
@@ -763,7 +813,8 @@ const SignupPage: React.FC = () => {
       birthYear, 
       region, 
       phoneNumber, 
-      interests 
+      interests,
+      politicalView
     });
     
     try {
@@ -778,7 +829,8 @@ const SignupPage: React.FC = () => {
           birthyear: parseInt(birthYear),
           region,
           phone_number: phoneNumber || null,
-          interests: interests.join(',')
+          interests: interests.join(','),
+          political_view: politicalView
         };
 
         // 새 비밀번호가 입력된 경우에만 업데이트
@@ -829,22 +881,9 @@ const SignupPage: React.FC = () => {
         }
         
         // 2. 사용자 이름 중복 체크 추가
-        const { data: existingUsername, error: usernameCheckError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('username', username)
-          .maybeSingle();
-          
-        if (usernameCheckError) {
-          console.error('SignupPage: 사용자 이름 중복 체크 오류', usernameCheckError);
-          setError('사용자 이름 중복 확인 중 오류가 발생했습니다: ' + usernameCheckError.message);
-          setLoading(false);
-          return;
-        }
+        await checkUsernameAvailability();
         
-        if (existingUsername) {
-          console.error('SignupPage: 사용자 이름 중복', existingUsername);
-          setUsernameError('이미 사용 중인 사용자 이름입니다.');
+        if (usernameError) {
           setLoading(false);
           return;
         }
@@ -912,6 +951,7 @@ const SignupPage: React.FC = () => {
             region: region,
             phone_number: phoneNumber || null,
             interests: interests.join(','),
+            political_view: politicalView,
             updated_at: [now]  // 배열로 변경
           })
           .eq('id', authData.id);
@@ -1007,17 +1047,54 @@ const SignupPage: React.FC = () => {
           
           <div className={styles.inputGroup}>
             <label htmlFor="username">사용자 이름 *</label>
-            <input
-              type="text"
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              onFocus={() => setUsernameError(null)}
-              required
-              className={`${styles.input} ${usernameError ? styles.inputError : ''}`}
-              placeholder="사용자 이름을 입력하세요"
-            />
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <input
+                type="text"
+                id="username"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  // 입력 값이 변경되면 성공/에러 메시지 초기화
+                  setUsernameSuccess(null);
+                  setUsernameError(null);
+                }}
+                onFocus={() => {
+                  setUsernameError(null);
+                  setUsernameSuccess(null);
+                }}
+                required
+                className={`${styles.input} ${usernameError ? styles.inputError : ''}`}
+                placeholder="사용자 이름을 입력하세요"
+                style={{ flex: '5 1 0%' }}
+              />
+              <button
+                type="button"
+                onClick={checkUsernameAvailability}
+                disabled={checkingUsername || username.length < 2}
+                className={styles.submitButton}
+                style={{ 
+                  padding: '4px 12px', 
+                  fontSize: '12px',
+                  lineHeight: '1',
+                  whiteSpace: 'nowrap',
+                  flex: '0 0 auto',
+                  width: 'auto',
+                  maxWidth: '100px',
+                  minWidth: 'auto'
+                }}
+              >
+                {checkingUsername ? '확인 중...' : '중복 체크'}
+              </button>
+            </div>
             {usernameError && <div className={styles.errorMessage}>{usernameError}</div>}
+            {usernameSuccess && <div style={{ 
+              padding: '8px', 
+              color: '#4caf50', 
+              fontSize: '14px',
+              marginTop: '5px',
+              backgroundColor: 'rgba(76, 175, 80, 0.1)',
+              borderRadius: '4px' 
+            }}>{usernameSuccess}</div>}
           </div>
           
           <div className={styles.inputGroup}>
@@ -1170,6 +1247,34 @@ const SignupPage: React.FC = () => {
               ))}
             </div>
             {interestsError && <div className={styles.errorMessage}>{interestsError}</div>}
+          </div>
+          
+          <div className={styles.inputGroup}>
+            <label>정치 성향 *</label>
+            <div className={styles.genderButtonGroup}>
+              <button
+                type="button"
+                className={`${styles.genderButton} ${politicalView === 'progressive' ? styles.selected : ''}`}
+                onClick={() => setPoliticalView('progressive')}
+              >
+                진보
+              </button>
+              <button
+                type="button"
+                className={`${styles.genderButton} ${politicalView === 'moderate' ? styles.selected : ''}`}
+                onClick={() => setPoliticalView('moderate')}
+              >
+                중도
+              </button>
+              <button
+                type="button"
+                className={`${styles.genderButton} ${politicalView === 'conservative' ? styles.selected : ''}`}
+                onClick={() => setPoliticalView('conservative')}
+              >
+                보수
+              </button>
+            </div>
+            {politicalViewError && <div className={styles.errorMessage}>{politicalViewError}</div>}
           </div>
           
           <div className={styles.divider}></div>

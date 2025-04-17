@@ -26,6 +26,7 @@ export interface UserInfo {
   gender: string; //사용자 성별
   region: string; //사용자 지역
   interests: string[]; //사용자 관심사
+  political_view: string; //사용자 정치 성향
   birthyear: number; //사용자 생년월일
   created_at: string; //사용자 가입일
   updated_at: string[]; // 등급업 날짜

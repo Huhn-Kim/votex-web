@@ -231,6 +231,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           gender: '',
           region: '',
           interests: [],
+          political_view: '',
           birthyear: 0,
           votesCreated: 0,
           votesParticipated: 0,
