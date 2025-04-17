@@ -722,6 +722,7 @@ export default function MyPage() {
     password: "",
     region: "",
     interests: [],
+    political_view: "", // political_view 추가
     birthyear: 0,
     weekly_created: [],
     weekly_voted: []
