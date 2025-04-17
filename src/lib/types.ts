@@ -59,7 +59,7 @@ export interface VoteTopic {
   hourly_votes: number;
   comments: number;
   likes: number;
-  type: string;
+  type: string; //분야
   display_type: string;
   created_at: string;
   expires_at: string;
@@ -75,6 +75,7 @@ export interface VoteTopic {
     email: string;
     profile_Image: string;
     user_grade: number;
+    political_view: string;
     created_at: string;
     updated_at: string[]; // 등급업 날짜
     weekly_created: number[];

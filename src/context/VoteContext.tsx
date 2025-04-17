@@ -859,6 +859,7 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 user_grade: item.users?.user_grade || 0,
                 created_at: item.users?.created_at || '',
                 updated_at: item.users?.updated_at || '',
+                political_view: item.users?.political_view || '',
                 weekly_created: item.users?.weekly_created || [],
                 weekly_voted: item.users?.weekly_voted || []
               },

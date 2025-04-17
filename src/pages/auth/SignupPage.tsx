@@ -514,6 +514,7 @@ const ImageEditorModal = ({
 // 관심분야 옵션
 const interestOptions = [
   { id: 'politics', label: '정치' },
+  { id: 'economy', label: '경제' },
   { id: 'society', label: '사회' },
   { id: 'technology', label: '기술' },
   { id: 'culture', label: '문화' },

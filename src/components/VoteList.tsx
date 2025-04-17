@@ -1,22 +1,33 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import '../styles/VoteList.css';
 import VoteCard from './VoteCard';
 import VoteSkeletonCard from './VoteSkeletonCard';
 import { useVoteContext } from '../context/VoteContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSearchModal } from './App';
+import { useAuth } from '../context/AuthContext';
+import { VoteTopic } from '../lib/types';
 
 // 투표 목록 컴포넌트
 const VoteList: React.FC = () => {
   // Context에서 투표 데이터와 업데이트 함수 가져오기
-  const { votes, updateVote, loading, error, refreshVotes, setError, myVotes, handleLike} = useVoteContext();
+  const { votes, updateVote, loading, error, refreshVotes, setError, myVotes, handleLike } = useVoteContext();
   const { openSearchModal } = useSearchModal();
+  const { user } = useAuth();
   
   // 사용자가 참여한 투표 ID 목록
   const [participatedVoteIds, setParticipatedVoteIds] = useState<number[]>([]);
   
   // 스켈레톤 개수를 화면 크기에 따라 동적으로 조정
   const [skeletonCount, setSkeletonCount] = useState(6);
+
+  // 무한 스크롤 관련 상태
+  const [displayedVotes, setDisplayedVotes] = useState<VoteTopic[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loaderRef = useRef<HTMLDivElement>(null);
+  const PAGE_SIZE = 20;
 
   // URL에서 검색 쿼리 파라미터 가져오기
   const location = useLocation();
@@ -73,21 +84,151 @@ const VoteList: React.FC = () => {
     openSearchModal();
   };
 
-  // 활성화된 투표만 필터링 (투표 기간이 종료되지 않은 투표)
-  const activeVotes = votes.filter(vote => !vote.is_expired && vote.visible);
+  // 투표 우선순위에 따른 정렬 함수
+  const prioritizeVotes = useCallback((votes: VoteTopic[]): VoteTopic[] => {
+    // 4. 만료되지 않은 투표만 필터링
+    const activeVotes = votes.filter(vote => !vote.is_expired && vote.visible);
+    
+    // 사용자 정보가 없는 경우
+    if (!user) {
+      // 최신순으로 정렬
+      return activeVotes.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    }
+    
+    // 사용자의 관심분야 
+    const userInterests: string[] = user.interests || [];
+    
+    // 참여한 투표 ID 목록
+    const participatedIds = participatedVoteIds;
+    
+    // 점수 기반 정렬
+    return activeVotes.sort((a, b) => {
+      // 각 항목별 점수 계산 (높을수록 우선순위 높음)
+      
+      // 1. 사용자 관심분야와 일치하는 투표 (최우선)
+      const aAreas: string[] = a.type ? [a.type] : [];
+      const bAreas: string[] = b.type ? [b.type] : [];
+      
+      const aInterestMatch = aAreas.some(area => userInterests.includes(area)) ? 1 : 0;
+      const bInterestMatch = bAreas.some(area => userInterests.includes(area)) ? 1 : 0;
+      
+      if (aInterestMatch !== bInterestMatch) {
+        return bInterestMatch - aInterestMatch; // 관심분야 일치하면 우선
+      }
+      
+      // 2. 아직 참여하지 않은 투표 우선 (2위 우선순위)
+      const aParticipated = participatedIds.includes(a.id) ? 1 : 0;
+      const bParticipated = participatedIds.includes(b.id) ? 1 : 0;
+      
+      if (aParticipated !== bParticipated) {
+        return aParticipated - bParticipated; // 참여하지 않은 항목 우선
+      }
+      
+      // 3. 최신 투표 우선 (생성일 기준) (3위 우선순위)
+      const aDate = new Date(a.created_at).getTime();
+      const bDate = new Date(b.created_at).getTime();
+      
+      return bDate - aDate; // 최신 항목 우선
+    });
+  }, [user, participatedVoteIds]);
 
-  // 검색어로 투표 필터링
-  const filteredVotes = searchQuery
-    ? activeVotes.filter(vote => vote.question.toLowerCase().includes(searchQuery.toLowerCase()))
-    : activeVotes;
+  // 필터링 및 정렬된 투표 목록
+  const filteredVotes = useCallback(() => {
+    let result = votes as VoteTopic[];
+    
+    // 검색어가 있는 경우 검색어로 필터링
+    if (searchQuery) {
+      result = result.filter(vote => 
+        vote.question.toLowerCase().includes(searchQuery.toLowerCase()) && 
+        !vote.is_expired && 
+        vote.visible
+      );
+      return result;
+    }
+    
+    // 우선순위에 따라 정렬
+    return prioritizeVotes(result);
+  }, [votes, searchQuery, prioritizeVotes]);
+
+  // 검색어나 투표 목록이 변경되면 처음부터 다시 로드
+  useEffect(() => {
+    if (loading) return; // 로딩 중일 때는 실행하지 않음
+    
+    setDisplayedVotes([]);
+    setPage(1);
+    setHasMore(true);
+    
+    // 초기 데이터 로드
+    const sortedVotes = filteredVotes();
+    const initialBatch = sortedVotes.slice(0, PAGE_SIZE);
+    setDisplayedVotes(initialBatch);
+    setPage(prev => prev + 1);
+    setHasMore(initialBatch.length < sortedVotes.length);
+    
+  }, [searchQuery, votes, filteredVotes]); // loading 제거, votes 추가
+  
+  // loadMoreVotes를 별도로 호출하지 않고 인터섹션 옵저버에서만 사용
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+          // 여기서만 loadMoreVotes 호출
+          const loadMore = () => {
+            if (loadingMore || !hasMore) return;
+            
+            setLoadingMore(true);
+            
+            const sortedVotes = filteredVotes();
+            const startIndex = (page - 1) * PAGE_SIZE;
+            const endIndex = page * PAGE_SIZE;
+            
+            // 더 로드할 항목이 있는지 확인
+            if (startIndex >= sortedVotes.length) {
+              setHasMore(false);
+              setLoadingMore(false);
+              return;
+            }
+            
+            // 현재 페이지에 해당하는 항목 가져오기
+            const nextBatch = sortedVotes.slice(startIndex, endIndex);
+            
+            // 표시할 투표 목록에 추가
+            setDisplayedVotes(prev => [...prev, ...nextBatch]);
+            setPage(prev => prev + 1);
+            setLoadingMore(false);
+            
+            // 더 로드할 항목이 있는지 확인
+            if (endIndex >= sortedVotes.length) {
+              setHasMore(false);
+            }
+          };
+          
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    
+    if (loaderRef.current) {
+      observer.observe(loaderRef.current);
+    }
+    
+    return () => {
+      if (loaderRef.current) {
+        observer.unobserve(loaderRef.current);
+      }
+    };
+  }, [loaderRef, hasMore, loadingMore, loading, page, filteredVotes]);
 
   // 디버깅을 위한 로그 추가
   useEffect(() => {
     console.log('전체 투표 수:', votes.length);
-    console.log('활성 투표 수:', activeVotes.length);
-    console.log('검색 결과 투표 수:', filteredVotes.length);
+    console.log('표시된 투표 수:', displayedVotes.length);
     console.log('검색어:', searchQuery);
-  }, [votes, activeVotes, filteredVotes, searchQuery]);
+    console.log('더 로드 가능:', hasMore);
+  }, [votes.length, displayedVotes.length, searchQuery, hasMore]);
 
   // 스켈레톤 카드 메모이제이션
   const skeletonCards = React.useMemo(() => (
@@ -107,7 +248,7 @@ const VoteList: React.FC = () => {
               <span className="search-term">{searchQuery}</span>
             </div>
             <div className="search-count">
-              검색 결과: {filteredVotes.length}개
+              검색 결과: {filteredVotes().length}개
             </div>
           </div>
           <div className="search-buttons">
@@ -152,10 +293,10 @@ const VoteList: React.FC = () => {
 
       {/* 투표 목록 */}
       <div className="vote-cards">
-        {loading ? (
-          // 메모이제이션된 스켈레톤 카드 사용
+        {loading && page === 1 ? (
+          // 메모이제이션된 스켈레톤 카드 사용 (초기 로딩)
           <>{skeletonCards}</>
-        ) : filteredVotes.length === 0 ? (
+        ) : displayedVotes.length === 0 && !loading ? (
           <div className="no-votes-message">
             {searchQuery ? (
               <p>검색 결과가 없습니다.</p>
@@ -164,7 +305,8 @@ const VoteList: React.FC = () => {
             )}
           </div>
         ) : (
-          filteredVotes.map(topic => (
+          // 표시할 투표 목록
+          displayedVotes.map(topic => (
             <VoteCard 
               key={topic.id} 
               topic={topic} 
@@ -174,6 +316,18 @@ const VoteList: React.FC = () => {
               isLoading={false}
             />
           ))
+        )}
+        
+        {/* 무한 스크롤을 위한 로더 */}
+        {hasMore && !loading && !error && (
+          <div 
+            ref={loaderRef} 
+            className="loader-container"
+          >
+            {loadingMore && (
+              <div className="loading-spinner"></div>
+            )}
+          </div>
         )}
       </div>
     </div>

@@ -15,6 +15,7 @@ const getDefaultUserInfo = (): UserInfo => {
     gender: '',
     region: '',
     interests: [],
+    political_view: '',
     birthyear: 0,
     votesCreated: 0,
     votesParticipated: 0,
@@ -75,6 +76,7 @@ export const mapToVoteTopic = (topic: any, selectedOption?: number | null): Vote
     let profile_Image = '';
     let user_grade = 0;
     let email = '';
+    let political_view = '';
     let created_at = topic.created_at || new Date().toISOString();
     let updated_at = topic.updated_at || created_at;
     
@@ -85,6 +87,7 @@ export const mapToVoteTopic = (topic: any, selectedOption?: number | null): Vote
       email = topic.users.email || '';
       created_at = topic.users.created_at || created_at;
       updated_at = topic.users.updated_at || updated_at;
+      political_view = topic.users.political_view || '';
     }
     
     // 옵션 정보 추출 및 변환
@@ -124,12 +127,14 @@ export const mapToVoteTopic = (topic: any, selectedOption?: number | null): Vote
         id: topic.user_id,
         username,
         email,
+        political_view,
         profile_Image,
         user_grade,
         created_at,
         updated_at,
         weekly_created: topic.users.weekly_created || [],
         weekly_voted: topic.users.weekly_voted || [],
+
       },
       options: options,
       selected_option: selectedOption,
@@ -197,7 +202,6 @@ export const getVoteTopics = async (userId?: string) => {
       return mapToVoteTopic(topic, selectedOption);
     });
     
-    console.log('변환된 투표 주제:', mappedTopics.length, '개');
     return mappedTopics;
   } catch (error) {
     console.error('getVoteTopics 함수 오류:', error);

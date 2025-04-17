@@ -216,4 +216,23 @@
     width: 100%;
     justify-content: space-between;
   }
+}
+
+/* 무한 스크롤 로더 스타일 */
+.loader-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 0;
+  width: 100%;
+  height: 60px;
+}
+
+.loading-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(58, 142, 255, 0.1);
+  border-radius: 50%;
+  border-top: 3px solid #3a8eff;
+  animation: spin 1s linear infinite;
 } 
