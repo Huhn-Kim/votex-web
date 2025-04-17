@@ -300,19 +300,14 @@ export default function MyPage() {
       }
 
       try {
-        // 빠른 UI 반응을 위해 데이터 로딩을 시작하면서 일정 시간 후 스켈레톤 해제
-        const timeout = setTimeout(() => {
-          setIsLoading(false);
-        }, 500); // 최대 500ms만 스켈레톤 표시
+        // 로그인된 사용자의 경우 데이터가 로드될 때까지 로딩 상태 유지
+        setIsLoading(true);
 
         const { data, error } = await supabase
           .from('users')
           .select('*, weekly_created, weekly_voted')
           .eq('id', user.id)
           .single();
-
-        // 타임아웃 클리어
-        clearTimeout(timeout);
 
         if (error) {
           throw error;
@@ -344,16 +339,22 @@ export default function MyPage() {
         setError('사용자 정보를 불러오는데 실패했습니다.');
         console.error('Error fetching user info:', err);
       } finally {
+        // 데이터 로딩이 완료되면 로딩 상태 해제
         setIsLoading(false);
       }
     };
 
-    // 초기 로딩 표시 시간 최소화
-    const minLoadingTime = setTimeout(() => {
+    // 사용자가 로그인되어 있을 때만 바로 loadUserInfo 실행
+    if (user && user.id !== 'guest') {
       loadUserInfo();
-    }, 100);
+    } else {
+      // 게스트인 경우 최소한의 딜레이 후 로딩 상태 해제
+      setIsLoading(false);
+    }
 
-    return () => clearTimeout(minLoadingTime);
+    return () => {
+      // 클린업 함수: 컴포넌트 언마운트 시 실행됨
+    };
   }, [user]);
 
   // userInfo가 설정된 후에 badges 상태 업데이트
