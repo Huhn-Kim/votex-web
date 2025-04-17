@@ -300,11 +300,19 @@ export default function MyPage() {
       }
 
       try {
+        // 빠른 UI 반응을 위해 데이터 로딩을 시작하면서 일정 시간 후 스켈레톤 해제
+        const timeout = setTimeout(() => {
+          setIsLoading(false);
+        }, 500); // 최대 500ms만 스켈레톤 표시
+
         const { data, error } = await supabase
           .from('users')
           .select('*, weekly_created, weekly_voted')
           .eq('id', user.id)
           .single();
+
+        // 타임아웃 클리어
+        clearTimeout(timeout);
 
         if (error) {
           throw error;
@@ -340,7 +348,12 @@ export default function MyPage() {
       }
     };
 
-    loadUserInfo();
+    // 초기 로딩 표시 시간 최소화
+    const minLoadingTime = setTimeout(() => {
+      loadUserInfo();
+    }, 100);
+
+    return () => clearTimeout(minLoadingTime);
   }, [user]);
 
   // userInfo가 설정된 후에 badges 상태 업데이트

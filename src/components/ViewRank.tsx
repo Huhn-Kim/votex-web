@@ -113,15 +113,29 @@ export default function ViewRank() {
     }
   }, [selectedTopicId]);
 
-  // 마운트 될 때 데이터 가져오기
+  // 마운트 될 때 데이터 가져오기 - 로딩 최적화
   useEffect(() => {
     let isMounted = true;
 
     const fetchVoteRankData = async () => {
       try {
-        setInitialLoading(true);
-        // updateRankings() 호출 제거 - 이제 서버 측 cron job으로 처리됨
+        // 데이터가 없을 경우만 로딩 표시
+        if (rankedVotes.length === 0) {
+          setInitialLoading(true);
+        }
+        
+        // 최대 500ms 동안만 로딩 표시
+        const loadingTimeout = setTimeout(() => {
+          if (isMounted) {
+            setInitialLoading(false);
+          }
+        }, 500);
+        
+        // 데이터 가져오기
         const data = await getRankedVotes(sortCriteria);
+        
+        // 타임아웃 취소
+        clearTimeout(loadingTimeout);
         
         if (isMounted && Array.isArray(data) && data.length > 0) {
           setRankedVotes(data);
@@ -137,13 +151,16 @@ export default function ViewRank() {
       }
     };
 
-    // 컴포넌트 마운트 시 한 번만 데이터 로드
-    fetchVoteRankData();
+    // 약간의 지연 후 데이터 로드 시작 (UI 반응성 향상)
+    const minLoadingTime = setTimeout(() => {
+      fetchVoteRankData();
+    }, 100);
 
     return () => {
       isMounted = false;
+      clearTimeout(minLoadingTime);
     };
-  }, [sortCriteria]);
+  }, [sortCriteria, getRankedVotes]);
 
   // 검색어가 있을 때만 필터링과 100위 제한을 위한 useMemo 수정
   const displayVotes = useMemo(() => {

@@ -20,6 +20,9 @@ const VoteList: React.FC = () => {
   
   // 스켈레톤 개수를 화면 크기에 따라 동적으로 조정
   const [skeletonCount, setSkeletonCount] = useState(6);
+  
+  // 로컬 로딩 상태 추가 (로딩 시간 제한을 위해)
+  const [localLoading, setLocalLoading] = useState(true);
 
   // 무한 스크롤 관련 상태
   const [displayedVotes, setDisplayedVotes] = useState<VoteTopic[]>([]);
@@ -236,6 +239,22 @@ const VoteList: React.FC = () => {
     console.log('더 로드 가능:', hasMore);
   }, [votes.length, displayedVotes.length, searchQuery, hasMore]);
 
+  // 로딩 상태 최적화
+  useEffect(() => {
+    // 최대 500ms 동안만 스켈레톤 표시
+    const timeout = setTimeout(() => {
+      setLocalLoading(false);
+    }, 500);
+    
+    // 실제 데이터가 로드되면 즉시 스켈레톤 제거
+    if (!loading && votes.length > 0) {
+      setLocalLoading(false);
+      clearTimeout(timeout);
+    }
+    
+    return () => clearTimeout(timeout);
+  }, [loading, votes.length]);
+
   // 스켈레톤 카드 메모이제이션
   const skeletonCards = React.useMemo(() => (
     [...Array(skeletonCount)].map((_, index) => (
@@ -299,10 +318,10 @@ const VoteList: React.FC = () => {
 
       {/* 투표 목록 */}
       <div className="vote-cards">
-        {loading && page === 1 ? (
+        {localLoading && page === 1 ? (
           // 메모이제이션된 스켈레톤 카드 사용 (초기 로딩)
           <>{skeletonCards}</>
-        ) : displayedVotes.length === 0 && !loading ? (
+        ) : displayedVotes.length === 0 && !localLoading ? (
           <div className="no-votes-message">
             {searchQuery ? (
               <p>검색 결과가 없습니다.</p>

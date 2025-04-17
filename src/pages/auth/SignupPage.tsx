@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import supabase from '../../lib/supabase';
 import { uploadImageToStorage } from '../../lib/api';
 import ConfirmModal from '../../components/ConfirmModal';
+import { FaUndo, FaRedo, FaSearchMinus, FaSearchPlus, FaSyncAlt } from 'react-icons/fa';
 
 // 이미지 편집 모달 컴포넌트
 const ImageEditorModal = ({
@@ -333,135 +334,71 @@ const ImageEditorModal = ({
   if (!isOpen || !imgSrc) return null;
 
   return (
-    <div 
-      className={styles['modal-overlay']}
-      onTouchStart={(e) => e.stopPropagation()}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div 
-        className={styles['modal-content']}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div 
-          className={styles['crop-container']} 
+    <div className={`${styles['modal-overlay']} ${isOpen ? '' : 'hidden'}`}>
+      <div className={styles['modal-content']}>
+        <div
           ref={containerRef}
+          className={styles['crop-container']}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          style={{ touchAction: 'none' }}
         >
-          {isLoading && <div className={styles.loading}>이미지 로딩 중...</div>}
-          <div className={styles['crop-preview']}>
-            <img
-              ref={imageRef}
-              src={imgSrc}
-              onLoad={handleImageLoad}
-              onMouseDown={handleMouseDown}
-              onTouchStart={() => setIsDragging(true)}
-              style={{
-                transform: `translate(${imgPosition.x}px, ${imgPosition.y}px) scale(${scale}) rotate(${rotate}deg)`,
-                transformOrigin: 'center',
-                cursor: isDragging ? 'grabbing' : 'grab',
-                userSelect: 'none',
-                touchAction: 'none',
-                WebkitUserSelect: 'none',
-                objectFit: 'none'
-              }}
-              alt="Crop preview"
-              draggable={false}
-            />
-          </div>
-          
-          {!isLoading && <div className={styles['crop-overlay']}>
-            <div 
-              className={styles['crop-frame']} 
+          {imgSrc && (
+            <div className={styles['crop-preview']}>
+              <img
+                ref={imageRef}
+                src={imgSrc}
+                alt="Profile"
+                onLoad={handleImageLoad}
+                onMouseDown={handleMouseDown}
+                style={{
+                  transform: `translate(${imgPosition.x}px, ${imgPosition.y}px) scale(${scale}) rotate(${rotate}deg)`,
+                  cursor: isDragging ? 'grabbing' : 'grab',
+                  opacity: isLoading ? 0 : 1
+                }}
+              />
+            </div>
+          )}
+
+          <div className={styles['crop-overlay']} style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}>
+            <div
+              className={styles['crop-frame']}
               style={{
                 width: '200px',
                 height: '200px',
-                aspectRatio: '1',
-                maxWidth: '200px',
-                maxHeight: '200px',
-                margin: 0,
-                padding: 0,
-                border: '2px dashed #3a8eff'
+                borderRadius: '50%',
               }}
-            ></div>
-          </div>}
+            />
+          </div>
         </div>
 
-        <div className={styles['cropper-controls']}>
+        <div className={styles['cropper-controls']} style={{ backgroundColor: '#1a1a1a' }}>
           <div className={styles['crop-control-group']}>
             <button 
               className={styles['crop-control-button']} 
-              onClick={rotateLeft} 
+              onClick={rotateLeft}
               onTouchStart={handleButtonClick}
-              onTouchEnd={(e) => {
-                e.stopPropagation();
-                rotateLeft();
-              }}
-              disabled={isLoading}
-              title="왼쪽으로 회전"
-              type="button"
             >
-              ↺
+              <FaUndo />
             </button>
-            <button 
-              className={styles['crop-control-button']} 
-              onClick={rotateRight} 
-              onTouchStart={handleButtonClick}
-              onTouchEnd={(e) => {
-                e.stopPropagation();
-                rotateRight();
-              }}
-              disabled={isLoading}
-              title="오른쪽으로 회전"
-              type="button"
-            >
-              ↻
-            </button>
-            <button 
-              className={styles['crop-control-button']} 
-              onClick={resetImage} 
-              onTouchStart={handleButtonClick}
-              onTouchEnd={(e) => {
-                e.stopPropagation();
-                resetImage();
-              }}
-              disabled={isLoading}
-              title="초기화"
-              type="button"
-            >
-              ↺↻
-            </button>
-          </div>
-
-          <div className={styles['crop-control-group']}>
+            
             <button 
               className={styles['crop-control-button']} 
               onClick={decreaseZoom}
               onTouchStart={handleButtonClick}
-              onTouchEnd={(e) => {
-                e.stopPropagation();
-                decreaseZoom();
-              }}
-              disabled={isLoading || scale <= 0.1}
-              title="축소"
-              type="button"
             >
-              -
+              <FaSearchMinus />
             </button>
             
             <input
               type="range"
-              value={scale}
-              min={0.1}
-              max={5}
-              step={0.01}
               className={styles['zoom-slider']}
-              disabled={isLoading}
+              min="0.1"
+              max="3"
+              step="0.01"
+              value={scale}
               onChange={handleZoomChange}
             />
             
@@ -469,41 +406,42 @@ const ImageEditorModal = ({
               className={styles['crop-control-button']} 
               onClick={increaseZoom}
               onTouchStart={handleButtonClick}
-              onTouchEnd={(e) => {
-                e.stopPropagation();
-                increaseZoom();
-              }}
-              disabled={isLoading || scale >= 5}
-              title="확대"
-              type="button"
             >
-              +
+              <FaSearchPlus />
+            </button>
+            
+            <button 
+              className={styles['crop-control-button']} 
+              onClick={rotateRight}
+              onTouchStart={handleButtonClick}
+            >
+              <FaRedo />
+            </button>
+            
+            <button 
+              className={styles['crop-control-button']} 
+              onClick={resetImage}
+              onTouchStart={handleButtonClick}
+            >
+              <FaSyncAlt />
             </button>
           </div>
         </div>
 
         <div className={styles['modal-buttons']}>
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }} 
+          <button
             className={styles['cancel-button']}
-            type="button"
+            onClick={onClose}
+            disabled={isSaving}
           >
             취소
           </button>
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              saveCroppedImage();
-            }} 
+          <button
             className={styles['save-button']}
+            onClick={saveCroppedImage}
             disabled={isLoading || isSaving}
-            type="button"
           >
-            {isSaving ? '처리 중...' : '적용'}
+            {isSaving ? '저장 중...' : '저장'}
           </button>
         </div>
       </div>

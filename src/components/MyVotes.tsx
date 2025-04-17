@@ -45,18 +45,36 @@ const MyVotes: React.FC = () => {
   
   console.log('MyVotes 상태:', { myVotes: myVotes.length, loading, error });
 
-  // 초기 로딩 처리
+  // 초기 로딩 처리 - 최적화
   useEffect(() => {
     const initializeData = async () => {
+      // 데이터가 없으면 가져오기
       if (myVotes.length === 0) {
         await refreshVotes();
       }
-      // 데이터 로딩이 완료되면 초기 로딩 상태를 false로 설정
-      setInitialLoading(false);
     };
 
-    initializeData();
-  }, []);
+    // 최대 로딩 시간 제한 (500ms)
+    const loadingTimeout = setTimeout(() => {
+      setInitialLoading(false);
+    }, 500);
+
+    // 데이터 로딩 시작 (약간의 지연으로 UI 처리 최적화)
+    const minLoadingTime = setTimeout(() => {
+      initializeData();
+    }, 100);
+
+    // 데이터가 이미 있는 경우 로딩 상태 즉시 해제
+    if (myVotes.length > 0) {
+      setInitialLoading(false);
+      clearTimeout(loadingTimeout);
+    }
+
+    return () => {
+      clearTimeout(loadingTimeout);
+      clearTimeout(minLoadingTime);
+    };
+  }, [myVotes.length, refreshVotes]);
 
   // useMemo를 사용하여 필터링 결과 메모이제이션
   const filteredVotes = useMemo(() => {
