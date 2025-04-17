@@ -4,6 +4,7 @@ import styles from '../../styles/AuthPage.module.css';
 import { useAuth } from '../../context/AuthContext';
 import supabase from '../../lib/supabase';
 import { uploadImageToStorage } from '../../lib/api';
+import ConfirmModal from '../../components/ConfirmModal';
 
 // 이미지 편집 모달 컴포넌트
 const ImageEditorModal = ({
@@ -385,20 +386,23 @@ const SignupPage: React.FC = () => {
 
   // isEditMode 상태 추가
   const isEditMode = !!userInfo;
+  
+  // 이메일 입력 필드 참조 생성
+  const emailInputRef = useRef<HTMLInputElement>(null);
 
-  const [email, setEmail] = useState(userInfo?.email || '');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
-  const [username, setUsername] = useState(userInfo?.username || '');
+  const [username, setUsername] = useState('');
   const [usernameError, setUsernameError] = useState<string | null>(null);
-  const [profileImage, setProfileImage] = useState(userInfo?.profile_Image || '');
-  const [gender, setGender] = useState(userInfo?.gender || '');
-  const [birthYear, setBirthYear] = useState(userInfo?.birthyear?.toString() || '');
-  const [region, setRegion] = useState(userInfo?.region || '');
-  const [phoneNumber, setPhoneNumber] = useState(userInfo?.phone_number || '');
-  const [interests, setInterests] = useState<string[]>(userInfo?.interests?.split(',') || []);
+  const [profileImage, setProfileImage] = useState('');
+  const [gender, setGender] = useState('');
+  const [birthYear, setBirthYear] = useState('');
+  const [region, setRegion] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [interests, setInterests] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showImageEditor, setShowImageEditor] = useState(false);
@@ -408,60 +412,31 @@ const SignupPage: React.FC = () => {
   const [phoneNumberError, setPhoneNumberError] = useState<string | null>(null);
   const [interestsError, setInterestsError] = useState<string | null>(null);
   
+  // 성공 모달 상태 추가
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  
   const { signUp, user } = useAuth();
   const navigate = useNavigate();
 
-  // 이메일 유효성 검사
-  const validateEmail = (email: string) => {
-    // 이메일 주소 정규화 (소문자 변환 및 공백 제거)
-    const normalizedEmail = email.toLowerCase().trim();
-    
-    // 이메일 주소에 특수 문자가 포함되어 있으면 제거
-    const sanitizedEmail = normalizedEmail.replace(/[^a-zA-Z0-9@._-]/g, '');
-    
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(sanitizedEmail)) {
-      setEmailError('유효한 이메일 주소를 입력해주세요.');
-      return false;
-    } else {
-      setEmailError(null);
-      return true;
+  // 편집 모드일 때 사용자 데이터 불러오기
+  useEffect(() => {
+    if (isEditMode && userInfo) {
+      setEmail(userInfo.email || '');
+      setUsername(userInfo.username || '');
+      setProfileImage(userInfo.profile_Image || '');
+      setGender(userInfo.gender || '');
+      setBirthYear(userInfo.birthyear?.toString() || '');
+      setRegion(userInfo.region || '');
+      setPhoneNumber(userInfo.phone_number || '');
+      setInterests(userInfo.interests?.split(',') || []);
     }
-  };
 
-  // 비밀번호 유효성 검사
-  const validatePassword = (password: string) => {
-    if (password.length < 6) {
-      setPasswordError('비밀번호는 최소 6자 이상이어야 합니다.');
-      return false;
-    } else {
-      setPasswordError(null);
-      return true;
+    // 컴포넌트가 마운트되면 이메일 입력 필드에 포커스
+    if (emailInputRef.current) {
+      emailInputRef.current.focus();
     }
-  };
-
-  // 비밀번호 확인 검증
-  const validateConfirmPassword = (confirmPassword: string) => {
-    if (confirmPassword && password !== confirmPassword) {
-      setPasswordError('비밀번호가 일치하지 않습니다.');
-      return false;
-    } else if (confirmPassword) {
-      setPasswordError(null);
-      return true;
-    }
-    return true;
-  };
-
-  // 사용자 이름 유효성 검사
-  const validateUsername = (username: string) => {
-    if (username.length < 2) {
-      setUsernameError('사용자 이름은 최소 2자 이상이어야 합니다.');
-      return false;
-    } else {
-      setUsernameError(null);
-      return true;
-    }
-  };
+  }, [isEditMode, userInfo]);
 
   // 이미지 선택 핸들러
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -545,63 +520,68 @@ const SignupPage: React.FC = () => {
     
     console.log('회원가입 버튼 클릭됨');
     
-    // 모든 필수 필드 검증
-    const isEmailValid = validateEmail(email);
-    const isUsernameValid = validateUsername(username);
+    // 에러 상태 초기화
+    setEmailError(null);
+    setPasswordError(null);
+    setUsernameError(null);
+    setGenderError(null);
+    setRegionError(null);
+    setPhoneNumberError(null);
+    setInterestsError(null);
     
-    // 편집 모드가 아닐 때만 비밀번호 유효성 검사 수행
-    let isPasswordValid = true;
-    let isConfirmPasswordValid = true;
-    if (!isEditMode) {
-      isPasswordValid = validatePassword(password);
-      isConfirmPasswordValid = validateConfirmPassword(confirmPassword);
+    // 이메일 유효성 검사
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email.trim())) {
+      setEmailError('유효한 이메일 주소를 입력해주세요.');
+      return;
     }
     
-    console.log('유효성 검사 결과:', {
-      isEmailValid,
-      isPasswordValid,
-      isConfirmPasswordValid,
-      isUsernameValid,
-      emailError,
-      passwordError,
-      usernameError
-    });
+    // 편집 모드가 아닐 때만 비밀번호 유효성 검사 수행
+    if (!isEditMode) {
+      // 비밀번호 유효성 검사
+      if (password.length < 6) {
+        setPasswordError('비밀번호는 최소 6자 이상이어야 합니다.');
+        return;
+      }
+      
+      // 비밀번호 확인 검증
+      if (password !== confirmPassword) {
+        setPasswordError('비밀번호가 일치하지 않습니다.');
+        return;
+      }
+    } else if (password && password !== confirmPassword) {
+      // 편집 모드에서 비밀번호를 입력한 경우
+      setPasswordError('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    
+    // 사용자 이름 유효성 검사
+    if (username.length < 2) {
+      setUsernameError('사용자 이름은 최소 2자 이상이어야 합니다.');
+      return;
+    }
     
     // 성별 검증
     if (!gender) {
       setGenderError('성별을 선택해주세요');
       return;
-    } else {
-      setGenderError(null);
     }
     
     // 지역 검증
     if (!region) {
       setRegionError('지역을 선택해주세요');
       return;
-    } else {
-      setRegionError(null);
     }
     
     // 휴대폰 번호 검증
     if (!phoneNumber) {
       setPhoneNumberError('휴대폰 번호를 입력해주세요');
       return;
-    } else {
-      setPhoneNumberError(null);
     }
     
     // 관심 분야 검증
     if (interests.length === 0) {
       setInterestsError('관심 분야를 선택해주세요');
-      return;
-    } else {
-      setInterestsError(null);
-    }
-    
-    // 이메일, 비밀번호, 사용자 이름 오류가 있으면 회원가입 중단
-    if (emailError || passwordError || usernameError) {
-      console.log('유효성 검사 오류:', { emailError, passwordError, usernameError });
       return;
     }
     
@@ -624,7 +604,6 @@ const SignupPage: React.FC = () => {
       if (isEditMode) {
         // 프로필 편집 모드
         const updateData: any = {
-          email,
           username,
           profile_Image: profileImage,
           gender,
@@ -645,23 +624,26 @@ const SignupPage: React.FC = () => {
           .eq('id', userInfo.id);
 
         if (updateError) {
-          setError('사용자 정보 업데이트에 실패했습니다.');
+          console.error('SignupPage: 사용자 정보 업데이트 실패', updateError);
+          setError('사용자 정보 업데이트에 실패했습니다: ' + updateError.message);
+          setLoading(false);
           return;
         }
 
-        setError('사용자 정보가 성공적으로 업데이트되었습니다.');
-        navigate('/mypage'); // 업데이트 후 MyPage로 리다이렉트
+        // 성공 메시지 설정 및 모달 표시
+        setSuccessMessage('프로필이 성공적으로 업데이트되었습니다.');
+        setShowSuccessModal(true);
       } else {
         // 1. 이메일 중복 체크
         const { data: existingUser, error: checkError } = await supabase
           .from('users')
           .select('id')
           .eq('email', email)
-          .single();
+          .maybeSingle();  // single 대신 maybeSingle 사용
         
-        if (checkError && checkError.code !== 'PGRST116') {
+        if (checkError) {
           console.error('SignupPage: 이메일 중복 체크 오류', checkError);
-          setError('이메일 중복 확인 중 오류가 발생했습니다.');
+          setError('이메일 중복 확인 중 오류가 발생했습니다: ' + checkError.message);
           setLoading(false);
           return;
         }
@@ -673,7 +655,28 @@ const SignupPage: React.FC = () => {
           return;
         }
         
-        // 2. Supabase Auth로 회원가입
+        // 2. 사용자 이름 중복 체크 추가
+        const { data: existingUsername, error: usernameCheckError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('username', username)
+          .maybeSingle();
+          
+        if (usernameCheckError) {
+          console.error('SignupPage: 사용자 이름 중복 체크 오류', usernameCheckError);
+          setError('사용자 이름 중복 확인 중 오류가 발생했습니다: ' + usernameCheckError.message);
+          setLoading(false);
+          return;
+        }
+        
+        if (existingUsername) {
+          console.error('SignupPage: 사용자 이름 중복', existingUsername);
+          setUsernameError('이미 사용 중인 사용자 이름입니다.');
+          setLoading(false);
+          return;
+        }
+        
+        // 3. Supabase Auth로 회원가입
         console.log('signUp 함수 호출 전:', { email, password });
         
         // 직접 signUp 함수 호출
@@ -691,6 +694,9 @@ const SignupPage: React.FC = () => {
             setPasswordError('비밀번호 형식이 올바르지 않습니다.');
           } else if (signUpError.message?.includes('email rate limit exceeded')) {
             setError('이메일 인증 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.');
+          } else if (signUpError.code === '23505' && signUpError.message?.includes('users_username_key')) {
+            // 사용자 이름 중복 오류 추가 처리
+            setUsernameError('이미 사용 중인 사용자 이름입니다.');
           } else {
             setError(signUpError.message || '회원가입에 실패했습니다.');
           }
@@ -713,97 +719,58 @@ const SignupPage: React.FC = () => {
           }
         }
         
-        // 3. users 테이블에 사용자 정보 저장 전에 이메일 중복 확인
-        const { data: existingUserInDB, error: checkErrorInDB } = await supabase
-          .from('users')
-          .select('id')
-          .eq('email', email)
-          .single();
-        
-        if (checkErrorInDB && checkErrorInDB.code !== 'PGRST116') {
-          console.error('SignupPage: users 테이블 이메일 중복 체크 오류', checkErrorInDB);
-          setError('이메일 중복 확인 중 오류가 발생했습니다.');
+        // 새 사용자 ID 확인
+        if (!authData?.id) {
+          console.error('SignupPage: 사용자 ID를 받지 못했습니다');
+          setError('회원가입 처리 중 오류가 발생했습니다.');
           setLoading(false);
           return;
         }
         
-        if (existingUserInDB) {
-          console.log('SignupPage: 이미 users 테이블에 존재하는 이메일', existingUserInDB);
-          // 이미 존재하는 경우 업데이트 수행
-          const now = new Date().toISOString();
-          const { error: updateError } = await supabase
-            .from('users')
-            .update({
-              username: username,
-              profile_Image: profileImageUrl,
-              gender: gender,
-              password: password,
-              birthyear: parseInt(birthYear),
-              region: region,
-              phone_number: phoneNumber || null,
-              interests: interests.join(','),
-              updated_at: now
-            })
-            .eq('id', existingUserInDB.id);
-          
-          if (updateError) {
-            console.error('SignupPage: 사용자 정보 업데이트 실패', updateError);
-            setError('사용자 정보 업데이트에 실패했습니다.');
-            setLoading(false);
-            return;
-          }
-          
-          console.log('SignupPage: 사용자 정보 업데이트 성공');
-        } else {
-          // 4. users 테이블에 사용자 정보 저장
-          const now = new Date().toISOString();
-          const { error: insertError } = await supabase
-            .from('users')
-            .insert({
-              id: authData.user?.id || crypto.randomUUID(),
-              email: email,
-              username: username,
-              password: password,
-              profile_Image: profileImageUrl,
-              gender: gender,
-              birthyear: parseInt(birthYear),
-              region: region,
-              phone_number: phoneNumber || null,
-              interests: interests.join(','),
-              user_grade: 1,
-              total_points: 0,
-              monthly_points: 0,
-              votesCreated: 0,
-              votesParticipated: 0,
-              created_at: now,
-              updated_at: now
-            });
-          
-          if (insertError) {
-            console.error('SignupPage: 사용자 정보 저장 실패', insertError);
-            setError('사용자 정보 저장에 실패했습니다.');
-            setLoading(false);
-            return;
-          }
-          
-          console.log('SignupPage: 사용자 정보 저장 성공');
+        // 4. users 테이블에 사용자 정보 업데이트
+        const now = new Date().toISOString();
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({
+            username: username,
+            profile_Image: profileImageUrl,
+            gender: gender,
+            birthyear: parseInt(birthYear),
+            region: region,
+            phone_number: phoneNumber || null,
+            interests: interests.join(','),
+            updated_at: [now]  // 배열로 변경
+          })
+          .eq('id', authData.id);
+        
+        if (updateError) {
+          console.error('SignupPage: 사용자 정보 업데이트 실패', updateError);
+          setError('사용자 정보 저장에 실패했습니다: ' + updateError.message);
+          setLoading(false);
+          return;
         }
         
-        setError('회원가입이 완료되었습니다. 로그인해주세요.');
+        console.log('SignupPage: 사용자 정보 저장 성공');
         
-        // 4. 로그인 페이지로 리다이렉트
-        try {
-          console.log('SignupPage: 로그인 페이지로 리다이렉트 시도');
-          navigate('/auth');
-        } catch (error) {
-          console.error('SignupPage: 리다이렉트 오류', error);
-        }
+        // 성공 메시지 설정 및 모달 표시
+        setSuccessMessage('회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.');
+        setShowSuccessModal(true);
       }
     } catch (err) {
       console.error('SignupPage: 예외 발생', err);
-      setError('알 수 없는 오류가 발생했습니다.');
+      setError('알 수 없는 오류가 발생했습니다. 개발자 도구의 콘솔을 확인해주세요.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 성공 모달 확인 버튼 처리 함수
+  const handleSuccessConfirm = () => {
+    setShowSuccessModal(false);
+    if (isEditMode) {
+      navigate('/mypage');
+    } else {
+      navigate('/auth');
     }
   };
 
@@ -819,19 +786,19 @@ const SignupPage: React.FC = () => {
           <div className={styles.inputGroup}>
             <label htmlFor="email">이메일 *</label>
             <input
+              ref={emailInputRef}
               type="email"
               id="email"
               value={email}
               onChange={(e) => {
-                // 이메일 주소에서 특수 문자 제거
-                const sanitizedValue = e.target.value.replace(/[^a-zA-Z0-9@._-]/g, '');
-                setEmail(sanitizedValue.toLowerCase().trim());
+                // 이메일 입력 처리 간소화
+                setEmail(e.target.value);
               }}
-              onBlur={() => validateEmail(email)}
               onFocus={() => setEmailError(null)}
               required
               className={`${styles.input} ${emailError ? styles.inputError : ''}`}
               placeholder="이메일을 입력하세요"
+              autoFocus
             />
             {emailError && <div className={styles.errorMessage}>{emailError}</div>}
           </div>
@@ -845,7 +812,6 @@ const SignupPage: React.FC = () => {
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onBlur={() => validatePassword(password)}
               onFocus={() => setPasswordError(null)}
               required={!isEditMode}
               className={`${styles.input} ${passwordError ? styles.inputError : ''}`}
@@ -868,7 +834,6 @@ const SignupPage: React.FC = () => {
               id="confirmPassword"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              onBlur={() => validateConfirmPassword(confirmPassword)}
               onFocus={() => setPasswordError(null)}
               required={!isEditMode}
               className={`${styles.input} ${passwordError ? styles.inputError : ''}`}
@@ -884,7 +849,6 @@ const SignupPage: React.FC = () => {
               id="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              onBlur={() => validateUsername(username)}
               onFocus={() => setUsernameError(null)}
               required
               className={`${styles.input} ${usernameError ? styles.inputError : ''}`}
@@ -924,7 +888,7 @@ const SignupPage: React.FC = () => {
                     <button
                       type="button"
                       className={styles.imageButton}
-                      onClick={() => setProfileImage(null)}
+                      onClick={() => setProfileImage('')}
                     >
                       삭제
                     </button>
@@ -1017,14 +981,14 @@ const SignupPage: React.FC = () => {
           </div>
           
           <div className={styles.inputGroup}>
-            <label htmlFor="phoneNumber">휴대폰번호</label>
+            <label htmlFor="phoneNumber">휴대폰번호 *</label>
             <input
               type="tel"
               id="phoneNumber"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               className={`${styles.input} ${phoneNumberError ? styles.inputError : ''}`}
-              placeholder="휴대폰번호를 입력하세요 (선택사항)"
+              placeholder="휴대폰번호를 입력하세요"
             />
             {phoneNumberError && <div className={styles.errorMessage}>{phoneNumberError}</div>}
           </div>
@@ -1090,6 +1054,18 @@ const SignupPage: React.FC = () => {
           setProfileImage(croppedImage);
           closeImageEditor();
         }}
+      />
+
+      {/* 성공 모달 추가 */}
+      <ConfirmModal
+        isOpen={showSuccessModal}
+        onClose={() => handleSuccessConfirm()}
+        onConfirm={handleSuccessConfirm}
+        title={isEditMode ? "프로필 업데이트 완료" : "회원가입 성공"}
+        message={successMessage}
+        confirmButtonText="확인"
+        confirmButtonVariant="primary"
+        cancelButtonText=""
       />
     </div>
   );
