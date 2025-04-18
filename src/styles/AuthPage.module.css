@@ -2,7 +2,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
+  min-height: 50vh;
   padding: 0;
   background-color: #121212;
 }
@@ -10,7 +10,7 @@
 .authBox {
   width: 100%;
   max-width: 100%;
-  padding: 10px 20px;
+  padding: 30px 20px;
   margin: 0 auto;
   background-color: #1a1a1a;
   border-radius: 12px;

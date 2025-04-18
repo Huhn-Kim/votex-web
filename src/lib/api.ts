@@ -356,6 +356,7 @@ export const updateVoteTopic = async (topicData: VoteTopicUpdateData): Promise<V
       .update({
         question: topicData.question,
         link: topicData.link,
+        type: topicData.type,
         display_type: topicData.display_type,
         expires_at: topicData.expires_at,
         visible: topicData.visible,
@@ -587,7 +588,6 @@ export const getMyVotes = async (userId: string): Promise<VoteTopic[]> => {
 
 export const createVoteTopic = async (voteData: VoteTopicCreateData): Promise<VoteTopic> => {
   try {
-    console.log('createVoteTopic 함수 호출됨:', voteData);
     
     // 현재 로그인 상태 확인
     const { data: { session } } = await supabase.auth.getSession();
@@ -623,6 +623,7 @@ export const createVoteTopic = async (voteData: VoteTopicCreateData): Promise<Vo
         user_id: voteData.user_id,
         question: voteData.question,
         link: voteData.link,
+        type: voteData.type,
         display_type: voteData.display_type,
         related_image: relatedImageUrl,
         expires_at: voteData.expires_at,
@@ -650,13 +651,11 @@ export const createVoteTopic = async (voteData: VoteTopicCreateData): Promise<Vo
         if (imageUrl) {
           if (imageUrl.startsWith('data:')) {
             try {
-              console.log(`옵션 이미지 업로드 시도: ${option.text}`);
               imageUrl = await uploadImageToStorage(imageUrl);
               console.log(`옵션 이미지 업로드 성공: ${imageUrl}`);
             } catch (error) {
               console.error(`옵션 이미지 업로드 실패: ${option.text}`, error);
               // 이미지 업로드 실패 시에도 계속 진행 (이미지 없이 옵션 생성)
-              console.log(`옵션 이미지 업로드 실패로 이미지 없이 옵션을 생성합니다: ${option.text}`);
               imageUrl = '';
             }
           } else if (!imageUrl.includes('supabase.co/storage')) {

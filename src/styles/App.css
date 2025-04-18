@@ -134,7 +134,7 @@ body {
 .content {
   flex: 1;
   padding: 0px;
-  padding-bottom: 80px;
+  padding-bottom: 50px;
   padding-top: 16px; /* 헤더가 사라질 때 콘텐츠 위 공간 확보 */
 }
 
@@ -146,7 +146,7 @@ body {
 
 /* 내투표 페이지 */
 .my-votes-page {
-  padding-bottom: 50px;
+  padding-bottom: 30px;
   background-color: #000;
 }
 

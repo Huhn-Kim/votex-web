@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import LoadingOverlay from './LoadingOverlay';
 import supabase from '../lib/supabase'; // Supabase 클라이언트 import
 import ConfirmModal from './ConfirmModal';
+import { formatUrl } from '../utils/formatUrl'; // URL 포맷팅 유틸리티 함수 import
 
 interface CreateVoteProps {
   isEditMode?: boolean;
@@ -76,6 +77,8 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
   const [originalVote, setOriginalVote] = useState<VoteTopic | null>(null);
   const [questionImage, setQuestionImage] = useState<string | null>(null);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  // 주제 카테고리 선택을 위한 상태 추가
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   
   // 이미지 편집 관련 상태
   const [showImageEditor, setShowImageEditor] = useState(false);
@@ -140,6 +143,23 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
 
   CustomInput.displayName = 'CustomInput';
 
+  // 관심분야 옵션 추가
+  const interestOptions = [
+    { id: 'politics', label: '정치' },
+    { id: 'economy', label: '경제' },
+    { id: 'society', label: '사회' },
+    { id: 'technology', label: '기술' },
+    { id: 'culture', label: '문화' },
+    { id: 'sports', label: '스포츠' },
+    { id: 'food', label: '음식' },
+    { id: 'learning', label: '학습' },
+    { id: 'automotive', label: '자동차' },
+    { id: 'fashion', label: '패션' },
+    { id: 'art', label: '예술' },
+    { id: 'music', label: '음악' },
+    { id: 'realestate', label: '부동산' }
+  ];
+
   // 투표 데이터 불러오기 함수
   const loadVoteData = async (voteId: number) => {
     try {
@@ -172,6 +192,11 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
         image_class: option.image_class || ''
       }));
       setOptions(voteOptions);
+      
+      // 카테고리 데이터 로드
+      if (voteData.type) {
+        setSelectedCategory(voteData.type);
+      }
       
     } catch (err: any) {
       console.error('투표 데이터를 불러오는 중 오류 발생:', err);
@@ -1034,29 +1059,34 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
     );
   };
 
-  // URL 형식 검증 및 변환 함수
-  const formatUrl = (url: string): string => {
-    if (!url) return '';
-    
-    // URL이 http:// 또는 https://로 시작하지 않으면 http://를 추가
-    if (!url.match(/^https?:\/\//i)) {
-      return `http://${url}`;
-    }
-    
-    return url;
-  };
-
   // 폼 제출 처리
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // user 체크만 수행
+    // user 체크 수행
     if (!user?.id) {
       setError('로그인이 필요합니다. 다시 로그인해주세요.');
       navigate('/login', { 
         state: { from: location.pathname },
         replace: true
       });
+      return;
+    }
+    
+    // 입력 폼 유효성 검사
+    if (!question.trim()) {
+      setError('질문을 입력해주세요');
+      return;
+    }
+    
+    if (options.some(option => !option.text.trim())) {
+      setError('모든 선택지를 입력해주세요');
+      return;
+    }
+    
+    // 카테고리 선택 검증 추가
+    if (!selectedCategory) {
+      setError('주제 카테고리를 선택해주세요');
       return;
     }
     
@@ -1093,8 +1123,8 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
       setProgress(0);
       setProgressStatus("투표 카드 생성 준비 중...");
       
-      // URL 형식 변환
-      const formattedSourceLink = formatUrl(sourceLink);
+      // URL 형식 변환 - 빈 문자열도 허용하도록 수정
+      const formattedSourceLink = sourceLink ? formatUrl(sourceLink) : '';
       
       // 만료 시간 설정
       const expiryDate = new Date();
@@ -1150,13 +1180,7 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
       const processedOptions = await Promise.all(
         options.map(async (option, index) => {
           let image_url = option.image_url;
-          
-          console.log(`옵션 ${index+1} 이미지 상태 (업로드 전):`, {
-            hasImage: !!option.image_url,
-            imageStart: option.image_url ? option.image_url.substring(0, 30) + '...' : 'none',
-            isBase64: option.image_url ? option.image_url.startsWith('data:') : false
-          });
-          
+                    
           // 수정된 이미지가 Base64 데이터인 경우 Storage에 업로드
           if (option.image_url && option.image_url.startsWith('data:')) {
             try {
@@ -1195,6 +1219,7 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
             vote_period: votePeriod,
             visible: originalVote.visible,
             related_image: questionMediaUrl || undefined,
+            type: selectedCategory, // type 속성에 선택한 카테고리 설정
             options: processedOptions.map(opt => ({
               id: opt.id || 0,
               text: opt.text,
@@ -1205,10 +1230,9 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
               age_stats: opt.age_stats || {} as VoteOption['age_stats'],
               topic_id: currentVoteId,
               votes: opt.votes || 0
-            }))
+            })),
           };
           
-          console.log('투표 업데이트 요청 데이터:', updateData);
           const result = await updateVoteTopic(updateData);
           console.log('투표 업데이트 결과:', result);
           
@@ -1245,9 +1269,11 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
           if (updateError) {
             console.error('weekly_created 업데이트 중 오류 발생:', updateError);
           }
-          setModalTitle('투표 수정 완료');
-          setModalMessage('투표가 성공적으로 수정되었습니다!');
-          setShowSuccessModal(true);
+          
+          // 수정한 투표 ID를 세션 스토리지에 저장
+          sessionStorage.setItem('lastViewedVoteAnalysisId', currentVoteId.toString());
+          
+          // 바로 MyVotes 페이지로 이동
           navigate('/my-votes');
           
         } catch (error) {
@@ -1258,27 +1284,11 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
         }
       } else {
         setProgress(80);
-        
-        console.log('투표 생성 데이터:', {
-          user_id: user?.id,
-          question,
-          options: processedOptions.map(option => ({
-            text: option.text,
-            image_url: option.image_url || '',
-            image_class: 'default',
-            topic_id: 0,
-            votes: 0
-          })),
-          related_image: questionMediaUrl || undefined,
-          display_type: optionType === 'image' ? 'image' : 'text',
-          expires_at: selectedDate ? selectedDate.toISOString() : expiryDate.toISOString(),
-          visible: true,
-          vote_period: votePeriod
-        });
-        
+               
         const result = await addVote({
           user_id: user?.id,
           question,
+          link: formattedSourceLink,
           options: processedOptions.map(option => ({
             text: option.text,
             image_url: option.image_url || '',
@@ -1291,15 +1301,18 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
           expires_at: selectedDate ? selectedDate.toISOString() : expiryDate.toISOString(),
           visible: true,
           vote_period: votePeriod,
+          type: selectedCategory, // type 속성에 선택한 카테고리 설정
         });
-        console.log('투표 생성 결과:', result);
         
         if (result) {
           setProgress(100);
-          setModalTitle('투표 생성 완료');
-          setModalMessage('투표가 성공적으로 생성되었습니다!');
-          setShowSuccessModal(true);
           
+          // 새로 생성된 투표 ID를 세션 스토리지에 저장
+          sessionStorage.setItem('lastViewedVoteAnalysisId', result.id.toString());
+          
+          // 바로 MyVotes 페이지로 이동
+          navigate('/my-votes');
+
           // 투표 생성 후 weekly_created 값 증가
           const { data, error: fetchError } = await supabase
             .from('users')
@@ -1334,7 +1347,6 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
           setSelectedPeriod('1주일');
           setSelectedDate(null);
           setQuestionImage(null);
-          navigate('/my-votes');
         }
       }
     } catch (err: any) {
@@ -1362,6 +1374,9 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
     return () => {
       if (navigationTimeoutRef.current) {
         clearTimeout(navigationTimeoutRef.current);
+      }
+      if (successModalTimerRef.current) {
+        clearTimeout(successModalTimerRef.current);
       }
     };
   }, []);
@@ -1558,10 +1573,17 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
   };
 
   // 새로운 상태 변수 추가
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [modalTitle, setModalTitle] = useState('');
+  
+  // 성공 모달 자동 닫기 타이머 ref 추가
+  const successModalTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 카테고리 선택 핸들러 추가
+  const handleCategorySelect = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+  };
 
   return (
     <div className={styles['create-vote-container']}>
@@ -1871,6 +1893,25 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
           </div>
         </div>
         
+        <div className={styles['form-group']}>
+          <label className={styles['required-label']}>주제 카테고리</label>
+          <div className={styles['categories-container']}>
+            {interestOptions.map((category) => (
+              <button
+                key={category.id}
+                type="button"
+                className={`${styles['category-btn']} ${selectedCategory === category.id ? styles.selected : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCategorySelect(category.id);
+                }}
+              >
+                {category.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        
         <div className={styles['form-actions']}>
           <button type="button" className={styles['cancel-btn']} onClick={() => navigate('/my-votes')}>취소</button>
           <button type="submit" className={styles['submit-btn']} disabled={loading || isGuest}>
@@ -1888,23 +1929,6 @@ const CreateVote: React.FC<CreateVoteProps> = ({ isEditMode = false, voteId }) =
         confirmButtonText="확인"
         confirmButtonVariant="danger"
         cancelButtonText={undefined}  // 취소 버튼 자체를 제거
-      />
-
-      <ConfirmModal
-        isOpen={showSuccessModal}
-        onClose={() => {
-          setShowSuccessModal(false);
-          navigate('/my-votes');
-        }}
-        onConfirm={() => {
-          setShowSuccessModal(false);
-          navigate('/my-votes');
-        }}
-        title={modalTitle}
-        message={modalMessage}
-        confirmButtonText="확인"
-        confirmButtonVariant="primary"
-        cancelButtonText=""
       />
 
       <ConfirmModal

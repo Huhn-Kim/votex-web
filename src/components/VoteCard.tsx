@@ -337,12 +337,14 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, url, title, de
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [kakaoInitialized, setKakaoInitialized] = useState(false);
   
+  const kakaoAppKey = '713c95bab7e3a87150f162188af5cb8f';
+  
   // 카카오톡 SDK 초기화
   useEffect(() => {
     if (isOpen && !kakaoInitialized && window.Kakao) {
       try {
         if (!window.Kakao.isInitialized()) {
-          window.Kakao.init('713c95bab7e3a87150f162188af5cb8f');
+          window.Kakao.init(kakaoAppKey);
         }
         setKakaoInitialized(true);
         console.log('카카오 SDK 초기화 성공');
@@ -367,7 +369,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, url, title, de
       script.onload = () => {
         try {
           if (window.Kakao && !window.Kakao.isInitialized()) {
-            window.Kakao.init('713c95bab7e3a87150f162188af5cb8f');
+            window.Kakao.init(kakaoAppKey); //카카오 네이티브앱 키
           }
           setKakaoInitialized(true);
           console.log('카카오 SDK 스크립트 로드 성공');
@@ -414,25 +416,44 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, url, title, de
           return;
         }
 
+        // 공유 모달은 캡처에서 제외하기 위해 모달을 임시로 숨기기
+        const modalElement = document.querySelector('.share-modal');
+        if (modalElement) {
+          modalElement.classList.add('hide-for-capture');
+        }
+
         // 결과 바와 투표 수 등은 제외하고 캡처하기 위해 임시 클래스 추가
         cardElement.classList.add('capture-mode');
         
         try {
-          // 이미지 생성 - 타입 안전성 보장을 위해 타입 단언 사용
+          // 이미지 생성 - 최적화된 설정 사용
           const canvas = await html2canvas(cardElement as HTMLElement, {
-            scale: 2, // 고해상도
+            scale: 1.5, // 해상도 조정
             backgroundColor: "#1e1e1e", // 배경색
-            logging: true, // 디버깅을 위해 로깅 활성화
+            logging: false, // 불필요한 로깅 비활성화
             allowTaint: true,
-            useCORS: true
+            useCORS: true,
+            width: cardElement.offsetWidth,
+            height: cardElement.offsetHeight,
+            imageTimeout: 15000, // 이미지 로드 타임아웃 증가
+            // 공유 모달을 제외하는 옵션
+            ignoreElements: (element) => {
+              return element.classList?.contains('share-modal-overlay') || 
+                     element.classList?.contains('share-modal');
+            }
           });
           
-          // Canvas를 이미지로 변환
-          const imageData = canvas.toDataURL('image/png');
+          // Canvas를 이미지로 변환 - 이미지 품질 조정
+          const imageData = canvas.toDataURL('image/jpeg', 0.8);
           setCardImage(imageData);
           
           // 임시 클래스 제거
           cardElement.classList.remove('capture-mode');
+          
+          // 숨겨진 모달 요소 다시 표시
+          if (modalElement) {
+            modalElement.classList.remove('hide-for-capture');
+          }
           
           // 이미지 생성 후 실제 공유 로직 호출
           performShare(platform, imageData);
@@ -440,6 +461,13 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, url, title, de
           console.error('이미지 생성 오류:', error);
           // 이미지 생성 실패 시에도 일반 공유 시도
           performShare(platform);
+          
+          // 캡처 상태에서 복원
+          cardElement.classList.remove('capture-mode');
+          const modalElement = document.querySelector('.share-modal');
+          if (modalElement) {
+            modalElement.classList.remove('hide-for-capture');
+          }
         } finally {
           setIsGeneratingImage(false);
         }
@@ -456,21 +484,34 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, url, title, de
 
   // base64 이미지를 ImgBB API를 통해 호스팅 이미지로 변환하는 함수
   const uploadImageToHost = async (base64Image: string): Promise<string | null> => {
-    // 실제 프로덕션에서는 환경 변수나 안전한 방법으로 API 키를 관리해야 합니다
-    const API_KEY = '7606e0b797f3cbc08fd94e3a8bb87972'; // ImgBB 무료 API 키
-    
-    // base64 이미지에서 헤더 제거 (data:image/png;base64, 부분)
-    const base64Data = base64Image.split(',')[1];
+    // API 키 업데이트
+    const API_KEY = 'e4f799c968e10a9bb10925a705ef807b'; // 새로운 ImgBB API 키
     
     try {
+      // base64 이미지에서 헤더 제거 (data:image/png;base64, 부분)
+      const base64Data = base64Image.split(',')[1];
+      
+      if (!base64Data) {
+        console.error('잘못된 이미지 데이터 형식');
+        return null;
+      }
+      
+      // 이미지 크기 줄이기 (이미지 품질 조정)
       const formData = new FormData();
       formData.append('key', API_KEY);
       formData.append('image', base64Data);
+      
+      console.log('이미지 업로드 시작...');
       
       const response = await fetch('https://api.imgbb.com/1/upload', {
         method: 'POST',
         body: formData
       });
+      
+      if (!response.ok) {
+        console.error('이미지 업로드 API 응답 오류:', response.status, response.statusText);
+        return null;
+      }
       
       const data = await response.json();
       
@@ -512,38 +553,43 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, url, title, de
               hasLinkAPI: !!window.Kakao.Link
             });
 
-            // 이미지가 있는 경우 업로드 시도
-            let imageUrl = '';
+            // 기본 이미지 URL 지정 (서버의 정적 이미지)
+            const defaultImageUrl = window.location.origin + '/votey_icon2.png';
+            let imageUrl = defaultImageUrl;
             
             if (image) {
-              console.log('생성된 이미지를 카카오톡 공유에 사용합니다');
-              // ImgBB 서비스에 이미지 업로드 시도
-              const hostedImageUrl = await uploadImageToHost(image);
-              
-              if (hostedImageUrl) {
-                imageUrl = hostedImageUrl;
-                console.log('업로드된 이미지 URL:', imageUrl);
-              } else {
-                // 업로드 실패 시 기본 이미지 사용
-                imageUrl = window.location.origin + '/votey_icon2.png';
-                console.log('이미지 업로드 실패, 기본 이미지 사용:', imageUrl);
+              try {
+                console.log('생성된 이미지를 카카오톡 공유에 사용합니다');
+                // 이미지 업로드 없이 직접 이미지 사용 시도
+                const hostedImageUrl = await uploadImageToHost(image);
+                
+                if (hostedImageUrl) {
+                  imageUrl = hostedImageUrl;
+                  console.log('업로드된 이미지 URL:', imageUrl);
+                } else {
+                  console.log('이미지 업로드 실패, 기본 이미지 사용:', defaultImageUrl);
+                }
+              } catch (uploadError) {
+                console.error('이미지 처리 오류, 기본 이미지 사용:', uploadError);
               }
             } else {
-              // 이미지가 없는 경우 기본 이미지 사용
-              imageUrl = window.location.origin + '/votey_icon2.png';
-              console.log('이미지 없음, 기본 이미지 사용:', imageUrl);
+              console.log('이미지 없음, 기본 이미지 사용:', defaultImageUrl);
             }
             
-            // 카카오 공유 데이터 구성
+            // 카카오 공유 데이터 구성 업데이트
             const kakaoShareData = {
               objectType: 'feed',
               content: {
                 title: title.length > 40 ? title.substring(0, 40) + '...' : title,
                 description: description.length > 45 ? description.substring(0, 45) + '...' : description,
-                imageUrl: imageUrl,
+                ...(imageUrl ? { imageUrl } : {}),
                 link: {
                   mobileWebUrl: url,
-                  webUrl: url
+                  webUrl: url,
+                  // 앱 URL 스킴 추가 - 앱이 있는 경우 앱으로 연결
+                  mobileExecParams: `votey_id=${url.split('/').pop()}`,
+                  androidExecParams: `votey_id=${url.split('/').pop()}`,
+                  iosExecParams: `votey_id=${url.split('/').pop()}`
                 }
               },
               buttons: [
@@ -551,26 +597,82 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, url, title, de
                   title: '투표하기',
                   link: {
                     mobileWebUrl: url,
-                    webUrl: url
+                    webUrl: url,
+                    // 앱 URL 스킴 추가 - 앱이 있는 경우 앱으로 연결
+                    mobileExecParams: `votey_id=${url.split('/').pop()}`,
+                    androidExecParams: `votey_id=${url.split('/').pop()}`,
+                    iosExecParams: `votey_id=${url.split('/').pop()}`
                   }
                 }
-              ]
+              ],
+              // 앱이 설치되어 있지 않은 경우 마켓으로 이동
+              installTalk: true
             };
             
             console.log('카카오톡 공유 데이터:', kakaoShareData);
             
             // SDK 버전에 따라 다른 API 사용
             if (window.Kakao.Share) {
-              window.Kakao.Share.sendDefault(kakaoShareData);
+              await window.Kakao.Share.sendDefault(kakaoShareData);
             } else if (window.Kakao.Link) {
-              window.Kakao.Link.sendDefault(kakaoShareData);
+              await window.Kakao.Link.sendDefault(kakaoShareData);
             } else {
               console.error('카카오톡 공유 API를 찾을 수 없습니다');
               alert('카카오톡 공유 기능을 사용할 수 없습니다.');
             }
           } catch (error) {
             console.error('카카오톡 공유 실패:', error);
-            alert('카카오톡 공유 중 오류가 발생했습니다.');
+            // 오류 메시지 개선
+            let errorMessage = '카카오톡 공유 중 오류가 발생했습니다.';
+            
+            // 이미지 관련 오류인 경우 구체적인 메시지 표시
+            if (String(error).includes('image') || String(error).includes('img')) {
+              errorMessage = '이미지 처리 중 오류가 발생했습니다. 이미지 없이 공유해보세요.';
+            }
+            
+            alert(errorMessage);
+            
+            // 이미지 없이 다시 시도
+            try {
+              const kakaoShareDataWithoutImage = {
+                objectType: 'feed',
+                content: {
+                  title: title.length > 40 ? title.substring(0, 40) + '...' : title,
+                  description: description.length > 45 ? description.substring(0, 45) + '...' : description,
+                  link: {
+                    mobileWebUrl: url,
+                    webUrl: url,
+                    // 앱 URL 스킴 추가 - 앱이 있는 경우 앱으로 연결
+                    mobileExecParams: `votey_id=${url.split('/').pop()}`,
+                    androidExecParams: `votey_id=${url.split('/').pop()}`,
+                    iosExecParams: `votey_id=${url.split('/').pop()}`
+                  }
+                },
+                buttons: [
+                  {
+                    title: '투표하기',
+                    link: {
+                      mobileWebUrl: url,
+                      webUrl: url,
+                      // 앱 URL 스킴 추가 - 앱이 있는 경우 앱으로 연결
+                      mobileExecParams: `votey_id=${url.split('/').pop()}`,
+                      androidExecParams: `votey_id=${url.split('/').pop()}`,
+                      iosExecParams: `votey_id=${url.split('/').pop()}`
+                    }
+                  }
+                ]
+              };
+              
+              console.log('이미지 없이 다시 시도:', kakaoShareDataWithoutImage);
+              
+              if (window.Kakao.Share) {
+                await window.Kakao.Share.sendDefault(kakaoShareDataWithoutImage);
+              } else if (window.Kakao.Link) {
+                await window.Kakao.Link.sendDefault(kakaoShareDataWithoutImage);
+              }
+            } catch (retryError) {
+              console.error('이미지 없이 공유 재시도 실패:', retryError);
+            }
           }
         } else {
           alert('카카오톡 SDK가 로드되지 않았습니다.');
@@ -636,7 +738,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, url, title, de
                 <div className="image-actions">
                   <button 
                     className="image-action-btn download"
-                    onClick={() => performShare('download', cardImage)}
+                    onClick={() => shareToSocial('download')}
                     title="이미지 다운로드"
                   >
                     다운로드
@@ -1238,9 +1340,6 @@ const VoteCard: React.FC<VoteCardProps> = ({
   // 공유 관련 상태 추가
   const [showShareModal, setShowShareModal] = useState(false);
   // 모바일 디바이스 확인
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    typeof navigator !== 'undefined' ? navigator.userAgent : ''
-  );
 
   // 기존 onClick 핸들러를 대체하는 새 핸들러 추가
   const handleEditClick = async () => {
@@ -1393,25 +1492,12 @@ const VoteCard: React.FC<VoteCardProps> = ({
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    const shareUrl = `${window.location.origin}/vote/${topicState.id}`;
-    const shareTitle = `${topicState.question} - VoteY 투표`;
-    const shareText = `${topicState.question}에 대한 투표에 참여해보세요!`;
+    // const shareUrl = `${window.location.origin}/vote/${topicState.id}`;
+    // const shareTitle = `${topicState.question} - VoteY 투표`;
+    // const shareText = `${topicState.question}에 대한 투표에 참여해보세요!`;
     
-    // 네이티브 공유 API 지원 확인
-    if (navigator.share && isMobile) {
-      navigator.share({
-        title: shareTitle,
-        text: shareText,
-        url: shareUrl,
-      }).then(() => {
-        console.log('네이티브 공유 성공');
-      }).catch((error) => {
-        console.error('공유 실패:', error);
-        setShowShareModal(true); // 실패 시 커스텀 모달 표시
-      });
-    } else {
-      setShowShareModal(true); // 네이티브 API 미지원 시 커스텀 모달 표시
-    }
+    // 항상 커스텀 공유 모달 사용
+    setShowShareModal(true);
   };
 
   // 카드 참조 추가

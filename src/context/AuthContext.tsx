@@ -33,27 +33,142 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // 초기 인증 상태 확인
     const checkUser = async () => {
       try {
+        // Supabase 세션 확인
+        const { data: sessionData } = await supabase.auth.getSession();
+        const session = sessionData.session;
+
         // 로컬 스토리지에서 사용자 정보 확인
         const storedUser = localStorage.getItem('userInfo');
+        
         if (storedUser) {
           try {
             const parsedUser = JSON.parse(storedUser);
-            setUser(parsedUser);
-            console.log('AuthContext: 로컬 스토리지에서 사용자 정보 로드', parsedUser);
+            
+            // 세션이 있고, 로컬 스토리지의 사용자 ID와 일치하는지 확인
+            if (session && session.user && session.user.id === parsedUser.id) {
+              console.log('AuthContext: 유효한 세션 확인됨', { userId: parsedUser.id });
+              setUser(parsedUser);
+            } else {
+              // 세션이 없거나 ID가 불일치하면 로컬 스토리지 데이터 삭제
+              console.log('AuthContext: 세션 불일치 또는 만료됨', { 
+                hasSession: !!session,
+                sessionUserId: session?.user?.id,
+                storedUserId: parsedUser.id 
+              });
+              localStorage.removeItem('userInfo');
+              setUser(null);
+            }
           } catch (e) {
             console.error('AuthContext: 로컬 스토리지 파싱 오류', e);
             localStorage.removeItem('userInfo');
+            setUser(null);
           }
+        } else if (session && session.user) {
+          // 로컬 스토리지에 데이터는 없지만 유효한 세션이 있는 경우
+          // users 테이블에서 사용자 정보 가져오기
+          console.log('AuthContext: 세션은 있지만 로컬 데이터 없음, 사용자 정보 조회');
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+            
+          if (!userError && userData) {
+            // 사용자 정보 설정
+            const userInfo: UserInfo = {
+              ...userData,
+              password: ''
+            };
+            
+            console.log('AuthContext: 세션에서 사용자 정보 복원', userInfo);
+            setUser(userInfo);
+            localStorage.setItem('userInfo', JSON.stringify(userInfo));
+          } else {
+            console.error('AuthContext: 세션 사용자 정보 조회 실패', userError);
+            setUser(null);
+          }
+        } else {
+          // 세션도 없고 로컬 데이터도 없는 경우
+          console.log('AuthContext: 세션 및 로컬 데이터 없음');
+          setUser(null);
         }
       } catch (error) {
         console.error('AuthContext: 초기 인증 상태 확인 오류:', error);
+        setUser(null);
+        localStorage.removeItem('userInfo');
       } finally {
         setLoading(false);
       }
     };
 
     checkUser();
-  }, []);
+    
+    // Supabase 인증 상태 변경 리스너 설정
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('AuthContext: 인증 상태 변경 이벤트', event, !!session);
+        
+        if (event === 'SIGNED_OUT') {
+          // 로그아웃 이벤트
+          setUser(null);
+          localStorage.removeItem('userInfo');
+        } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
+          // 로그인 이벤트 또는 토큰 갱신 이벤트
+          // 현재 상태를 확인하기 위해 최신 user 상태 가져오기
+          const currentUser = localStorage.getItem('userInfo');
+          const hasUser = !!currentUser;
+          
+          if (!hasUser) {
+            try {
+              const { data: userData, error: userError } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+                
+              if (!userError && userData) {
+                const userInfo: UserInfo = {
+                  ...userData,
+                  password: ''
+                };
+                
+                console.log('AuthContext: 세션 이벤트로 사용자 정보 설정', userInfo);
+                setUser(userInfo);
+                localStorage.setItem('userInfo', JSON.stringify(userInfo));
+              }
+            } catch (error) {
+              console.error('AuthContext: 사용자 정보 조회 실패', error);
+            }
+          }
+        }
+      }
+    );
+    
+    // 컴포넌트 언마운트 시 리스너 정리
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []); // user 의존성 제거
+  
+  // 15초마다 세션 확인 - 세션 만료 상태를 더 빠르게 감지하기 위한 추가 메커니즘
+  useEffect(() => {
+    const sessionCheckInterval = setInterval(async () => {
+      if (user) { // 로그인 상태일 때만 확인
+        try {
+          const { data } = await supabase.auth.getSession();
+          if (!data.session) {
+            console.log('AuthContext: 주기적 검사에서 세션 만료 감지');
+            setUser(null);
+            localStorage.removeItem('userInfo');
+          }
+        } catch (error) {
+          console.error('AuthContext: 세션 확인 중 오류 발생', error);
+        }
+      }
+    }, 15000); // 15초 간격
+    
+    return () => clearInterval(sessionCheckInterval);
+  }, [user]);
 
   const signIn = async (email: string, password: string) => {
     try {

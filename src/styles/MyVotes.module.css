@@ -9,6 +9,13 @@
   position: relative;
 }
 
+/* 투표 카드 컨테이너 스타일 추가 */
+.vote-card-container {
+  margin: 0;
+  padding: 0;
+  display: block;
+}
+
 /* 로딩 컨테이너 */
 .loading-container {
   display: flex;
@@ -95,9 +102,9 @@
 
 /* 투표 카드 그리드 */
 .vote-cards {
-  display: grid;
-  gap: 5px;
-  grid-template-columns: 1fr;
+  display: flex;
+  gap: 10px;
+  flex-direction: column;
 }
 
 /* 투표 없음 메시지 */

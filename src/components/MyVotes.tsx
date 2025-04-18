@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import '../styles/MyVotes.module.css';
+import styles from '../styles/MyVotes.module.css';
 import '../styles/TabStyles.css';
 import VoteCard from './VoteCard';
 import VoteSkeletonCard from './VoteSkeletonCard';
@@ -48,6 +48,12 @@ const MyVotes: React.FC = () => {
   // 초기 로딩 처리 - 최적화
   useEffect(() => {
     const initializeData = async () => {
+      // 사용자 ID가 없으면(게스트 사용자) 데이터 로딩 시도하지 않음
+      if (!userId) {
+        setInitialLoading(false);
+        return;
+      }
+      
       // 데이터가 없으면 가져오기
       if (myVotes.length === 0) {
         await refreshVotes();
@@ -74,10 +80,18 @@ const MyVotes: React.FC = () => {
       clearTimeout(loadingTimeout);
       clearTimeout(minLoadingTime);
     };
-  }, [myVotes.length, refreshVotes]);
+  }, [myVotes.length, refreshVotes, userId]);
 
   // useMemo를 사용하여 필터링 결과 메모이제이션
   const filteredVotes = useMemo(() => {
+    // 게스트 사용자이거나 userId가 없는 경우 빈 배열 반환
+    if (!userId) {
+      return {
+        created: [],
+        participated: []
+      };
+    }
+    
     return {
       created: myVotes.filter(vote => vote.user_id === userId),
       participated: myVotes.filter(vote => 
@@ -271,7 +285,7 @@ const MyVotes: React.FC = () => {
   const renderVoteList = (votes: VoteTopic[]) => {
     if (votes.length === 0) {
       return (
-        <div className="no-votes-message">
+        <div className={styles['no-votes-message']}>
           <p>{activeTab === 'created' ? '생성한 투표가 없습니다.' : '참여한 투표가 없습니다.'}</p>
         </div>
       );
@@ -281,7 +295,7 @@ const MyVotes: React.FC = () => {
       <div 
         key={topic.id} 
         id={`vote-card-${topic.id}`}
-        className={`vote-card-container ${lastViewedVoteId === topic.id.toString() ? 'last-viewed' : ''}`}
+        className={`${styles['vote-card-container']} ${lastViewedVoteId === topic.id.toString() ? styles['last-viewed'] : ''}`}
       >
         <VoteCard 
           topic={topic}
@@ -314,7 +328,7 @@ const MyVotes: React.FC = () => {
   }, [activeTab]);
 
   return (
-    <div className="my-votes-container">
+    <div className={styles['my-votes-container']}>
       {/* 탭 메뉴 - 클래스명을 공통 스타일과 일치시킴 */}
       <div className="vote-tabs">
         <div className="tab-list">
@@ -335,14 +349,14 @@ const MyVotes: React.FC = () => {
 
       {/* 로딩 상태와 진행률 표시 */}
       {loading && (
-        <div className="loading-container">
+        <div className={styles['loading-container']}>
           {progress > 0 && (
-            <div className="progress-container">
+            <div className={styles['progress-container']}>
               <div 
-                className="progress-bar" 
+                className={styles['progress-bar']} 
                 style={{ width: `${progress}%` }}
               ></div>
-              <div className="progress-text">
+              <div className={styles['progress-text']}>
                 {progressStatus} ({progress}%)
               </div>
             </div>
@@ -352,27 +366,27 @@ const MyVotes: React.FC = () => {
 
       {/* 에러 메시지 */}
       {error && (
-        <div className="error-container">
-          <p className="error-message">{error}</p>
-          <button className="retry-button" onClick={refreshVotes}>
+        <div className={styles['error-container']}>
+          <p className={styles['error-message']}>{error}</p>
+          <button className={styles['retry-button']} onClick={refreshVotes}>
             다시 시도
           </button>
         </div>
       )}
 
-      <div className="vote-card-list">
+      <div className={styles['vote-card-list']}>
         {initialLoading ? (
           // 초기 로딩 시에만 스켈레톤 UI 표시
-          <div className="vote-cards">
+          <div className={styles['vote-cards']}>
             {skeletonCards}
           </div>
         ) : (
           // 데이터 로딩이 완료된 후
-          <div className="vote-cards">
+          <div className={styles['vote-cards']}>
             {(activeTab === 'created' && filteredVotes.created.length === 0) || 
              (activeTab === 'participated' && filteredVotes.participated.length === 0) ? (
               // 데이터가 없는 경우 메시지 표시
-              <div className="no-votes-message">
+              <div className={styles['no-votes-message']}>
                 <p>{activeTab === 'created' ? '생성한 투표가 없습니다.' : '참여한 투표가 없습니다.'}</p>
               </div>
             ) : (

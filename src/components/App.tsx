@@ -31,6 +31,7 @@ export const useSearchModal = () => {
   return context;
 };
 
+
 function App() {
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const lastScrollY = useRef(0);
@@ -244,6 +245,5 @@ function NavBar() {
       </Link>
     </footer>
   );
-}
+}export default App 
 
-export default App 

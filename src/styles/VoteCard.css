@@ -1030,7 +1030,7 @@
 }
 
 .management-section .vote-info {
-  margin-bottom: 15px;
+  margin-bottom: 10px;
 }
 
 .management-divider {
@@ -1147,7 +1147,6 @@ img {
   margin-top: 4px;
   font-size: 13px;
 }
-
 
 .vote-status {
   padding: 2px 6px;
@@ -1411,7 +1410,7 @@ img {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   border-bottom: 1px solid #333;
   padding-bottom: 10px;
 }
@@ -1568,7 +1567,7 @@ img {
 @media (max-width: 480px) {
   .share-modal {
     width: 95%;
-    padding: 15px;
+    padding: 10px;
     margin-bottom: 70px; /* 하단 네비게이션에 가려지지 않도록 마진 추가 */
   }
   
@@ -1665,4 +1664,31 @@ img {
 .generate-image-btn:disabled {
   background: #555;
   cursor: not-allowed;
+}
+
+/* 로딩 스피너 스타일 */
+.loading-spinner-small {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s infinite linear;
+  margin-left: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 캡처 시 숨기기 위한 클래스 */
+.hide-for-capture {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  position: fixed !important;
+  top: -9999px !important;
+  left: -9999px !important;
 }

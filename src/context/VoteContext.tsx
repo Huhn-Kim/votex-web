@@ -205,19 +205,91 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     console.log('VoteContext 마운트됨, 사용자 ID:', userId);
     
-    // 투표 목록은 로그인 여부와 관계없이 항상 불러옴
-    fetchVotes();
+    const initializeData = async () => {
+      try {
+        // 모든 투표 데이터 불러오기
+        await fetchVotes();
+        
+        // 로그인한 경우에만 사용자 관련 데이터 불러오기
+        if (userId) {
+          await fetchMyVotes();
+          await loadUserVotes(); // 사용자 투표 정보 로드
+          
+          // 홈 화면에 표시되는 모든 투표에 대한 사용자 반응 정보 한번에 로드
+          await loadAllUserReactions();
+        } else {
+          console.log('로그인하지 않은 상태, 사용자 관련 데이터는 로드하지 않음');
+        }
+      } finally {
+        // 로드 상태 종료
+        setLoading(false);
+      }
+    };
     
-    // 로그인한 경우에만 사용자 관련 데이터 불러오기
-    if (userId) {
-      fetchMyVotes();
-      loadUserVotes(); // 사용자 투표 정보도 함께 로드
-    } else {
-      console.log('로그인하지 않은 상태, 사용자 관련 데이터는 로드하지 않음');
-      // 로드 상태 종료
-      setLoading(false);
-    }
+    initializeData();
   }, [userId]); // userId가 변경될 때마다 실행
+  
+  // 모든 표시되는 투표에 대한 사용자 반응 정보를 한 번에 로드하는 함수
+  const loadAllUserReactions = async () => {
+    try {
+      // userId가 비어있으면 로드하지 않음
+      if (!userId) {
+        console.log('loadAllUserReactions: userId가 비어있어 로드하지 않음');
+        return;
+      }
+      
+      console.log('모든 투표에 대한 사용자 반응 정보 로드 시작');
+      
+      // vote_results 테이블에서 현재 사용자의 모든 반응 데이터 가져오기
+      const { data, error } = await supabase
+        .from('vote_results')
+        .select('topic_id, option_id, like_kind')
+        .eq('user_id', userId);
+        
+      if (error) {
+        console.error('사용자 반응 정보 로드 실패:', error);
+        return;
+      }
+      
+      if (!data || data.length === 0) {
+        console.log('사용자 반응 정보가 없음');
+        return;
+      }
+      
+      console.log(`${data.length}개의 사용자 반응 정보를 로드함`);
+      
+      // 사용자 반응 정보를 상태에 저장
+      const newReactionsMap = new Map<number, { liked: boolean }>();
+      const votedItemsMap = new Map<number, number | null>();
+      
+      data.forEach(item => {
+        // 좋아요 정보 처리
+        newReactionsMap.set(item.topic_id, { liked: item.like_kind === 'like' });
+        
+        // 선택한 옵션 정보 처리
+        if (item.option_id) {
+          votedItemsMap.set(item.topic_id, item.option_id);
+        }
+      });
+      
+      // 상태 업데이트
+      setUserReactions(newReactionsMap);
+      setUserVotes(votedItemsMap);
+      
+      // 투표 목록에도 선택한 옵션 정보 반영
+      setVotes(prevVotes => prevVotes.map(vote => {
+        const optionId = votedItemsMap.get(vote.id);
+        if (optionId !== undefined) {
+          return { ...vote, selected_option: optionId };
+        }
+        return vote;
+      }));
+      
+      console.log('모든 투표에 대한 사용자 반응 정보 로드 완료');
+    } catch (err) {
+      console.error('모든 사용자 반응 정보 로드 실패:', err);
+    }
+  };
   
   // 에러 메시지 자동 제거를 위한 useEffect
   useEffect(() => {
@@ -341,6 +413,7 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         dislikes: 0,
         comments: 0,
         link: vote.link || '',
+        type: vote.type || '',
         question: vote.question || '제목 없음',
         display_type: vote.display_type || 'text',
         related_image: vote.related_image,
@@ -536,6 +609,7 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         id: Number(vote.id),
         question: vote.question,
         link: vote.link,
+        type: vote.type,
         display_type: vote.display_type as 'text' | 'image',
         expires_at: vote.expires_at,
         vote_period: vote.vote_period,
@@ -577,12 +651,31 @@ export const VoteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  // 데이터 새로고침 함수
+  // 투표 새로고침 함수
   const refreshVotes = async () => {
-    setLoading(true); // 로딩 시작
-    await fetchVotes();
-    await fetchMyVotes();
-    setLoading(false); // 로딩 종료
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // 모든 투표와 내 투표 새로고침
+      await fetchVotes();
+      
+      if (userId) {
+        // 유저 정보가 있는 경우 마이 페이지 투표 정보도 함께 로드
+        await fetchMyVotes();
+        // 사용자 반응 정보도 함께 로드
+        await loadAllUserReactions();
+      }
+      
+      console.log('투표 데이터 새로고침 완료');
+      
+      // 로딩 상태 해제
+      setLoading(false);
+    } catch (err) {
+      console.error('투표 데이터 새로고침 중 오류 발생:', err);
+      setError('투표 데이터를 새로고침하는 중 오류가 발생했습니다.');
+      setLoading(false);
+    }
   };
   
   // 투표 삭제 함수 수정

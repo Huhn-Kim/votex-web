@@ -137,23 +137,6 @@ const VoteList: React.FC = () => {
     });
   }, [user, participatedVoteIds]);
 
-  // 검색어나 투표 목록이 변경되면 처음부터 다시 로드
-  useEffect(() => {
-    if (loading) return; // 로딩 중일 때는 실행하지 않음
-    
-    setDisplayedVotes([]);
-    setPage(1);
-    setHasMore(true);
-    
-    // 초기 데이터 로드
-    const sortedVotes = prioritizeVotes(votes);
-    const initialBatch = sortedVotes.slice(0, PAGE_SIZE);
-    setDisplayedVotes(initialBatch);
-    setPage(prev => prev + 1);
-    setHasMore(initialBatch.length < sortedVotes.length);
-    
-  }, [searchQuery, votes, prioritizeVotes]); // votes가 바뀔 때만 재정렬
-
   // 사용자 정보 변경(로그인/로그아웃)이나 검색어 변경 시만 정렬 로직 재실행하기 위한 메모이제이션
   const memoizedPrioritizeVotes = useCallback((votes: VoteTopic[]): VoteTopic[] => {
     console.log('우선순위 기반 정렬 함수 실행됨');
@@ -177,6 +160,23 @@ const VoteList: React.FC = () => {
     // 초기 로드 시에만 우선순위에 따라 정렬하고, 이후에는 투표해도 순서 유지
     return memoizedPrioritizeVotes(result);
   }, [votes, searchQuery, memoizedPrioritizeVotes]);
+
+  // 검색어나 투표 목록이 변경되면 처음부터 다시 로드
+  useEffect(() => {
+    if (loading) return; // 로딩 중일 때는 실행하지 않음
+    
+    setDisplayedVotes([]);
+    setPage(1);
+    setHasMore(true);
+    
+    // 초기 데이터 로드
+    const sortedVotes = filteredVotes();
+    const initialBatch = sortedVotes.slice(0, PAGE_SIZE);
+    setDisplayedVotes(initialBatch);
+    setPage(prev => prev + 1);
+    setHasMore(initialBatch.length < sortedVotes.length);
+    
+  }, [searchQuery, votes, filteredVotes]); // 의존성 배열에 filteredVotes 포함
 
   // loadMoreVotes를 별도로 호출하지 않고 인터섹션 옵저버에서만 사용
   useEffect(() => {

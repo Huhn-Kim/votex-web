@@ -121,7 +121,7 @@ export default function ViewRank() {
       try {
         // 데이터가 없을 경우만 로딩 표시
         if (rankedVotes.length === 0) {
-          setInitialLoading(true);
+        setInitialLoading(true);
         }
         
         // 최대 500ms 동안만 로딩 표시
@@ -153,7 +153,7 @@ export default function ViewRank() {
 
     // 약간의 지연 후 데이터 로드 시작 (UI 반응성 향상)
     const minLoadingTime = setTimeout(() => {
-      fetchVoteRankData();
+    fetchVoteRankData();
     }, 100);
 
     return () => {

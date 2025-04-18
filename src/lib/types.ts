@@ -163,6 +163,7 @@ export interface VoteTopicUpdateData {
   question?: string;
   link?: string;
   display_type?: string;
+  type?: string;
   expires_at?: string;
   visible?: boolean;
   related_image?: string;

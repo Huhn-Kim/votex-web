@@ -694,6 +694,8 @@ export default function MyPage() {
   const handleSignOut = async () => {
     try {
       await signOut();
+      // 로그아웃 후 즉시 userInfo를 null로 설정
+      setUserInfo(null);
       navigate('/mypage');
     } catch (err) {
       console.error('Error signing out:', err);
