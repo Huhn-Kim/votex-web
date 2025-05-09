@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import '../styles/VoteList.css';
 import VoteCard from './VoteCard';
 import VoteSkeletonCard from './VoteSkeletonCard';
@@ -28,9 +28,12 @@ const VoteList: React.FC = () => {
   const [displayedVotes, setDisplayedVotes] = useState<VoteTopic[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const loaderRef = useRef<HTMLDivElement>(null);
-  const PAGE_SIZE = 20;
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const PAGE_SIZE = 50;
+
+  // 스크롤 위치 저장을 위한 ref 추가
+  const lastScrollPosition = useRef(0);
 
   // URL에서 검색 쿼리 파라미터 가져오기
   const location = useLocation();
@@ -144,10 +147,9 @@ const VoteList: React.FC = () => {
   }, [user, participatedVoteIds]); // user 객체가 바뀌면 재정렬
 
   // 필터링 및 정렬된 투표 목록
-  const filteredVotes = useCallback(() => {
+  const filteredVotes = useMemo(() => {
     let result = votes as VoteTopic[];
     
-    // 검색어가 있는 경우 검색어로 필터링
     if (searchQuery) {
       result = result.filter(vote => 
         vote.question.toLowerCase().includes(searchQuery.toLowerCase()) && 
@@ -157,79 +159,115 @@ const VoteList: React.FC = () => {
       return result;
     }
     
-    // 초기 로드 시에만 우선순위에 따라 정렬하고, 이후에는 투표해도 순서 유지
     return memoizedPrioritizeVotes(result);
   }, [votes, searchQuery, memoizedPrioritizeVotes]);
 
-  // 검색어나 투표 목록이 변경되면 처음부터 다시 로드
+  // 스크롤 이벤트 핸들러
+  const handleScroll = useCallback(() => {
+    if (!containerRef.current || isLoadingMore || !hasMore) return;
+
+    const container = containerRef.current;
+    const currentScrollPosition = container.scrollTop;
+    const scrollPosition = currentScrollPosition + container.clientHeight;
+    const scrollHeight = container.scrollHeight;
+    
+    // 스크롤이 끝에 도달했는지 확인 (20px 이내)
+    if (scrollHeight - scrollPosition <= 20) {
+      // 현재 스크롤 위치 저장
+      lastScrollPosition.current = currentScrollPosition;
+      setIsLoadingMore(true);
+      
+      // 다음 페이지 데이터 로드
+      const loadMore = async () => {
+        try {
+          const sortedVotes = filteredVotes;
+          const startIndex = page * PAGE_SIZE;
+          const endIndex = (page + 1) * PAGE_SIZE;
+          
+          // 더 로드할 항목이 있는지 확인
+          if (startIndex >= sortedVotes.length) {
+            setHasMore(false);
+            setIsLoadingMore(false);
+            return;
+          }
+          
+          // 현재 페이지에 해당하는 항목 가져오기
+          const nextBatch = sortedVotes.slice(startIndex, endIndex);
+          
+          // 중복 체크를 위한 Set 생성
+          const existingIds = new Set(displayedVotes.map(vote => vote.id));
+
+          // 중복되지 않은 새로운 항목만 필터링
+          const uniqueNewVotes = nextBatch.filter(vote => !existingIds.has(vote.id));
+          
+          // 표시할 투표 목록에 추가
+          setDisplayedVotes(prev => [...prev, ...uniqueNewVotes]);
+          
+          setPage(prev => prev + 1);
+          
+          // 더 로드할 항목이 있는지 확인
+          if (endIndex >= sortedVotes.length) {
+            setHasMore(false);
+          }
+
+          // 스크롤 위치 복원을 위한 타이밍 조정
+          requestAnimationFrame(() => {
+            if (containerRef.current) {
+              containerRef.current.scrollTop = lastScrollPosition.current;
+            }
+          });
+        } catch (error) {
+          console.error('Error loading more votes:', error);
+          setHasMore(false); // 에러 발생 시 더 이상 로드하지 않음
+        } finally {
+          // 로딩 상태 업데이트를 약간 지연시켜 깜빡임 방지
+          setTimeout(() => {
+            setIsLoadingMore(false);
+          }, 300);
+        }
+      };
+      
+      loadMore();
+    }
+  }, [isLoadingMore, hasMore, page, filteredVotes, displayedVotes]);
+
+  // 스크롤 이벤트 리스너 설정 (디바운스 적용)
   useEffect(() => {
-    if (loading) return; // 로딩 중일 때는 실행하지 않음
+    const container = containerRef.current;
+    if (!container) return;
+
+    let timeoutId: NodeJS.Timeout;
+    let isScrolling = false;
     
-    setDisplayedVotes([]);
-    setPage(1);
-    setHasMore(true);
+    const debouncedScroll = () => {
+      if (isScrolling) return;
+      isScrolling = true;
+      
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        handleScroll();
+        isScrolling = false;
+      }, 200); // 200ms로 디바운스 시간 증가
+    };
+
+    container.addEventListener('scroll', debouncedScroll);
+    return () => {
+      container.removeEventListener('scroll', debouncedScroll);
+      clearTimeout(timeoutId);
+    };
+  }, [handleScroll]);
+
+  // 초기 데이터 로드
+  useEffect(() => {
+    if (loading) return;
     
-    // 초기 데이터 로드
-    const sortedVotes = filteredVotes();
+    const sortedVotes = filteredVotes;
     const initialBatch = sortedVotes.slice(0, PAGE_SIZE);
     setDisplayedVotes(initialBatch);
-    setPage(prev => prev + 1);
+    setPage(1);
     setHasMore(initialBatch.length < sortedVotes.length);
     
-  }, [searchQuery, votes, filteredVotes]); // 의존성 배열에 filteredVotes 포함
-
-  // loadMoreVotes를 별도로 호출하지 않고 인터섹션 옵저버에서만 사용
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
-          // 여기서만 loadMoreVotes 호출
-          const loadMore = () => {
-            if (loadingMore || !hasMore) return;
-            
-            setLoadingMore(true);
-            
-            const sortedVotes = filteredVotes();
-            const startIndex = (page - 1) * PAGE_SIZE;
-            const endIndex = page * PAGE_SIZE;
-            
-            // 더 로드할 항목이 있는지 확인
-            if (startIndex >= sortedVotes.length) {
-              setHasMore(false);
-              setLoadingMore(false);
-              return;
-            }
-            
-            // 현재 페이지에 해당하는 항목 가져오기
-            const nextBatch = sortedVotes.slice(startIndex, endIndex);
-            
-            // 표시할 투표 목록에 추가
-            setDisplayedVotes(prev => [...prev, ...nextBatch]);
-            setPage(prev => prev + 1);
-            setLoadingMore(false);
-            
-            // 더 로드할 항목이 있는지 확인
-            if (endIndex >= sortedVotes.length) {
-              setHasMore(false);
-            }
-          };
-          
-          loadMore();
-        }
-      },
-      { threshold: 0.1 }
-    );
-    
-    if (loaderRef.current) {
-      observer.observe(loaderRef.current);
-    }
-    
-    return () => {
-      if (loaderRef.current) {
-        observer.unobserve(loaderRef.current);
-      }
-    };
-  }, [loaderRef, hasMore, loadingMore, loading, page, filteredVotes]);
+  }, [searchQuery, votes, filteredVotes]);
 
   // 디버깅을 위한 로그 추가
   useEffect(() => {
@@ -263,7 +301,7 @@ const VoteList: React.FC = () => {
   ), [skeletonCount]);
 
   return (
-    <div className="vote-card-list">
+    <div className="vote-card-list" ref={containerRef}>
       {/* 검색 결과 표시 */}
       {searchQuery && (
         <div className="search-result-info">
@@ -273,7 +311,7 @@ const VoteList: React.FC = () => {
               <span className="search-term">{searchQuery}</span>
             </div>
             <div className="search-count">
-              검색 결과: {filteredVotes().length}개
+              검색 결과: {filteredVotes.length}개
             </div>
           </div>
           <div className="search-buttons">
@@ -319,7 +357,6 @@ const VoteList: React.FC = () => {
       {/* 투표 목록 */}
       <div className="vote-cards">
         {localLoading && page === 1 ? (
-          // 메모이제이션된 스켈레톤 카드 사용 (초기 로딩)
           <>{skeletonCards}</>
         ) : displayedVotes.length === 0 && !localLoading ? (
           <div className="no-votes-message">
@@ -330,29 +367,38 @@ const VoteList: React.FC = () => {
             )}
           </div>
         ) : (
-          // 표시할 투표 목록
-          displayedVotes.map(topic => (
-            <VoteCard 
-              key={topic.id} 
-              topic={topic} 
-              onVote={updateVote}
-              onLike={() => handleLike(topic.id)}
-              alwaysShowResults={participatedVoteIds.includes(topic.id)}
-              isLoading={false}
-            />
-          ))
-        )}
-        
-        {/* 무한 스크롤을 위한 로더 */}
-        {hasMore && !loading && !error && (
-          <div 
-            ref={loaderRef} 
-            className="loader-container"
-          >
-            {loadingMore && (
-              <div className="loading-spinner"></div>
+          <>
+            {displayedVotes.map(topic => (
+              <VoteCard 
+                key={topic.id} 
+                topic={topic} 
+                onVote={updateVote}
+                onLike={() => handleLike(topic.id)}
+                alwaysShowResults={participatedVoteIds.includes(topic.id)}
+                isLoading={false}
+              />
+            ))}
+            
+            {/* 로딩 인디케이터 */}
+            {isLoadingMore && (
+              <div 
+                className="loader-container"
+                style={{ 
+                  height: '50px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'sticky',
+                  bottom: 0,
+                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                  backdropFilter: 'blur(5px)',
+                  zIndex: 1
+                }}
+              >
+                <div className="loading-spinner"></div>
+              </div>
             )}
-          </div>
+          </>
         )}
       </div>
     </div>
